@@ -1,39 +1,22 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import VeriplotSvg from "../../modules/Icons/VeriplotIcon";
-import heroImage from "../../assets/Hero-background.png?url";
+import heroImage from "../../assets/Hero-background.png";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
 }
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
-  // Use the imported image with ?url suffix
-  console.log("Hero image imported:", heroImage);
-
   return (
     <div className="min-h-screen flex">
       {/* Left Section - Background Image and Branding */}
-      <div
-        className="w-2/5 relative bg-cover bg-center bg-no-repeat bg-gray-800"
-        style={{
-          backgroundImage: `url(${heroImage})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          minHeight: "100vh",
-        }}
-      >
-        {/* Debug: Test image loading with img element */}
+      <div className="w-2/5 relative bg-cover bg-center bg-no-repeat bg-gray-800">
         <img
           src={heroImage}
           alt="Hero background"
-          className="absolute inset-0 w-full h-full object-cover opacity-0"
-          onLoad={() => console.log("Image loaded successfully")}
-          onError={() => console.log("Image failed to load")}
+          className="absolute inset-0 w-full h-full object-cover"
         />
-
-        {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
 
         {/* Logo */}
         <Link to="/" className="relative z-10 p-8">

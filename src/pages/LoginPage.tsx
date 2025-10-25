@@ -1,18 +1,19 @@
 import { useState } from "react";
 import AuthLayout from "../components/auth components/AuthLayout";
 import LoginForm from "../components/auth components/LoginForm";
-// TODO: Import other auth components when created
-// import ForgotPasswordForm from '../components/auth components/ForgotPasswordForm';
-// import OtpComponent from '../components/auth components/OtpComponent';
-// import ResetPasswordForm from '../components/auth components/ResetPasswordForm';
+import ForgotPasswordForm from "../components/auth components/ForgotPasswordForm";
+import OtpComponent from "../components/auth components/OtpComponent";
+import ResetPasswordForm from "../components/auth components/ResetPasswordForm";
 
 type AuthStep = "login" | "forgot" | "otp" | "reset";
 
 const LoginPage = () => {
   const [currentStep, setCurrentStep] = useState<AuthStep>("login");
+  const [userEmail, setUserEmail] = useState<string>("");
 
   const handleLoginSuccess = (email: string) => {
     console.log("Login successful for:", email);
+    setUserEmail(email);
     setCurrentStep("otp");
   };
 
@@ -20,21 +21,68 @@ const LoginPage = () => {
     setCurrentStep("forgot");
   };
 
+  const handleForgotPasswordSubmit = (email: string) => {
+    setUserEmail(email);
+    setCurrentStep("otp");
+  };
+
+  const handleOtpVerified = () => {
+    setCurrentStep("reset");
+  };
+
+  const handlePasswordReset = () => {
+    setCurrentStep("login");
+    setUserEmail("");
+  };
+
+  const handleBackToLogin = () => {
+    setCurrentStep("login");
+    setUserEmail("");
+  };
+
+  const handleOtpBack = () => {
+    setCurrentStep("login");
+    setUserEmail("");
+  };
+
   const renderStepComponent = () => {
     switch (currentStep) {
       case "login":
-        return <LoginForm onForgot={handleForgotPassword} onSuccess={handleLoginSuccess} />;
+        return (
+          <LoginForm
+            onForgot={handleForgotPassword}
+            onSuccess={handleLoginSuccess}
+          />
+        );
       case "forgot":
-        // TODO: Return ForgotPasswordForm component
-        return <div>Forgot Password Form - TODO</div>;
+        return (
+          <ForgotPasswordForm
+            onOtp={(email: string) => handleForgotPasswordSubmit(email)}
+            onBack={handleBackToLogin}
+          />
+        );
       case "otp":
-        // TODO: Return OtpComponent
-        return <div>OTP Component - TODO</div>;
+        return (
+          <OtpComponent
+            email={userEmail}
+            onBack={handleOtpBack}
+            onVerified={handleOtpVerified}
+          />
+        );
       case "reset":
-        // TODO: Return ResetPasswordForm component
-        return <div>Reset Password Form - TODO</div>;
+        return (
+          <ResetPasswordForm
+            onBack={() => setCurrentStep("otp")}
+            onDone={handlePasswordReset}
+          />
+        );
       default:
-        return <LoginForm onForgot={handleForgotPassword} onSuccess={handleLoginSuccess} />;
+        return (
+          <LoginForm
+            onForgot={handleForgotPassword}
+            onSuccess={handleLoginSuccess}
+          />
+        );
     }
   };
 
