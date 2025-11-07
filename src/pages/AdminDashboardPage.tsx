@@ -112,7 +112,6 @@ const AdminDashboardPage = () => {
               "Transactions",
               "Notifications",
               "Referrals",
-              "Learn",
               "Settings",
             ].map((item) => (
               <button

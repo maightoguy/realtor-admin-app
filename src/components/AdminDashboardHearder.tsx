@@ -1,7 +1,7 @@
 import { Menu, Calendar, Bell } from "lucide-react";
-import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
+import { useState } from "react";
 import ProfilePic from "../assets/Profile 1.jpg";
-import { Link } from "react-router-dom";
+import NotificationModal from "../components/Admin Dashboard components/NotificationModal";
 
 interface HeaderProps {
   activeSection: string;
@@ -13,6 +13,7 @@ const AdminDashboardHeader = ({
   activeSection,
   onProfileClick,
 }: HeaderProps) => {
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const currentDate = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -25,7 +26,9 @@ const AdminDashboardHeader = ({
         {/* Left - Welcome message */}
         <div className="flex items-center gap-4">
           <span className="text-lg font-semibold text-gray-900">
-            Welcome back, Admin
+            {activeSection === "Overview"
+              ? "Welcome back, Admin"
+              : activeSection}
           </span>
         </div>
 
@@ -39,7 +42,10 @@ const AdminDashboardHeader = ({
 
           {/* Desktop: Notification + Profile */}
           <div className="hidden md:flex items-center gap-3">
-            <button className="text-gray-600 hover:text-gray-800 relative">
+            <button
+              onClick={() => setIsNotificationOpen(true)}
+              className="text-gray-600 hover:text-gray-800 relative"
+            >
               <Bell className="w-5 h-5" />
               {/* Unread notification dot */}
               <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
@@ -64,6 +70,12 @@ const AdminDashboardHeader = ({
           </div>
         </div>
       </header>
+
+      {/* Render the Notification Modal */}
+      <NotificationModal
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+      />
     </>
   );
 };
