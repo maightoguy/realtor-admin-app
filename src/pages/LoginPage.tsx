@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AuthLayout from "../components/auth components/AuthLayout";
 import LoginForm from "../components/auth components/LoginForm";
 import ForgotPasswordForm from "../components/auth components/ForgotPasswordForm";
@@ -8,12 +9,15 @@ import ResetPasswordForm from "../components/auth components/ResetPasswordForm";
 type AuthStep = "login" | "forgot" | "otp" | "reset";
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<AuthStep>("login");
   const [userEmail, setUserEmail] = useState<string>("");
+  const [otpContext, setOtpContext] = useState<"login" | "reset">("login");
 
   const handleLoginSuccess = (email: string) => {
     console.log("Login successful for:", email);
     setUserEmail(email);
+    setOtpContext("login");
     setCurrentStep("otp");
   };
 
@@ -23,11 +27,18 @@ const LoginPage = () => {
 
   const handleForgotPasswordSubmit = (email: string) => {
     setUserEmail(email);
+    setOtpContext("reset");
     setCurrentStep("otp");
   };
 
   const handleOtpVerified = () => {
-    setCurrentStep("reset");
+    if (otpContext === "login") {
+      // Navigate to dashboard after successful login OTP verification
+      navigate("/dashboard");
+    } else {
+      // For password reset flow, go to reset password step
+      setCurrentStep("reset");
+    }
   };
 
   const handlePasswordReset = () => {

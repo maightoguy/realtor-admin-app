@@ -46,7 +46,7 @@ const OTPForm: React.FC<OTPFormProps> = ({ email, onBack, onVerified }) => {
   const isDisabled = otp.join("").length < 6;
 
   return (
-    <div className="flex flex-col min-h-screen bg-white px-6 md:my-[50%]">
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 bg-white">
       {/* Back Button */}
       <div className="w-full max-w-sm mb-8">
         <button

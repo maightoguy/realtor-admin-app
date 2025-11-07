@@ -32,7 +32,7 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white px-6 py-10 md:my-[50%]">
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 bg-white">
       {/* Header */}
       <div className="w-full max-w-sm mx-auto mb-8 flex flex-col gap-3 items-start">
         <button

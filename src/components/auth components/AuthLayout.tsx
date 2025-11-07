@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import VeriplotSvg from "../../modules/Icons/VeriplotIcon";
+import VeriplotSvg from "../icons/VeriplotIcon";
 import heroImage from "../../assets/Hero-background.png";
 
 interface AuthLayoutProps {
