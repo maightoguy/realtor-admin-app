@@ -32,7 +32,6 @@ const MetricCard = ({
   icon,
   iconBgColor,
   iconStrokeColor,
-  iconFgColor,
   valueTextColor,
   isEmpty,
 }: MetricCardProps) => (
@@ -169,7 +168,7 @@ const AdminDashboardOverview = () => {
   const [chartView, setChartView] = useState<"Commission" | "Realtors">(
     "Commission"
   );
-  const [currentPage, setCurrentPage] = useState(1);
+  //const [currentPage, setCurrentPage] = useState(1);
   const [showAllReceipts, setShowAllReceipts] = useState(false);
 
   // Empty state - no data available
@@ -458,7 +457,7 @@ const AdminDashboardOverview = () => {
                 <AdminPagination
                   totalItems={100}
                   itemsPerPage={10}
-                  onPageChange={setCurrentPage}
+                  //onPageChange={setCurrentPage}
                 />
               </div>
             )}

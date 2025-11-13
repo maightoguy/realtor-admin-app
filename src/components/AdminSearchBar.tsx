@@ -6,12 +6,14 @@ interface SearchBarProps {
   onFilterClick?: () => void;
   // 1. Add optional className prop to allow parent to control width/styling
   className?: string;
+  placeholder?: string;
 }
 
 const AdminSearchBar = ({
   onSearch,
   onFilterClick,
   className = "",
+  placeholder = "Search",
 }: SearchBarProps) => {
   const [query, setQuery] = useState("");
 
@@ -42,7 +44,7 @@ const AdminSearchBar = ({
         </svg>
         <input
           type="text"
-          placeholder="Search"
+          placeholder={placeholder}
           className="flex-grow outline-none bg-transparent text-[#6B7280] text-[14px] font-medium font-poppins placeholder:text-[#6B7280]"
           onChange={handleInputChange}
           value={query}

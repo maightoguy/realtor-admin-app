@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { LogOut } from "lucide-react";
 import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 import ProfilePic from "../assets/Profile 1.jpg";
 import AdminDashboardHeader from "../components/AdminDashboardHearder.tsx";
@@ -157,7 +157,7 @@ const AdminDashboardPage = () => {
             onClick={handleProfileClick}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <ChevronRight className="w-5 h-5" />
+            <LogOut className="w-5 h-5 text-red-600" />
           </button>
         </div>
       </aside>

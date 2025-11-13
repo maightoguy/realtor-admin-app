@@ -1,23 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface AdminPaginationProps {
   totalItems?: number;
   itemsPerPage?: number;
   onPageChange?: (page: number) => void;
+  currentPage?: number;
 }
 
 const AdminPagination = ({
   totalItems = 40,
   itemsPerPage = 8,
   onPageChange,
+  currentPage: controlledCurrentPage,
 }: AdminPaginationProps) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [internalCurrentPage, setInternalCurrentPage] = useState(1);
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Use controlled page if provided, otherwise use internal state
+  const currentPage = controlledCurrentPage ?? internalCurrentPage;
+
+  // Sync internal state when controlled page changes
+  useEffect(() => {
+    if (controlledCurrentPage !== undefined) {
+      setInternalCurrentPage(controlledCurrentPage);
+    }
+  }, [controlledCurrentPage]);
 
   const handlePrev = () => {
     if (currentPage > 1) {
       const newPage = currentPage - 1;
-      setCurrentPage(newPage);
+      if (controlledCurrentPage === undefined) {
+        setInternalCurrentPage(newPage);
+      }
       onPageChange?.(newPage);
     }
   };
@@ -25,7 +39,9 @@ const AdminPagination = ({
   const handleNext = () => {
     if (currentPage < totalPages) {
       const newPage = currentPage + 1;
-      setCurrentPage(newPage);
+      if (controlledCurrentPage === undefined) {
+        setInternalCurrentPage(newPage);
+      }
       onPageChange?.(newPage);
     }
   };

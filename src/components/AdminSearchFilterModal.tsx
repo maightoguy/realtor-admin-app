@@ -15,7 +15,7 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({ isOpen, onClose }) => {
   const [showMoreCategories, setShowMoreCategories] = useState(false);
   const [price, setPrice] = useState<number[]>([MIN_PRICE, MAX_PRICE]);
   const [dragged, setDragged] = useState<number | null>(null);
-  const [manualModalOpen, setManualModalOpen] = useState(false);
+  // const [manualModalOpen, setManualModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState("Select location");
 
   const formatCurrency = (val: number) =>
@@ -129,7 +129,7 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({ isOpen, onClose }) => {
               onChange={(e) => {
                 const value = e.target.value;
                 if (value === "--Manually select location--") {
-                  setManualModalOpen(true);
+                  // setManualModalOpen(true);
                 } else {
                   setSelectedLocation(value);
                 }
@@ -143,11 +143,11 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({ isOpen, onClose }) => {
               <option>Ikeja, Lagos</option>
             </select>
 
-            <ManualLocationModal
+            {/* <ManualLocationModal
               isOpen={manualModalOpen}
               onClose={() => setManualModalOpen(false)}
               onApply={(loc) => setSelectedLocation(loc)}
-            />
+            /> */}
           </div>
 
           {/* Price */}
