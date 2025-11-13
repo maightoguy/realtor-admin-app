@@ -28,6 +28,7 @@ import OverviewIcon from "../components/icons/OverviewIcon.tsx";
 
 const AdminDashboardPage = () => {
   const [activeSection, setActiveSection] = useState("Overview");
+  const [isAddPropertyFormActive, setIsAddPropertyFormActive] = useState(false);
 
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -40,7 +41,11 @@ const AdminDashboardPage = () => {
       case "Overview":
         return <AdminDashboardOverview />;
       case "Properties":
-        return <AdminDashboardProperties />;
+        return (
+          <AdminDashboardProperties
+            onAddFormStateChange={setIsAddPropertyFormActive}
+          />
+        );
       case "Receipts":
         return <AdminDashboardReceipts />;
       case "Realtors":
@@ -116,7 +121,12 @@ const AdminDashboardPage = () => {
             ].map((item) => (
               <button
                 key={item}
-                onClick={() => setActiveSection(item)}
+                onClick={() => {
+                  setActiveSection(item);
+                  if (item !== "Properties") {
+                    setIsAddPropertyFormActive(false);
+                  }
+                }}
                 onMouseEnter={() => setHoveredItem(item)}
                 onMouseLeave={() => setHoveredItem(null)}
                 className={`flex items-center gap-3 text-left group transition-colors duration-200 ${
@@ -168,6 +178,7 @@ const AdminDashboardPage = () => {
           activeSection={activeSection}
           onSectionChange={setActiveSection}
           onProfileClick={handleProfileClick}
+          isAddPropertyFormActive={isAddPropertyFormActive}
         />
         <div className="p-0">{renderSection()}</div>
       </main>

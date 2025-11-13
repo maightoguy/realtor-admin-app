@@ -7,6 +7,7 @@ import IslandIcon from "../../icons/IslandIcon.tsx";
 import SoldOutIcon from "../../icons/SoldOutIcon.tsx";
 import AllIcon from "../../icons/AllIcon.tsx";
 import RealtorsIcon from "../../icons/RealtorsIcon.tsx";
+import AddPropertyForm from "./AddPropertyForm.tsx";
 import {
   propertiesMetricsData,
   sampleProperties,
@@ -81,12 +82,38 @@ const MetricCard = ({
   </div>
 );
 
-const AdminDashboardProperties = () => {
+interface Property {
+  id: number;
+  image: string;
+  title: string;
+  price: number;
+  location: string;
+  isSoldOut: boolean;
+  category?: string;
+  description?: string;
+  developer?: string;
+}
+
+interface AdminDashboardPropertiesProps {
+  onAddFormStateChange?: (isActive: boolean) => void;
+}
+
+const AdminDashboardProperties = ({
+  onAddFormStateChange,
+}: AdminDashboardPropertiesProps) => {
   const [activeTab, setActiveTab] = useState<"Properties" | "Developers">(
     "Properties"
   );
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [properties, setProperties] = useState<Property[]>(sampleProperties);
   const itemsPerPage = 8;
+
+  // Notify parent when form state changes
+  const handleFormStateChange = (isActive: boolean) => {
+    setShowAddForm(isActive);
+    onAddFormStateChange?.(isActive);
+  };
 
   const handleSearch = (query: string) => {
     // Handle search functionality
@@ -109,120 +136,162 @@ const AdminDashboardProperties = () => {
     setCurrentPage(page);
   };
 
+  const handleAddProperty = (newProperty: {
+    image: string;
+    title: string;
+    price: number;
+    location: string;
+    isSoldOut: boolean;
+    category?: string;
+    description?: string;
+    developer?: string;
+  }) => {
+    const propertyWithId: Property = {
+      ...newProperty,
+      id:
+        properties.length > 0
+          ? Math.max(...properties.map((p) => p.id)) + 1
+          : 1,
+    };
+    setProperties([...properties, propertyWithId]);
+    handleFormStateChange(false);
+    // Reset to first page to see the new property
+    setCurrentPage(1);
+  };
+
   // Calculate pagination
-  const totalItems = sampleProperties.length;
+  const totalItems = properties.length;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProperties = sampleProperties.slice(startIndex, endIndex);
+  const currentProperties = properties.slice(startIndex, endIndex);
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <MetricCard
-          title="Total properties"
-          value={propertiesMetricsData.totalProperties}
-          icon={<BuildingsIcon color="#5E17EB" className="w-5 h-5" />}
-          iconBgColor="#F0E6F7"
-          iconStrokeColor="#F0E6F7"
-          iconFgColor="#5E17EB"
-          valueTextColor="#101828"
-        />
-        <MetricCard
-          title="Active properties"
-          value={propertiesMetricsData.activeProperties}
-          icon={<IslandIcon color="#22C55E" className="w-5 h-5" />}
-          iconBgColor="#E9F9EF"
-          iconStrokeColor="#E9F9EF"
-          iconFgColor="#22C55E"
-          valueTextColor="#101828"
-        />
-        <MetricCard
-          title="Sold out properties"
-          value={propertiesMetricsData.soldOutProperties}
-          icon={<SoldOutIcon color="#EF4444" className="w-5 h-5" />}
-          iconBgColor="#FAC5C5"
-          iconStrokeColor="#FAC5C5"
-          iconFgColor="#EF4444"
-          valueTextColor="#101828"
-        />
-      </div>
-
-      {/* Filter and Action Bar */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        {/* Tabs */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("Properties")}
-            className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-              activeTab === "Properties"
-                ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
-                : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:border-[#CFB0E5] hover:text-[#6500AC]"
-            }`}
-          >
-            <AllIcon
-              color={activeTab === "Properties" ? "#6500AC" : "#9CA1AA"}
-            />
-            Properties
-          </button>
-          <button
-            onClick={() => setActiveTab("Developers")}
-            className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-              activeTab === "Developers"
-                ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
-                : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:border-[#CFB0E5] hover:text-[#6500AC]"
-            }`}
-          >
-            <RealtorsIcon
-              color={activeTab === "Developers" ? "#6500AC" : "#9CA1AA"}
-            />
-            Developers
-          </button>
-        </div>
-
-        {/* Search and Actions */}
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <AdminSearchBar
-            onSearch={handleSearch}
-            onFilterClick={handleFilterClick}
-            className="flex-1 sm:flex-initial"
-            placeholder="Search"
+      {!showAddForm && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <MetricCard
+            title="Total properties"
+            value={propertiesMetricsData.totalProperties}
+            icon={<BuildingsIcon color="#5E17EB" className="w-5 h-5" />}
+            iconBgColor="#F0E6F7"
+            iconStrokeColor="#F0E6F7"
+            iconFgColor="#5E17EB"
+            valueTextColor="#101828"
+          />
+          <MetricCard
+            title="Active properties"
+            value={propertiesMetricsData.activeProperties}
+            icon={<IslandIcon color="#22C55E" className="w-5 h-5" />}
+            iconBgColor="#E9F9EF"
+            iconStrokeColor="#E9F9EF"
+            iconFgColor="#22C55E"
+            valueTextColor="#101828"
+          />
+          <MetricCard
+            title="Sold out properties"
+            value={propertiesMetricsData.soldOutProperties}
+            icon={<SoldOutIcon color="#EF4444" className="w-5 h-5" />}
+            iconBgColor="#FAC5C5"
+            iconStrokeColor="#FAC5C5"
+            iconFgColor="#EF4444"
+            valueTextColor="#101828"
           />
         </div>
-      </div>
+      )}
+
+      {/* Filter and Action Bar */}
+      {!showAddForm && (
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          {/* Tabs */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("Properties")}
+              className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                activeTab === "Properties"
+                  ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                  : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:border-[#CFB0E5] hover:text-[#6500AC]"
+              }`}
+            >
+              <AllIcon
+                color={activeTab === "Properties" ? "#6500AC" : "#9CA1AA"}
+              />
+              Properties
+            </button>
+            <button
+              onClick={() => setActiveTab("Developers")}
+              className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                activeTab === "Developers"
+                  ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                  : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:border-[#CFB0E5] hover:text-[#6500AC]"
+              }`}
+            >
+              <RealtorsIcon
+                color={activeTab === "Developers" ? "#6500AC" : "#9CA1AA"}
+              />
+              Developers
+            </button>
+          </div>
+
+          {/* Search and Actions */}
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <AdminSearchBar
+              onSearch={handleSearch}
+              onFilterClick={handleFilterClick}
+              className="flex-1 sm:flex-initial"
+              placeholder="Search"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Add Property Form */}
+      {showAddForm && (
+        <AddPropertyForm
+          onClose={() => handleFormStateChange(false)}
+          onSave={handleAddProperty}
+        />
+      )}
 
       {/* Properties Grid */}
-      <div className="mb-6">
-        <div className="flex flex-row justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-600 mb-4">
-            All properties
-          </h2>
-          <button className="bg-[#5E17EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap">
-            Add new property
-          </button>
+      {!showAddForm && (
+        <div className="mb-6">
+          <div className="flex flex-row justify-between mb-6">
+            <h2 className="text-lg font-semibold text-gray-600 mb-4">
+              All properties
+            </h2>
+            <button
+              onClick={() => handleFormStateChange(!showAddForm)}
+              className="bg-[#5E17EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
+            >
+              {showAddForm ? "Cancel" : "Add new property"}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {currentProperties.map((property) => (
+              <AdminPropertyCard
+                key={property.id}
+                image={property.image}
+                title={property.title}
+                price={property.price}
+                location={property.location}
+                isSoldOut={property.isSoldOut}
+                onViewDetails={() => handleViewDetails(property.id)}
+              />
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-  2 lg:grid-cols-4 gap-4">
-          {currentProperties.map((property) => (
-            <AdminPropertyCard
-              key={property.id}
-              image={property.image}
-              title={property.title}
-              price={property.price}
-              location={property.location}
-              isSoldOut={property.isSoldOut}
-              onViewDetails={() => handleViewDetails(property.id)}
-            />
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Pagination */}
-      <AdminPagination
-        totalItems={totalItems}
-        itemsPerPage={itemsPerPage}
-        currentPage={currentPage}
-        onPageChange={handlePageChange}
-      />
+      {!showAddForm && (
+        <AdminPagination
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
+      )}
     </div>
   );
 };

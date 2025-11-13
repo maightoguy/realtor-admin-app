@@ -7,11 +7,13 @@ interface HeaderProps {
   activeSection: string;
   onSectionChange?: (section: string) => void;
   onProfileClick?: () => void;
+  isAddPropertyFormActive?: boolean;
 }
 
 const AdminDashboardHeader = ({
   activeSection,
   onProfileClick,
+  isAddPropertyFormActive = false,
 }: HeaderProps) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const currentDate = new Date().toLocaleDateString("en-GB", {
@@ -25,11 +27,20 @@ const AdminDashboardHeader = ({
       <header className="flex justify-between items-center px-6 py-5 bg-white shadow-sm relative z-10">
         {/* Left - Welcome message */}
         <div className="flex items-center gap-4">
-          <span className="text-lg font-semibold text-gray-900">
-            {activeSection === "Overview"
-              ? "Welcome back, Admin"
-              : activeSection}
-          </span>
+          {activeSection === "Overview" ? (
+            <span className="text-lg font-semibold text-gray-900">
+              Welcome back, Admin
+            </span>
+          ) : activeSection === "Properties" && isAddPropertyFormActive ? (
+            <span className="text-lg text-gray-900">
+              <span className="text-gray-500 font-normal">Properties</span>
+              <span className="text-black font-semibold">/Add Property</span>
+            </span>
+          ) : (
+            <span className="text-lg font-semibold text-gray-900">
+              {activeSection}
+            </span>
+          )}
         </div>
 
         {/* Right */}
