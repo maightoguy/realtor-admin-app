@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AdminPropertyCard from "./AdminPropertyCard.tsx";
+import AdminPropertyDeveloper from "./AdminPropertyDeveloper.tsx";
 import AdminSearchBar from "../../AdminSearchBar.tsx";
 import AdminPagination from "../../AdminPagination.tsx";
 import BuildingsIcon from "../../icons/BuildingsIcon.tsx";
@@ -11,6 +12,8 @@ import AddPropertyForm from "./AddPropertyForm.tsx";
 import {
   propertiesMetricsData,
   sampleProperties,
+  sampleDevelopers,
+  type Developer,
 } from "./adminDashboardPropertiesData";
 
 interface MetricCardProps {
@@ -107,6 +110,7 @@ const AdminDashboardProperties = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
   const [properties, setProperties] = useState<Property[]>(sampleProperties);
+  const [developers, setDevelopers] = useState<Developer[]>(sampleDevelopers);
   const itemsPerPage = 8;
 
   // Notify parent when form state changes
@@ -130,6 +134,17 @@ const AdminDashboardProperties = ({
   const handleViewDetails = (propertyId: number) => {
     // Handle view details
     console.log("View details for property:", propertyId);
+  };
+
+  const handleViewDeveloperDetails = (developerId: number) => {
+    // Handle view developer details
+    console.log("View details for developer:", developerId);
+  };
+
+  const handleAddDeveloper = () => {
+    // Handle add developer
+    console.log("Add developer clicked");
+    // TODO: Open add developer form/modal
   };
 
   const handlePageChange = (page: number) => {
@@ -253,44 +268,62 @@ const AdminDashboardProperties = ({
         />
       )}
 
-      {/* Properties Grid */}
+      {/* Content based on active tab */}
       {!showAddForm && (
-        <div className="mb-6">
-          <div className="flex flex-row justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-600 mb-4">
-              All properties
-            </h2>
-            <button
-              onClick={() => handleFormStateChange(!showAddForm)}
-              className="bg-[#5E17EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
-            >
-              {showAddForm ? "Cancel" : "Add new property"}
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {currentProperties.map((property) => (
-              <AdminPropertyCard
-                key={property.id}
-                image={property.image}
-                title={property.title}
-                price={property.price}
-                location={property.location}
-                isSoldOut={property.isSoldOut}
-                onViewDetails={() => handleViewDetails(property.id)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        <>
+          {activeTab === "Properties" ? (
+            <>
+              {/* Properties Grid */}
+              <div className="mb-6">
+                <div className="flex flex-row justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-600 mb-4">
+                    All properties
+                  </h2>
+                  <button
+                    onClick={() => handleFormStateChange(!showAddForm)}
+                    className="bg-[#5E17EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
+                  >
+                    Add new property
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {currentProperties.map((property) => (
+                    <AdminPropertyCard
+                      key={property.id}
+                      image={property.image}
+                      title={property.title}
+                      price={property.price}
+                      location={property.location}
+                      isSoldOut={property.isSoldOut}
+                      description={property.description}
+                      onViewDetails={() => handleViewDetails(property.id)}
+                    />
+                  ))}
+                </div>
+              </div>
 
-      {/* Pagination */}
-      {!showAddForm && (
-        <AdminPagination
-          totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
-          currentPage={currentPage}
-          onPageChange={handlePageChange}
-        />
+              {/* Pagination for Properties */}
+              <AdminPagination
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={handlePageChange}
+              />
+            </>
+          ) : (
+            <>
+              {/* Developers Tab */}
+              <AdminPropertyDeveloper
+                developers={developers}
+                onAddDeveloper={handleAddDeveloper}
+                onViewDetails={handleViewDeveloperDetails}
+                currentPage={currentPage}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+              />
+            </>
+          )}
+        </>
       )}
     </div>
   );

@@ -7,6 +7,7 @@ interface AdminPropertyCardProps {
   price: string | number;
   location: string;
   isSoldOut?: boolean;
+  description?: string;
   onViewDetails?: () => void;
 }
 
@@ -16,14 +17,15 @@ const AdminPropertyCard = ({
   price,
   location,
   isSoldOut = false,
+  description,
   onViewDetails,
 }: AdminPropertyCardProps) => {
   const formattedPrice =
     typeof price === "number"
-      ? `₩${price.toLocaleString()}`
-      : price.startsWith("₩")
+      ? `₦${price.toLocaleString()}`
+      : price.startsWith("₦")
       ? price
-      : `₩${price}`;
+      : `₦${price}`;
 
   return (
     <div className="rounded-2xl overflow-hidden bg-white shadow-sm transition hover:shadow-md">
@@ -50,19 +52,17 @@ const AdminPropertyCard = ({
         <p className="text-[#5E17EB] font-bold text-lg mb-2">
           {formattedPrice}
         </p>
-
         <h3 className="font-semibold text-gray-900 text-base mb-2">{title}</h3>
-
-        <p className="text-gray-500 text-sm mb-2 flex items-center gap-1">
-          <MapPin className="w-4 h-4" />
-          <span>{location}</span>
-        </p>
-
+        <div className="flex flex-row gap-1">
+          <MapPin className="w-4 h-4 shrink-0" />
+          <p className=" text-gray-500 text-sm mb-2 truncate min-w-0">
+            <span>{location}</span>
+          </p>
+        </div>
         <p className="text-gray-500 text-sm mb-3 line-clamp-2">
-          Lorem ipsum dolor sit amet consectetur. Tempus aliquet duis integer
-          porta. Volutpat integer ultricies diam consequat eget.
+          {description ||
+            "Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempus aliquet duis integer porta. Volutpat integer ultricies diam consequat eget."}
         </p>
-
         <button
           onClick={onViewDetails}
           className="text-[#5E17EB] font-semibold text-sm hover:underline"

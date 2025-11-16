@@ -1,4 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import IslandIcon from "../../icons/IslandIcon";
+
+import MapViewer from "../../MapViewer"; // <--- ADD THIS
 
 interface AddPropertyFormProps {
   onClose: () => void;
@@ -50,9 +53,14 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     Array<{ name: string; size: string; date: string }>
   >([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [locationCoordinates, setLocationCoordinates] = useState<
+    [number, number]
+  >([6.5244, 3.3792]); // Default to Lagos, Nigeria
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formFileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const geocodeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -183,6 +191,76 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     setUploadedForms((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Geocoding function to convert location name to coordinates
+  const geocodeLocation = async (
+    locationName: string
+  ): Promise<[number, number] | null> => {
+    if (!locationName || locationName.trim() === "") {
+      return null;
+    }
+
+    try {
+      setIsGeocoding(true);
+      // Using OpenStreetMap Nominatim API (free, no API key required)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          locationName
+        )}&limit=1`,
+        {
+          headers: {
+            "User-Agent": "RealtorAdminApp/1.0", // Required by Nominatim
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Geocoding request failed");
+      }
+
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        return [parseFloat(lat), parseFloat(lon)];
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error geocoding location:", error);
+      return null;
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  // Geocode location when it changes (with debouncing)
+  useEffect(() => {
+    // Clear previous timeout
+    if (geocodeTimeoutRef.current) {
+      clearTimeout(geocodeTimeoutRef.current);
+    }
+
+    // Only geocode if location is not empty
+    if (!formData.location || formData.location.trim() === "") {
+      return;
+    }
+
+    // Debounce geocoding to avoid too many API calls
+    geocodeTimeoutRef.current = setTimeout(async () => {
+      const coordinates = await geocodeLocation(formData.location);
+      if (coordinates) {
+        setLocationCoordinates(coordinates);
+      }
+    }, 1000); // Wait 1 second after user stops typing
+
+    // Cleanup function
+    return () => {
+      if (geocodeTimeoutRef.current) {
+        clearTimeout(geocodeTimeoutRef.current);
+      }
+    };
+  }, [formData.location]);
+
   const handleSave = () => {
     const thumbnailImage = images.find((img) => img.isThumbnail);
     const newProperty = {
@@ -223,8 +301,8 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
   return (
     <>
       {/* Step Progress Bar - Based on Inspiration */}
-      <div className="mb-6 w-full flex flex-col items-center md:items-start">
-        <div className="relative w-full max-w-2xl flex justify-between items-center">
+      <div className="mb-6 w-full flex flex-col items-center md:items-center">
+        <div className="relative w-full max-w-full flex justify-between items-center">
           {/* Progress line (background) */}
           <div className="absolute top-1/2 left-3 right-3 h-[2px] bg-gray-200 -translate-y-1/2 z-0">
             {/* Filled progress */}
@@ -456,10 +534,16 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         onChange={handleInputChange}
                         className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
                       >
-                        <option value="">Select developer</option>
-                        <option value="Developer 1">Developer 1</option>
-                        <option value="Developer 2">Developer 2</option>
-                        <option value="Developer 3">Developer 3</option>
+                        <option value="Select developer">
+                          Select developer
+                        </option>
+                        <option value="Add developer">
+                          + Add new developer
+                        </option>
+                        <option value="Musa Aliyu">Musa Aliyu</option>
+                        <option value="Chijioke Orji">Chijioke Orji</option>
+                        <option value="Monye idamiebi">Monye idamiebi</option>
+                        <option value="Gionbo Ekisagha">Gionbo Ekisagha</option>
                       </select>
                     </div>
                   </div>
@@ -541,21 +625,14 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location
                     </label>
-                    <select
+                    <input
+                      type="text"
                       name="location"
                       value={formData.location}
                       onChange={handleInputChange}
+                      placeholder="Enter the full location of the property"
                       className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
-                    >
-                      <option value="">
-                        Select the location of the propeety
-                      </option>
-                      <option value="Lagos, Nigeria">Lagos, Nigeria</option>
-                      <option value="Abuja, Nigeria">Abuja, Nigeria</option>
-                      <option value="Port Harcourt, Nigeria">
-                        Port Harcourt, Nigeria
-                      </option>
-                    </select>
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -590,16 +667,42 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       <option value="">
                         What are the document available for this property
                       </option>
-                      <option value="Title of government">
-                        Title of government
+                      <option value="Certificate of Occupancy">
+                        Certificate of Occupancy
                       </option>
-                      <option value="Another document">Another document</option>
+                      <option value="Right of Occupancy">
+                        Right of Occupancy
+                      </option>
                       <option value="Governor's consent">
                         Governor's consent
                       </option>
-                      <option value="Title of Property">
-                        Title of Property
+                      <option value="Excision">Excision</option>
+                      <option value="Gezette">Gezette</option>
+                      <option value="letter of allocation">
+                        letter of allocation
                       </option>
+                      <option value="deed of assignment">
+                        deed of assignment
+                      </option>
+                      <option value="deed of sublease">deed of sublease</option>
+                      <option value="deed of gift">deed of gift</option>
+                      <option value="power of attorney">
+                        power of attorney
+                      </option>
+                      <option value="survey plan">survey plan</option>
+                      <option value="purchase receipt">purchase receipt</option>
+                      <option value="building plan approval">
+                        building plan approval
+                      </option>
+                      <option value="tax clearance">tax clearance</option>
+                      <option value="family land receipts">
+                        family land receipts
+                      </option>
+                      <option value="community head letter">
+                        community head letter
+                      </option>
+                      <option value="court judgement">court judgement</option>
+                      <option value="vesting order">vesting order</option>
                     </select>
                   </div>
                   <div>
@@ -726,9 +829,9 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
                     >
                       <option value="">Select security status</option>
-                      <option value="very secured">very secured</option>
-                      <option value="secured">secured</option>
-                      <option value="moderate">moderate</option>
+                      <option value="very secured">Very secured</option>
+                      <option value="secured">Secured</option>
+                      <option value="moderate">Moderate</option>
                     </select>
                   </div>
                   <div>
@@ -757,7 +860,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
                     >
                       <option value="">
-                        what is the topography of this property
+                        What is the topography of this property
                       </option>
                       <option value="Wetland">Wetland</option>
                       <option value="Dryland">Dryland</option>
@@ -772,30 +875,79 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
           {currentStep === 3 && (
             <div className="space-y-6">
               {/* Main Content Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column - Main Content */}
                 <div className="lg:col-span-2 space-y-6">
+                  {/* Image Gallery */}
+                  {images.length > 0 && (
+                    <div className="space-y-4">
+                      {/* Main Image */}
+                      <div className="relative">
+                        <img
+                          src={
+                            images.find((img) => img.isThumbnail)?.preview ||
+                            images[0].preview
+                          }
+                          alt="Property"
+                          className="w-full h-64 sm:h-80 lg:h-96 object-cover rounded-lg"
+                        />
+                        {formData.commission && (
+                          <div className="absolute bottom-4 left-4 bg-black/60 text-white text-xs font-semibold px-3 py-1 rounded-md">
+                            {formData.commission}% commission
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Thumbnail Images */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {images.slice(0, 4).map((img, index) => (
+                          <div
+                            key={index}
+                            className={`relative aspect-square rounded-lg overflow-hidden ${
+                              index === 0 ? "ring-2 ring-[#5E17EB]" : ""
+                            }`}
+                          >
+                            <img
+                              src={img.preview}
+                              alt={`Property view ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            {index === 3 && images.length > 4 && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <span className="text-white text-xs font-medium">
+                                  View all Images
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Property Title and Price */}
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                       {formData.title || "Land for Sale"}
                     </h2>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-[#5E17EB]">
-                        ₦
-                        {parseFloat(
-                          formData.startingPrice || formData.price || "0"
-                        ).toLocaleString()}
-                      </span>
-                      {formData.commission && (
-                        <span className="px-3 py-1 bg-[#5E17EB] text-white text-sm font-medium rounded-lg">
-                          {formData.commission}% commission
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl sm:text-3xl font-bold text-[#6D00C2]">
+                          ₦
+                          {parseFloat(
+                            formData.startingPrice || formData.price || "0"
+                          ).toLocaleString()}
                         </span>
-                      )}
+                      </div>
                     </div>
                     {formData.developer && (
-                      <div className="mt-2 text-sm text-gray-600">
-                        <p className="font-medium">{formData.developer}</p>
+                      <div className="mt-4">
+                        <p className="text-sm font-semibold text-gray-900 mb-1">
+                          Developer:
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {formData.developer}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -803,37 +955,38 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                   {/* About Section */}
                   {formData.description && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-3">
                         About this Property
                       </h3>
-                      <p className="text-gray-600">{formData.description}</p>
+                      <p className="text-gray-600 leading-relaxed">
+                        {formData.description}
+                      </p>
                     </div>
                   )}
 
                   {/* Documents Section */}
                   {formData.documentOnProperty.length > 0 && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-3">
                         Documents for this Property
                       </h3>
-                      <div className="space-y-2">
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                         {formData.documentOnProperty.map((doc) => (
-                          <div
-                            key={doc}
-                            className="flex items-center gap-2 text-sm text-gray-700"
-                          >
-                            <svg
-                              className="w-5 h-5 text-green-500"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span>{doc}</span>
+                          <div key={doc} className="flex items-center gap-3">
+                            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                            <span className="text-gray-700">{doc}</span>
                           </div>
                         ))}
                       </div>
@@ -846,146 +999,135 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                     formData.accessibility ||
                     formData.topography) && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-3">
                         Features
                       </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {formData.landSize && (
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-10 h-10 bg-[#F0E6F7] rounded-full flex items-center justify-center">
-                              <svg
-                                className="w-5 h-5 text-[#5E17EB]"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.251a1 1 0 01.356-.294l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-                              </svg>
+                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          {formData.landSize && (
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">
+                                <IslandIcon color={"#808080"} />
+                              </span>
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {formData.landSize}sqms
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Land size
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Land size</p>
-                              <p className="font-medium text-gray-900">
-                                {formData.landSize}sqms
-                              </p>
+                          )}
+                          {formData.security && (
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">
+                                <svg
+                                  width="24"
+                                  height="24"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M7 12.5C7 9.7385 9.2385 7.5 12 7.5C14.7615 7.5 17 9.7385 17 12.5V20.5H7V12.5Z"
+                                    fill="#9CA1AA"
+                                    stroke="#9CA1AA"
+                                    strokeWidth="2"
+                                    strokeLinejoin="round"
+                                  />
+                                  <path
+                                    d="M12.0001 2.5V4M17.9461 4.664L16.9816 5.813M21.1096 10.1435L19.6321 10.404M2.89062 10.1435L4.36812 10.404M6.05463 4.664L7.01862 5.813M3.00012 20.5H21.5001"
+                                    stroke="#9CA1AA"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </span>
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {formData.security === "very secured"
+                                    ? "Secured"
+                                    : formData.security}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Security
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        {formData.security && (
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-10 h-10 bg-[#F0E6F7] rounded-full flex items-center justify-center">
-                              <svg
-                                className="w-5 h-5 text-[#5E17EB]"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
+                          )}
+                          {formData.accessibility && (
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">
+                                <svg
+                                  width="24"
+                                  height="24"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <g clipPath="url(#clip0_19497_27245)">
+                                    <path
+                                      d="M10.4954 1.5H6.92349C5.54536 1.5 4.34067 2.44219 4.01255 3.77812L0.0656742 19.7109C-0.285888 21.1266 0.787549 22.5 2.25005 22.5H10.4954V19.5C10.4954 18.6703 11.1657 18 11.9954 18C12.825 18 13.4954 18.6703 13.4954 19.5V22.5H21.75C23.2125 22.5 24.286 21.1266 23.9344 19.7109L19.9922 3.77812C19.6594 2.44219 18.4594 1.5 17.0766 1.5H13.4954V4.5C13.4954 5.32969 12.825 6 11.9954 6C11.1657 6 10.4954 5.32969 10.4954 4.5V1.5Z"
+                                      fill="#9CA1AA"
+                                    />
+                                  </g>
+                                  <defs>
+                                    <clipPath id="clip0_19497_27245">
+                                      <rect
+                                        width="24"
+                                        height="24"
+                                        fill="white"
+                                      />
+                                    </clipPath>
+                                  </defs>
+                                </svg>
+                              </span>
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {formData.accessibility}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Accessible
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Security</p>
-                              <p className="font-medium text-gray-900">
-                                {formData.security === "very secured"
-                                  ? "Secured"
-                                  : formData.security}
-                              </p>
+                          )}
+                          {formData.topography && (
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">
+                                <svg
+                                  width="24"
+                                  height="24"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                >
+                                  <path
+                                    d="M3.87312 15.708L6.45012 12.248C6.53079 12.1407 6.62845 12.06 6.74312 12.006C6.85779 11.952 6.97545 11.925 7.09612 11.925C7.21679 11.925 7.33478 11.9517 7.45012 12.005C7.56412 12.0597 7.66145 12.1407 7.74212 12.248L10.2581 15.6C10.3595 15.7334 10.4775 15.8334 10.6121 15.9C10.7468 15.9667 10.8985 16 11.0671 16C11.4891 16 11.7921 15.8127 11.9761 15.438C12.1601 15.0634 12.1271 14.709 11.8771 14.375L10.8341 12.985C10.7268 12.8357 10.6731 12.673 10.6731 12.497C10.6731 12.321 10.7271 12.1604 10.8351 12.015L13.4501 8.51702C13.5308 8.40969 13.6285 8.32902 13.7431 8.27502C13.8578 8.22102 13.9755 8.19435 14.0961 8.19502C14.2168 8.19569 14.3348 8.22235 14.4501 8.27502C14.5655 8.32769 14.6628 8.40835 14.7421 8.51702L20.1271 15.707C20.3258 15.977 20.3515 16.26 20.2041 16.556C20.0568 16.852 19.8158 17 19.4811 17H4.52912C4.18245 17 3.93679 16.852 3.79212 16.556C3.64745 16.26 3.67445 15.9774 3.87312 15.708Z"
+                                    fill="#9CA1AA"
+                                  />
+                                </svg>
+                              </span>
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {formData.topography}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Topography
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                        {formData.accessibility && (
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-10 h-10 bg-[#F0E6F7] rounded-full flex items-center justify-center">
-                              <svg
-                                className="w-5 h-5 text-[#5E17EB]"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">
-                                Accessible
-                              </p>
-                              <p className="font-medium text-gray-900">
-                                {formData.accessibility}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        {formData.topography && (
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            <div className="w-10 h-10 bg-[#F0E6F7] rounded-full flex items-center justify-center">
-                              <svg
-                                className="w-5 h-5 text-[#5E17EB]"
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.251a1 1 0 01.356-.294l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-                              </svg>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">
-                                Topography
-                              </p>
-                              <p className="font-medium text-gray-900">
-                                {formData.topography}
-                              </p>
-                            </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Right Column - Images and Forms */}
+                {/* Right Column - Forms and Location */}
                 <div className="space-y-6">
-                  {/* Image Gallery */}
-                  {images.length > 0 && (
-                    <div>
-                      <div className="relative mb-3">
-                        <img
-                          src={
-                            images.find((img) => img.isThumbnail)?.preview ||
-                            images[0].preview
-                          }
-                          alt="Property"
-                          className="w-full h-64 object-cover rounded-lg"
-                        />
-                        {formData.commission && (
-                          <div className="absolute bottom-2 left-2 px-3 py-1 bg-[#5E17EB] text-white text-sm font-medium rounded-lg">
-                            {formData.commission}% commission
-                          </div>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {images.slice(0, 4).map((img, idx) => (
-                          <div key={idx} className="relative">
-                            <img
-                              src={img.preview}
-                              alt={`Property ${idx + 1}`}
-                              className="w-full h-24 object-cover rounded-lg"
-                            />
-                            {idx === 3 && images.length > 4 && (
-                              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">
-                                  View all Images
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Uploaded Forms */}
                   {uploadedForms.length > 0 && (
                     <div>
@@ -996,11 +1138,11 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         {uploadedForms.map((form, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg overflow-auto no-scrollbar"
                           >
                             <div className="flex items-center gap-3">
                               <svg
-                                className="w-5 h-5 text-green-500"
+                                className="w-5 h-5 text-green-500 flex-shrink-0"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
@@ -1010,8 +1152,8 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                                   clipRule="evenodd"
                                 />
                               </svg>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-900 truncate">
                                   {form.name}
                                 </p>
                                 <p className="text-xs text-gray-500">
@@ -1022,7 +1164,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                             <button
                               type="button"
                               onClick={() => handleRemoveForm(index)}
-                              className="text-red-500 hover:text-red-700"
+                              className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2"
                             >
                               <svg
                                 className="w-5 h-5"
@@ -1045,11 +1187,45 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                   {/* Location Map Placeholder */}
                   {formData.location && (
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                        {formData.location}
-                      </h3>
-                      <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <p className="text-gray-500 text-sm">Map View</p>
+                      <div className="flex items-center gap-2 mb-4">
+                        <svg
+                          className="w-5 h-5 text-gray-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {formData.location}
+                        </h3>
+                      </div>
+                      <div className="w-full h-64 relative">
+                        {isGeocoding && (
+                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
+                            <div className="text-center">
+                              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5E17EB] mb-2"></div>
+                              <p className="text-sm text-gray-600">
+                                Finding location...
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        <MapViewer
+                          locationName={formData.location}
+                          defaultCenter={locationCoordinates}
+                        />
                       </div>
                     </div>
                   )}
