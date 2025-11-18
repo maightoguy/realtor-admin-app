@@ -9,6 +9,7 @@ import SoldOutIcon from "../../icons/SoldOutIcon.tsx";
 import AllIcon from "../../icons/AllIcon.tsx";
 import RealtorsIcon from "../../icons/RealtorsIcon.tsx";
 import AddPropertyForm from "./AddPropertyForm.tsx";
+import DeveloperDetailsSection from "./DeveloperDetailsSection.tsx";
 import {
   propertiesMetricsData,
   sampleProperties,
@@ -111,6 +112,7 @@ const AdminDashboardProperties = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [properties, setProperties] = useState<Property[]>(sampleProperties);
   const [developers, setDevelopers] = useState<Developer[]>(sampleDevelopers);
+  const [selectedDeveloper, setSelectedDeveloper] = useState<Developer | null>(null);
   const itemsPerPage = 8;
 
   // Notify parent when form state changes
@@ -137,8 +139,30 @@ const AdminDashboardProperties = ({
   };
 
   const handleViewDeveloperDetails = (developerId: number) => {
-    // Handle view developer details
-    console.log("View details for developer:", developerId);
+    // Find and set the selected developer
+    const developer = developers.find((d) => d.id === developerId);
+    if (developer) {
+      setSelectedDeveloper(developer);
+      setActiveTab("Properties"); // Switch to Properties tab to show developer's properties
+      setCurrentPage(1); // Reset to first page
+    }
+  };
+
+  const handleBackFromDeveloperDetails = () => {
+    setSelectedDeveloper(null);
+  };
+
+  const handleEditDeveloper = (developerId: number) => {
+    // Handle edit developer
+    console.log("Edit developer:", developerId);
+  };
+
+  const handleRemoveDeveloper = (developerId: number) => {
+    // Handle remove developer
+    console.log("Remove developer:", developerId);
+    // Optionally remove from list and reset selection
+    setDevelopers((prev) => prev.filter((d) => d.id !== developerId));
+    setSelectedDeveloper(null);
   };
 
   const handleAddDeveloper = (developerData: {
@@ -199,8 +223,18 @@ const AdminDashboardProperties = ({
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
-      {/* Metric Cards */}
-      {!showAddForm && (
+      {/* Developer Details Section - Replaces Metric Cards when a developer is selected */}
+      {!showAddForm && selectedDeveloper && (
+        <DeveloperDetailsSection
+          developer={selectedDeveloper}
+          onBack={handleBackFromDeveloperDetails}
+          onEdit={handleEditDeveloper}
+          onRemove={handleRemoveDeveloper}
+        />
+      )}
+
+      {/* Metric Cards - Only show when no developer is selected */}
+      {!showAddForm && !selectedDeveloper && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <MetricCard
             title="Total properties"
@@ -294,7 +328,7 @@ const AdminDashboardProperties = ({
               <div className="mb-6">
                 <div className="flex flex-row justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-600 mb-4">
-                    All properties
+                    {selectedDeveloper ? "Developer's property" : "All properties"}
                   </h2>
                   <button
                     onClick={() => handleFormStateChange(!showAddForm)}
