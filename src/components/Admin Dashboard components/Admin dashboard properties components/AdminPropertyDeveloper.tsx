@@ -1,9 +1,15 @@
+import { useState } from "react";
 import AdminPagination from "../../AdminPagination.tsx";
+import AddDeveloperPopupModal from "./AddDeveloperPopupModal.tsx";
 import type { Developer } from "./adminDashboardPropertiesData";
 
 interface AdminPropertyDeveloperProps {
   developers: Developer[];
-  onAddDeveloper?: () => void;
+  onAddDeveloper?: (developerData: {
+    name: string;
+    email: string;
+    phone: string;
+  }) => void;
   onViewDetails?: (developerId: number) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
@@ -18,6 +24,23 @@ const AdminPropertyDeveloper = ({
   onPageChange,
   itemsPerPage,
 }: AdminPropertyDeveloperProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleAddDeveloper = (developerData: {
+    name: string;
+    email: string;
+    phone: string;
+  }) => {
+    onAddDeveloper?.(developerData);
+  };
   // Calculate pagination
   const totalItems = developers.length;
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -80,12 +103,19 @@ const AdminPropertyDeveloper = ({
             You haven't added any developers yet!
           </p>
           <button
-            onClick={onAddDeveloper}
+            onClick={handleOpenModal}
             className="bg-[#5E17EB] text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
           >
             Add developer
           </button>
         </div>
+
+        {/* Add Developer Modal */}
+        <AddDeveloperPopupModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onAddDeveloper={handleAddDeveloper}
+        />
       </div>
     );
   }
@@ -96,7 +126,7 @@ const AdminPropertyDeveloper = ({
       <div className="flex flex-row justify-between mb-6">
         <h2 className="text-lg font-semibold text-gray-600">Developers</h2>
         <button
-          onClick={onAddDeveloper}
+          onClick={handleOpenModal}
           className="bg-[#5E17EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
         >
           Add new developer
@@ -193,6 +223,13 @@ const AdminPropertyDeveloper = ({
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={onPageChange}
+      />
+
+      {/* Add Developer Modal */}
+      <AddDeveloperPopupModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onAddDeveloper={handleAddDeveloper}
       />
     </div>
   );

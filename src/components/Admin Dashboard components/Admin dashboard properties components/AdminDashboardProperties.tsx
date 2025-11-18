@@ -141,10 +141,27 @@ const AdminDashboardProperties = ({
     console.log("View details for developer:", developerId);
   };
 
-  const handleAddDeveloper = () => {
-    // Handle add developer
-    console.log("Add developer clicked");
-    // TODO: Open add developer form/modal
+  const handleAddDeveloper = (developerData: {
+    name: string;
+    email: string;
+    phone: string;
+  }) => {
+    // Create new developer with default values
+    const newDeveloper: Developer = {
+      id:
+        developers.length > 0
+          ? Math.max(...developers.map((d) => d.id)) + 1
+          : 1,
+      name: developerData.name,
+      email: developerData.email,
+      phone: developerData.phone,
+      totalProperties: 0,
+      dateAdded: new Date().toISOString(),
+      status: "Active",
+    };
+
+    // Add developer to the list
+    setDevelopers((prev) => [...prev, newDeveloper]);
   };
 
   const handlePageChange = (page: number) => {
