@@ -1,5 +1,8 @@
 import { ArrowLeft } from "lucide-react";
-import type { Developer, SalesStatistics } from "./adminDashboardPropertiesData";
+import type {
+  Developer,
+  SalesStatistics,
+} from "./adminDashboardPropertiesData";
 
 interface DeveloperDetailsSectionProps {
   developer: Developer;
@@ -14,19 +17,51 @@ const DeveloperDetailsSection = ({
   onEdit,
   onRemove,
 }: DeveloperDetailsSectionProps) => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
   // Get sales statistics data
   const salesStats: SalesStatistics = developer.salesStatistics || {
-    jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
-    jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0,
+    jan: 0,
+    feb: 0,
+    mar: 0,
+    apr: 0,
+    may: 0,
+    jun: 0,
+    jul: 0,
+    aug: 0,
+    sep: 0,
+    oct: 0,
+    nov: 0,
+    dec: 0,
   };
 
   // Convert sales statistics to array for chart
   const chartData = [
-    salesStats.jan, salesStats.feb, salesStats.mar, salesStats.apr,
-    salesStats.may, salesStats.jun, salesStats.jul, salesStats.aug,
-    salesStats.sep, salesStats.oct, salesStats.nov, salesStats.dec,
+    salesStats.jan,
+    salesStats.feb,
+    salesStats.mar,
+    salesStats.apr,
+    salesStats.may,
+    salesStats.jun,
+    salesStats.jul,
+    salesStats.aug,
+    salesStats.sep,
+    salesStats.oct,
+    salesStats.nov,
+    salesStats.dec,
   ];
 
   const maxValue = Math.max(...chartData, 1);
@@ -34,24 +69,24 @@ const DeveloperDetailsSection = ({
   // Calculate Y-axis labels based on max value
   const getYAxisLabels = () => {
     if (maxValue === 0) return ["₦0", "₦0", "₦0", "₦0"];
-    
+
     // Round max value to nearest million or appropriate scale
     let scale = 1000000; // Start with millions
     let roundedMax = Math.ceil(maxValue / scale) * scale;
-    
+
     // If max is less than 1M, use thousands
     if (maxValue < 1000000) {
       scale = 1000;
       roundedMax = Math.ceil(maxValue / scale) * scale;
       return [
         `₦${(roundedMax / 1000).toFixed(0)}K`,
-        `₦${(roundedMax * 0.75 / 1000).toFixed(0)}K`,
-        `₦${(roundedMax * 0.5 / 1000).toFixed(0)}K`,
-        `₦${(roundedMax * 0.25 / 1000).toFixed(0)}K`,
+        `₦${((roundedMax * 0.75) / 1000).toFixed(0)}K`,
+        `₦${((roundedMax * 0.5) / 1000).toFixed(0)}K`,
+        `₦${((roundedMax * 0.25) / 1000).toFixed(0)}K`,
         "₦0",
       ];
     }
-    
+
     // Use millions
     const maxM = roundedMax / 1000000;
     return [
@@ -65,10 +100,11 @@ const DeveloperDetailsSection = ({
 
   const yAxisLabels = getYAxisLabels();
   // Calculate chart max value based on the scale used
-  const chartMaxValue = maxValue === 0 
-    ? 1 
-    : maxValue < 1000000 
-      ? Math.ceil(maxValue / 1000) * 1000 
+  const chartMaxValue =
+    maxValue === 0
+      ? 1
+      : maxValue < 1000000
+      ? Math.ceil(maxValue / 1000) * 1000
       : Math.ceil(maxValue / 1000000) * 1000000;
 
   // Get initials for avatar
@@ -99,28 +135,30 @@ const DeveloperDetailsSection = ({
       {/* Developer Info and Sales Statistics Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Developer Info Card */}
-        <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Developer info
-          </h3>
-          
-          {/* Status */}
-          <div className="flex items-center gap-2 mb-6">
-            <div
-              className={`w-2 h-2 rounded-full ${
-                developer.status === "Active"
-                  ? "bg-[#22C55E]"
-                  : "bg-[#EF4444]"
-              }`}
-            ></div>
-            <span className="text-sm font-medium text-gray-900">
-              {developer.status}
-            </span>
+        <div className="flex flex-col bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-6 gap-6">
+          <div className="flex flex-row justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Developer info
+            </h3>
+
+            {/* Status */}
+            <div className="flex items-center gap-2 mb-6">
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  developer.status === "Active"
+                    ? "bg-[#22C55E]"
+                    : "bg-[#EF4444]"
+                }`}
+              ></div>
+              <span className="text-sm font-medium text-gray-900">
+                {developer.status}
+              </span>
+            </div>
           </div>
 
           {/* Developer Name and Avatar */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-full bg-[#F0E6F7] flex items-center justify-center text-[#5E17EB] font-semibold text-lg">
+            <div className="w-12 h-12 rounded-full bg-[#F0E6F7] flex items-center justify-center text-[#857c7c] ring-2 ring-gray-200 ring-offset-2 ring-offset-white">
               {getInitials(developer.name)}
             </div>
             <p className="text-lg font-semibold text-gray-900">
@@ -130,7 +168,9 @@ const DeveloperDetailsSection = ({
 
           {/* Contact Section */}
           <div className="mb-6">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Contact</h4>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+              Contact
+            </h4>
             <div className="space-y-2">
               <div>
                 <p className="text-xs text-gray-500 mb-1">Email</p>
@@ -165,7 +205,7 @@ const DeveloperDetailsSection = ({
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
             Sales Statistics
           </h3>
-          
+
           {/* Chart */}
           <div className="relative h-64">
             {/* Y-axis labels */}
@@ -247,4 +287,3 @@ const DeveloperDetailsSection = ({
 };
 
 export default DeveloperDetailsSection;
-
