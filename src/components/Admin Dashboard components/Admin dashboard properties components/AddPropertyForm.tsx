@@ -304,10 +304,10 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
       <div className="mb-6 w-full flex flex-col items-center md:items-center">
         <div className="relative w-full max-w-full flex justify-between items-center">
           {/* Progress line (background) */}
-          <div className="absolute top-1/2 left-3 right-3 h-[2px] bg-gray-200 -translate-y-1/2 z-0">
+          <div className="absolute top-1/2 left-3 right-3 h-0.5 bg-gray-200 -translate-y-1/2 z-0">
             {/* Filled progress */}
             <div
-              className="h-[2px] bg-[#6500AC] transition-all duration-300"
+              className="h-0.5 bg-[#6500AC] transition-all duration-300"
               style={{
                 width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%`,
               }}
@@ -872,6 +872,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
             </div>
           )}
 
+          {/*Preview section*/}
           {currentStep === 3 && (
             <div className="space-y-6">
               {/* Main Content Grid */}
@@ -973,7 +974,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                         {formData.documentOnProperty.map((doc) => (
                           <div key={doc} className="flex items-center gap-3">
-                            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shrink-0">
                               <svg
                                 className="w-3 h-3 text-white"
                                 fill="currentColor"
@@ -1142,7 +1143,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                           >
                             <div className="flex items-center gap-3">
                               <svg
-                                className="w-5 h-5 text-green-500 flex-shrink-0"
+                                className="w-5 h-5 text-green-500 shrink-0"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
@@ -1164,7 +1165,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                             <button
                               type="button"
                               onClick={() => handleRemoveForm(index)}
-                              className="text-red-500 hover:text-red-700 flex-shrink-0 ml-2"
+                              className="text-red-500 hover:text-red-700 shrink-0 ml-2"
                             >
                               <svg
                                 className="w-5 h-5"

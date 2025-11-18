@@ -8,7 +8,7 @@ import PropertyImage6 from "../../../assets/Properties img/Image 6.jpg";
 import PropertyImage7 from "../../../assets/Properties img/Image 7.jpg";
 import PropertyImage8 from "../../../assets/Properties img/Image 8.jpg";
 
-const propertyImages = [
+export const propertyImages = [
     PropertyImage1,
     PropertyImage2,
     PropertyImage3,

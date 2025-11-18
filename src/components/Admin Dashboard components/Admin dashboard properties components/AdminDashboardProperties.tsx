@@ -10,6 +10,7 @@ import AllIcon from "../../icons/AllIcon.tsx";
 import RealtorsIcon from "../../icons/RealtorsIcon.tsx";
 import AddPropertyForm from "./AddPropertyForm.tsx";
 import DeveloperDetailsSection from "./DeveloperDetailsSection.tsx";
+import AdminPropertyDetails from "./AdminPropertyDetails.tsx";
 import {
   propertiesMetricsData,
   sampleProperties,
@@ -113,6 +114,7 @@ const AdminDashboardProperties = ({
   const [properties, setProperties] = useState<Property[]>(sampleProperties);
   const [developers, setDevelopers] = useState<Developer[]>(sampleDevelopers);
   const [selectedDeveloper, setSelectedDeveloper] = useState<Developer | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const itemsPerPage = 8;
 
   // Notify parent when form state changes
@@ -134,8 +136,28 @@ const AdminDashboardProperties = ({
   };
 
   const handleViewDetails = (propertyId: number) => {
-    // Handle view details
-    console.log("View details for property:", propertyId);
+    const property = properties.find((p) => p.id === propertyId);
+    if (property) {
+      setSelectedProperty(property);
+    }
+  };
+
+  const handleBackFromPropertyDetails = () => {
+    setSelectedProperty(null);
+  };
+
+  const handleEditProperty = (propertyId: number) => {
+    // Handle edit property
+    console.log("Edit property:", propertyId);
+  };
+
+  const handleMarkSoldOut = (propertyId: number) => {
+    // Handle mark as sold out
+    setProperties((prev) =>
+      prev.map((p) =>
+        p.id === propertyId ? { ...p, isSoldOut: !p.isSoldOut } : p
+      )
+    );
   };
 
   const handleViewDeveloperDetails = (developerId: number) => {
@@ -223,8 +245,18 @@ const AdminDashboardProperties = ({
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
+      {/* Property Details Section - Shows when a property is selected */}
+      {!showAddForm && selectedProperty && (
+        <AdminPropertyDetails
+          property={selectedProperty}
+          onBack={handleBackFromPropertyDetails}
+          onEdit={handleEditProperty}
+          onMarkSoldOut={handleMarkSoldOut}
+        />
+      )}
+
       {/* Developer Details Section - Replaces Metric Cards when a developer is selected */}
-      {!showAddForm && selectedDeveloper && (
+      {!showAddForm && !selectedProperty && selectedDeveloper && (
         <DeveloperDetailsSection
           developer={selectedDeveloper}
           onBack={handleBackFromDeveloperDetails}
@@ -233,8 +265,8 @@ const AdminDashboardProperties = ({
         />
       )}
 
-      {/* Metric Cards - Only show when no developer is selected */}
-      {!showAddForm && !selectedDeveloper && (
+      {/* Metric Cards - Only show when no developer or property is selected */}
+      {!showAddForm && !selectedDeveloper && !selectedProperty && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <MetricCard
             title="Total properties"
@@ -267,7 +299,7 @@ const AdminDashboardProperties = ({
       )}
 
       {/* Filter and Action Bar */}
-      {!showAddForm && (
+      {!showAddForm && !selectedProperty && (
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           {/* Tabs */}
           <div className="flex gap-2">
@@ -320,7 +352,7 @@ const AdminDashboardProperties = ({
       )}
 
       {/* Content based on active tab */}
-      {!showAddForm && (
+      {!showAddForm && !selectedProperty && (
         <>
           {activeTab === "Properties" ? (
             <>
