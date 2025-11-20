@@ -24,9 +24,9 @@ const AdminSearchBar = ({
   };
 
   return (
-    <div className={`flex items-center gap-[4px] ${className}`}>
+    <div className={`flex items-center gap-1 ${className}`}>
       {/* Input Group */}
-      <div className="flex items-center bg-[#FAFAFA] border border-[#F0F1F2] rounded-[10px] px-2 py-2 gap-2 flex-grow shadow-sm h-[38px]">
+      <div className="flex items-center bg-[#FAFAFA] border border-[#F0F1F2] rounded-[10px] px-2 py-2 gap-2  grow shadow-sm h-[38px]">
         {/* Search Icon */}
         <svg
           width="14"
@@ -45,7 +45,7 @@ const AdminSearchBar = ({
         <input
           type="text"
           placeholder={placeholder}
-          className="flex-grow outline-none bg-transparent text-[#6B7280] text-[14px] font-medium font-poppins placeholder:text-[#6B7280]"
+          className="flex grow outline-none bg-transparent text-[#6B7280] text-[14px] font-medium font-poppins placeholder:text-[#6B7280]"
           onChange={handleInputChange}
           value={query}
         />
@@ -55,7 +55,7 @@ const AdminSearchBar = ({
       {onFilterClick && (
         <button
           onClick={onFilterClick}
-          className="flex items-center justify-center w-[44px] h-[38px] bg-[#FAFAFA] border border-[#F0F1F2] rounded-[10px] hover:bg-gray-50 flex-shrink-0"
+          className="flex items-center justify-center w-11 h-[38px] bg-[#FAFAFA] border border-[#F0F1F2] rounded-[10px] hover:bg-gray-50 shrink-0"
         >
           <svg
             width="24"
