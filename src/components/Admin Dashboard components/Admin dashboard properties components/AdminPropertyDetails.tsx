@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Check, Upload, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import MapViewer from "../../MapViewer";
 import ImageViewerModal from "./ImageViewerModal";
 import IslandIcon from "../../icons/IslandIcon";
@@ -306,7 +306,7 @@ const AdminPropertyDetails = ({
                 <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                   {propertyDetails.documents.map((doc, index) => (
                     <div key={index} className="flex items-center gap-3">
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shrink-0">
                         <Check className="w-3 h-3 text-white" />
                       </div>
                       <span className="text-gray-700">{doc}</span>
@@ -438,7 +438,7 @@ const AdminPropertyDetails = ({
                     >
                       <div className="flex items-center gap-3">
                         <svg
-                          className="w-5 h-5 text-green-500 flex-shrink-0"
+                          className="w-5 h-5 text-green-500 shrink-0"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
