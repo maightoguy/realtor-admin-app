@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Upload, CheckCircle, XCircle } from "lucide-react";
 import MapViewer from "../../MapViewer";
 import ImageViewerModal from "./ImageViewerModal";
 import IslandIcon from "../../icons/IslandIcon";
-import { propertyImages, sampleDevelopers } from "./adminDashboardPropertiesData";
+import {
+  propertyImages,
+  sampleDevelopers,
+  type SalesStatistics,
+} from "./adminDashboardPropertiesData";
+import ReceiptsIcon from "../../icons/ReceiptsIcon";
 
 interface Property {
   id: number;
@@ -36,9 +41,9 @@ const AdminPropertyDetails = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
-  const [locationCoordinates, setLocationCoordinates] = useState<[number, number]>(
-    [6.5244, 3.3792]
-  );
+  const [locationCoordinates, setLocationCoordinates] = useState<
+    [number, number]
+  >([6.5244, 3.3792]);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
   // Generate random images for this property (using propertyImages array)
@@ -131,8 +136,16 @@ const AdminPropertyDetails = ({
     },
     commission: "10%",
     uploadedForms: [
-      { name: "Name of document.pdf", date: "11 Sep, 2023 12:24pm", size: "13MB" },
-      { name: "Name of document.pdf", date: "11 Sep, 2023 12:24pm", size: "13MB" },
+      {
+        name: "Name of document.pdf",
+        date: "11 Sep, 2023 12:24pm",
+        size: "13MB",
+      },
+      {
+        name: "Name of document.pdf",
+        date: "11 Sep, 2023 12:24pm",
+        size: "13MB",
+      },
     ],
   };
 
@@ -251,22 +264,27 @@ const AdminPropertyDetails = ({
               </div>
 
               {/* Developer Info */}
-              {property.developer && (() => {
-                const developer = sampleDevelopers.find(
-                  (d) => d.name === property.developer
-                );
-                return (
-                  <div className="mb-4">
-                    <p className="text-sm font-semibold text-gray-900 mb-1">
-                      Developer:
-                    </p>
-                    <p className="text-sm text-gray-600">{property.developer}</p>
-                    {developer && (
-                      <p className="text-sm text-gray-600">{developer.email}</p>
-                    )}
-                  </div>
-                );
-              })()}
+              {property.developer &&
+                (() => {
+                  const developer = sampleDevelopers.find(
+                    (d) => d.name === property.developer
+                  );
+                  return (
+                    <div className="mb-4">
+                      <p className="text-sm font-semibold text-gray-900 mb-1">
+                        Developer:
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {property.developer}
+                      </p>
+                      {developer && (
+                        <p className="text-sm text-gray-600">
+                          {developer.email}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
             </div>
 
             {/* About Section */}
@@ -510,16 +528,319 @@ const AdminPropertyDetails = ({
         </div>
       )}
 
-      {activeTab === "Statistics" && (
-        <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Property Statistics
-          </h3>
-          <p className="text-gray-600">
-            Statistics for this property will be displayed here.
-          </p>
-        </div>
-      )}
+      {activeTab === "Statistics" &&
+        (() => {
+          // MetricCard component (matching AdminDashboardProperties pattern)
+          interface MetricCardProps {
+            title: string;
+            value: string | number;
+            icon: React.ReactNode;
+            iconBgColor: string;
+            iconStrokeColor: string;
+            valueTextColor: string;
+          }
+
+          const MetricCard = ({
+            title,
+            value,
+            icon,
+            iconBgColor,
+            iconStrokeColor,
+            valueTextColor,
+          }: MetricCardProps) => (
+            <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-5 flex flex-col gap-4 w-full transition duration-300 hover:shadow-lg">
+              {/* Top Row - Icon and Title */}
+              <div className="flex items-center gap-3">
+                {/* SVG Icon Wrapper */}
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 36 36"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    x="3"
+                    y="3"
+                    width="30"
+                    height="30"
+                    rx="15"
+                    fill={iconBgColor}
+                  />
+                  <rect
+                    x="3"
+                    y="3"
+                    width="30"
+                    height="30"
+                    rx="15"
+                    stroke={iconStrokeColor}
+                    strokeWidth="4.5"
+                  />
+                  <foreignObject x="3" y="3" width="30" height="30" rx="15">
+                    <div className="w-full h-full flex items-center justify-center">
+                      {icon}
+                    </div>
+                  </foreignObject>
+                </svg>
+
+                <p
+                  className="text-sm font-medium truncate"
+                  style={{ color: valueTextColor }}
+                >
+                  {title}
+                </p>
+              </div>
+
+              {/* Value Row */}
+              <div
+                className="flex flex-col gap-3 min-w-0"
+                style={{ color: valueTextColor }}
+              >
+                <p
+                  className="text-[24px] leading-9 font-medium wrap-break-word max-w-full"
+                  style={{ color: valueTextColor }}
+                >
+                  {value}
+                </p>
+              </div>
+            </div>
+          );
+
+          // Find the developer associated with this property
+          // If property has a developer name, find it; otherwise use first developer as fallback
+          let developer = null;
+          if (property.developer) {
+            developer = sampleDevelopers.find(
+              (d) => d.name === property.developer
+            );
+          }
+          // Fallback to first developer if property doesn't have one assigned
+          if (!developer && sampleDevelopers.length > 0) {
+            developer = sampleDevelopers[0];
+          }
+
+          // Get sales statistics from developer or use defaults
+          const salesStats: SalesStatistics = developer?.salesStatistics || {
+            jan: 0,
+            feb: 0,
+            mar: 0,
+            apr: 0,
+            may: 0,
+            jun: 0,
+            jul: 0,
+            aug: 0,
+            sep: 0,
+            oct: 0,
+            nov: 0,
+            dec: 0,
+          };
+
+          // Convert sales statistics to array for chart
+          const months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+          const chartData = [
+            salesStats.jan,
+            salesStats.feb,
+            salesStats.mar,
+            salesStats.apr,
+            salesStats.may,
+            salesStats.jun,
+            salesStats.jul,
+            salesStats.aug,
+            salesStats.sep,
+            salesStats.oct,
+            salesStats.nov,
+            salesStats.dec,
+          ];
+
+          const maxValue = Math.max(...chartData, 1);
+
+          // Calculate Y-axis labels based on max value
+          const getYAxisLabels = () => {
+            if (maxValue === 0) return ["₦0", "₦0", "₦0", "₦0"];
+
+            // Round max value to nearest million or appropriate scale
+            let scale = 1000000; // Start with millions
+            let roundedMax = Math.ceil(maxValue / scale) * scale;
+
+            // If max is less than 1M, use thousands
+            if (maxValue < 1000000) {
+              scale = 1000;
+              roundedMax = Math.ceil(maxValue / scale) * scale;
+              return [
+                `₦${(roundedMax / 1000).toFixed(0)}K`,
+                `₦${((roundedMax * 0.75) / 1000).toFixed(0)}K`,
+                `₦${((roundedMax * 0.5) / 1000).toFixed(0)}K`,
+                `₦${((roundedMax * 0.25) / 1000).toFixed(0)}K`,
+                "₦0",
+              ];
+            }
+
+            // Use millions
+            const maxM = roundedMax / 1000000;
+            return [
+              `₦${maxM.toFixed(0)}M`,
+              `₦${(maxM * 0.75).toFixed(0)}M`,
+              `₦${(maxM * 0.5).toFixed(0)}M`,
+              `₦${(maxM * 0.25).toFixed(0)}M`,
+              "₦0",
+            ];
+          };
+
+          const yAxisLabels = getYAxisLabels();
+          // Calculate chart max value based on the scale used
+          const chartMaxValue =
+            maxValue === 0
+              ? 1
+              : maxValue < 1000000
+              ? Math.ceil(maxValue / 1000) * 1000
+              : Math.ceil(maxValue / 1000000) * 1000000;
+
+          // Mock receipt statistics (in a real app, this would come from API)
+          // Using property ID as seed for consistent mock data
+          const receiptStats = {
+            totalUploaded: 100 + (property.id % 50),
+            totalApproved: 500 + (property.id % 200),
+            totalRejected: 10 + (property.id % 20),
+          };
+
+          // Get current month index (0-based, where 0 = Jan)
+          const currentDate = new Date();
+          const currentMonthIndex = currentDate.getMonth();
+
+          return (
+            <div className="space-y-6">
+              {/* Receipt Metric Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Total Receipt Uploaded */}
+                <MetricCard
+                  title="Total Receipt uploaded"
+                  value={receiptStats.totalUploaded}
+                  icon={<ReceiptsIcon color="#6500AC" />}
+                  iconBgColor="#F0E6F7"
+                  iconStrokeColor="#F0E6F7"
+                  valueTextColor="#101828"
+                />
+
+                {/* Total Receipt Approved */}
+                <MetricCard
+                  title="Total Receipt Approved"
+                  value={receiptStats.totalApproved}
+                  icon={<ReceiptsIcon color="#22C55E" />}
+                  iconBgColor="#D1FAE5"
+                  iconStrokeColor="#D1FAE5"
+                  valueTextColor="#101828"
+                />
+
+                {/* Total Receipt Rejected */}
+                <MetricCard
+                  title="Total Receipt Rejected"
+                  value={receiptStats.totalRejected}
+                  icon={<ReceiptsIcon color="#EF4444" />}
+                  iconBgColor="#FEE2E2"
+                  iconStrokeColor="#FEE2E2"
+                  valueTextColor="#101828"
+                />
+              </div>
+
+              {/* Sales Statistics Chart */}
+              <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                  Sales Statistics
+                </h3>
+
+                {/* Chart */}
+                <div className="relative h-64">
+                  {/* Y-axis labels */}
+                  <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 pr-3 w-12">
+                    {yAxisLabels.map((label, index) => (
+                      <span key={`y-label-${index}`}>{label}</span>
+                    ))}
+                  </div>
+
+                  {/* Chart container with grid lines */}
+                  <div className="ml-12 pr-4 relative h-full">
+                    {/* Grid lines */}
+                    <div className="absolute inset-0 flex flex-col justify-between pb-12">
+                      <div className="w-full h-px bg-gray-200"></div>
+                      <div className="w-full h-px bg-gray-200"></div>
+                      <div className="w-full h-px bg-gray-200"></div>
+                      <div className="w-full h-px bg-gray-200"></div>
+                    </div>
+
+                    {/* Bars and labels container */}
+                    <div className="relative">
+                      {/* Bars container */}
+                      <div className="relative h-48 flex items-end justify-between gap-1.5 mb-2">
+                        {chartData.map((value, index) => {
+                          const height = (value / chartMaxValue) * 100;
+                          const isCurrentMonth = index === currentMonthIndex;
+                          return (
+                            <div
+                              key={`bar-${index}`}
+                              className="flex-1 flex flex-col items-center h-full justify-end relative"
+                            >
+                              {/* Highlight background for current month */}
+                              {isCurrentMonth && (
+                                <div className="absolute -inset-x-1 -top-2 -bottom-8 bg-gray-100 rounded-lg"></div>
+                              )}
+                              {/* Bar */}
+                              <div
+                                className={`w-full rounded-t transition-all relative z-10 ${
+                                  isCurrentMonth
+                                    ? "bg-green-500"
+                                    : "bg-[#5E17EB]"
+                                }`}
+                                style={{
+                                  height: `${height}%`,
+                                  minHeight: height > 0 ? "4px" : "0",
+                                }}
+                              />
+                              {/* Vertical line from bar to month label */}
+                              <div
+                                className="absolute w-px bg-gray-200 z-0"
+                                style={{
+                                  bottom: "-20px",
+                                  left: "50%",
+                                  transform: "translateX(-50%)",
+                                  height: "20px",
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Month labels */}
+                      <div className="flex justify-between gap-1.5 mt-2">
+                        {months.map((month, index) => (
+                          <div
+                            key={`label-${index}`}
+                            className="flex-1 text-center text-xs text-gray-500"
+                          >
+                            {month}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       {/* Image Viewer Modal */}
       <ImageViewerModal
@@ -533,4 +854,3 @@ const AdminPropertyDetails = ({
 };
 
 export default AdminPropertyDetails;
-

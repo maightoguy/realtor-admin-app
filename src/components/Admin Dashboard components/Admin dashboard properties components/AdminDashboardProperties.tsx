@@ -113,8 +113,12 @@ const AdminDashboardProperties = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [properties, setProperties] = useState<Property[]>(sampleProperties);
   const [developers, setDevelopers] = useState<Developer[]>(sampleDevelopers);
-  const [selectedDeveloper, setSelectedDeveloper] = useState<Developer | null>(null);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedDeveloper, setSelectedDeveloper] = useState<Developer | null>(
+    null
+  );
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(
+    null
+  );
   const itemsPerPage = 8;
 
   // Notify parent when form state changes
@@ -360,7 +364,9 @@ const AdminDashboardProperties = ({
               <div className="mb-6">
                 <div className="flex flex-row justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-600 mb-4">
-                    {selectedDeveloper ? "Developer's property" : "All properties"}
+                    {selectedDeveloper
+                      ? "Developer's property"
+                      : "All properties"}
                   </h2>
                   <button
                     onClick={() => handleFormStateChange(!showAddForm)}
