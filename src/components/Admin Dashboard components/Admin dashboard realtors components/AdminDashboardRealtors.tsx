@@ -1,5 +1,380 @@
+import { useState, useMemo } from "react";
+import AdminSearchBar from "../../AdminSearchBar";
+import AdminPagination from "../../AdminPagination";
+import RealtorsIcon from "../../icons/RealtorsIcon";
+import { mockRealtors, type Realtor } from "./AdminRealtorsData";
+
+// MetricCard component (matching AdminDashboardReceipts pattern)
+interface MetricCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  iconBgColor: string;
+  iconStrokeColor: string;
+  valueTextColor: string;
+}
+
+const MetricCard = ({
+  title,
+  value,
+  icon,
+  iconBgColor,
+  iconStrokeColor,
+  valueTextColor,
+}: MetricCardProps) => (
+  <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-5 flex flex-col gap-4 w-full transition duration-300 hover:shadow-lg">
+    {/* Top Row - Icon and Title */}
+    <div className="flex items-center gap-3">
+      {/* SVG Icon Wrapper */}
+      <svg
+        width="36"
+        height="36"
+        viewBox="0 0 36 36"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect x="3" y="3" width="30" height="30" rx="15" fill={iconBgColor} />
+        <rect
+          x="3"
+          y="3"
+          width="30"
+          height="30"
+          rx="15"
+          stroke={iconStrokeColor}
+          strokeWidth="4.5"
+        />
+        <foreignObject x="3" y="3" width="30" height="30" rx="15">
+          <div className="w-full h-full flex items-center justify-center">
+            {icon}
+          </div>
+        </foreignObject>
+      </svg>
+
+      <p
+        className="text-sm font-medium truncate"
+        style={{ color: valueTextColor }}
+      >
+        {title}
+      </p>
+    </div>
+
+    {/* Value Row */}
+    <div
+      className="flex flex-col gap-3 min-w-0"
+      style={{ color: valueTextColor }}
+    >
+      <p
+        className="text-[24px] leading-9 font-medium wrap-break-word max-w-full"
+        style={{ color: valueTextColor }}
+      >
+        {value}
+      </p>
+    </div>
+  </div>
+);
+
+// Status badge component
+const StatusBadge = ({ status }: { status: Realtor["status"] }) => {
+  const statusConfig = {
+    Active: { color: "#22C55E", bgColor: "#D1FAE5", label: "Active" },
+    Inactive: { color: "#EF4444", bgColor: "#FEE2E2", label: "Inactive" },
+  };
+
+  const config = statusConfig[status] || statusConfig.Active;
+
+  return (
+    <span
+      className="flex items-center gap-1.5 text-sm font-medium px-2 py-1 rounded-md"
+      style={{
+        color: config.color,
+        backgroundColor: config.bgColor,
+      }}
+    >
+      <span
+        className="w-2 h-2 rounded-full"
+        style={{ backgroundColor: config.color }}
+      ></span>
+      {config.label}
+    </span>
+  );
+};
+
 const AdminDashboardRealtors = () => {
-  return <div>AdminDashboardRealtors</div>;
+  const [activeFilter, setActiveFilter] = useState<
+    "All Realtors" | "Top realtors" | "Approved receipts" | "Rejected receipts"
+  >("All Realtors");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [realtors] = useState<Realtor[]>(mockRealtors);
+  const itemsPerPage = 8;
+
+  // Calculate metrics from all realtors
+  const metrics = useMemo(() => {
+    const activeRealtors = realtors.filter((r) => r.status === "Active").length;
+    const inactiveRealtors = realtors.filter(
+      (r) => r.status === "Inactive"
+    ).length;
+
+    return {
+      totalRealtors: "100,000", // As per design
+      activeRealtors: activeRealtors || 100, // As per design
+      inactiveRealtors: inactiveRealtors || 50, // As per design
+    };
+  }, [realtors]);
+
+  // Filter realtors based on active filter and search query
+  const filteredRealtors = useMemo(() => {
+    let filtered = [...realtors];
+
+    // Apply status filter
+    if (activeFilter === "Top realtors") {
+      // Sort by property sold descending and take top realtors
+      filtered = [...filtered]
+        .sort((a, b) => b.propertySold - a.propertySold)
+        .slice(0, 50); // Top 50 realtors
+    } else if (activeFilter === "Approved receipts") {
+      // For now, show active realtors (this might need adjustment based on business logic)
+      filtered = filtered.filter((r) => r.status === "Active");
+    } else if (activeFilter === "Rejected receipts") {
+      // For now, show inactive realtors (this might need adjustment based on business logic)
+      filtered = filtered.filter((r) => r.status === "Inactive");
+    }
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (r) =>
+          r.id.toLowerCase().includes(query) ||
+          r.name.toLowerCase().includes(query) ||
+          r.email.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [activeFilter, searchQuery, realtors]);
+
+  // Pagination
+  const totalItems = filteredRealtors.length;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentRealtors = filteredRealtors.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filter or search changes
+  const handleFilterChange = (
+    filter:
+      | "All Realtors"
+      | "Top realtors"
+      | "Approved receipts"
+      | "Rejected receipts"
+  ) => {
+    setActiveFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleViewDetails = (realtorId: string) => {
+    // TODO: Implement realtor details modal/view
+    console.log("View details for realtor:", realtorId);
+  };
+
+  return (
+    <div className="p-6 bg-[#FCFCFC]">
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <MetricCard
+          title="Total Realtors"
+          value={metrics.totalRealtors}
+          icon={<RealtorsIcon color="#6500AC" className="w-5 h-5" />}
+          iconBgColor="#F0E6F7"
+          iconStrokeColor="#F0E6F7"
+          valueTextColor="#101828"
+        />
+        <MetricCard
+          title="Active Realtors"
+          value={metrics.activeRealtors}
+          icon={<RealtorsIcon color="#22C55E" className="w-5 h-5" />}
+          iconBgColor="#D1FAE5"
+          iconStrokeColor="#D1FAE5"
+          valueTextColor="#101828"
+        />
+        <MetricCard
+          title="Inactive Realtors"
+          value={metrics.inactiveRealtors}
+          icon={<RealtorsIcon color="#EF4444" className="w-5 h-5" />}
+          iconBgColor="#FEE2E2"
+          iconStrokeColor="#FEE2E2"
+          valueTextColor="#101828"
+        />
+      </div>
+
+      {/* Filter Tabs and Search */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        {/* Filter Tabs */}
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => handleFilterChange("All Realtors")}
+            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+              activeFilter === "All Realtors"
+                ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
+            }`}
+          >
+            All Realtors
+          </button>
+          <button
+            onClick={() => handleFilterChange("Top realtors")}
+            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+              activeFilter === "Top realtors"
+                ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
+            }`}
+          >
+            Top realtors
+          </button>
+          <button
+            onClick={() => handleFilterChange("Approved receipts")}
+            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+              activeFilter === "Approved receipts"
+                ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
+            }`}
+          >
+            Approved receipts
+          </button>
+          <button
+            onClick={() => handleFilterChange("Rejected receipts")}
+            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+              activeFilter === "Rejected receipts"
+                ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
+            }`}
+          >
+            Rejected receipts
+          </button>
+        </div>
+
+        {/* Search and Filter Controls */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <AdminSearchBar
+            onSearch={handleSearch}
+            onFilterClick={() => console.log("Filter clicked")}
+            className="flex-1 sm:flex-initial"
+            placeholder="Q Search"
+          />
+        </div>
+      </div>
+
+      {/* Realtors Table */}
+      <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-[#F0F1F2]">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  ID
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Realtor
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Property sold
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Amount sold
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Date Joined
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0F1F2]">
+              {currentRealtors.length > 0 ? (
+                currentRealtors.map((realtor) => (
+                  <tr
+                    key={realtor.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {realtor.id}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={realtor.avatar}
+                          alt={realtor.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">
+                            {realtor.name}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {realtor.email}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {realtor.propertySold}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {realtor.amountSold}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {realtor.dateJoined}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge status={realtor.status} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleViewDetails(realtor.id)}
+                        className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
+                      >
+                        View details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-6 py-12 text-center text-sm text-gray-500"
+                  >
+                    No realtors found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Pagination */}
+      <AdminPagination
+        totalItems={totalItems}
+        itemsPerPage={itemsPerPage}
+        currentPage={currentPage}
+        onPageChange={handlePageChange}
+      />
+    </div>
+  );
 };
 
 export default AdminDashboardRealtors;
