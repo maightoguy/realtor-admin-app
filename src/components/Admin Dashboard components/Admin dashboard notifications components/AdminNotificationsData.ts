@@ -4,6 +4,8 @@ export interface Notification {
     message: string;
     date: string;
     status: "Sent" | "Failed";
+    userType?: string; // e.g., "Realtors", "Developers", "All Users"
+    selectedUsers?: string[]; // Array of selected user names
 }
 
 export const mockNotifications: Notification[] = [

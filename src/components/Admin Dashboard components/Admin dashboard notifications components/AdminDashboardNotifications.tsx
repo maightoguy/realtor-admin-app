@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
 import { mockNotifications, type Notification } from "./AdminNotificationsData";
+import NewNotificationModal from "./NewNotificationModal";
+import NotificationDetailsModal from "./NotificationDetailsModal";
 
 // Status badge component
 const StatusBadge = ({ status }: { status: Notification["status"] }) => {
@@ -32,7 +34,13 @@ const StatusBadge = ({ status }: { status: Notification["status"] }) => {
 const AdminDashboardNotifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [notifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] =
+    useState<Notification[]>(mockNotifications);
+  const [isNewNotificationModalOpen, setIsNewNotificationModalOpen] =
+    useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] =
+    useState<Notification | null>(null);
   const itemsPerPage = 8;
 
   // Filter notifications based on search query
@@ -72,13 +80,103 @@ const AdminDashboardNotifications = () => {
   };
 
   const handleViewDetails = (notificationId: string) => {
-    // TODO: Implement notification details modal/view
-    console.log("View details for notification:", notificationId);
+    const notification = notifications.find((n) => n.id === notificationId);
+    if (notification) {
+      setSelectedNotification(notification);
+      setIsDetailsModalOpen(true);
+    }
+  };
+
+  const handleResendNotification = (notificationId: string) => {
+    // Update notification status to "Sent" and update the date
+    const now = new Date();
+    const day = now.getDate();
+    const daySuffix =
+      day === 1 || day === 21 || day === 31
+        ? "st"
+        : day === 2 || day === 22
+        ? "nd"
+        : day === 3 || day === 23
+        ? "rd"
+        : "th";
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const formattedDate = `${
+      monthNames[now.getMonth()]
+    } ${day}${daySuffix}, ${now.getFullYear()}`;
+
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === notificationId
+          ? { ...n, status: "Sent" as const, date: formattedDate }
+          : n
+      )
+    );
+    console.log("Notification resent:", notificationId);
   };
 
   const handleNewNotification = () => {
-    // TODO: Implement new notification form/modal
-    console.log("New notification clicked");
+    setIsNewNotificationModalOpen(true);
+  };
+
+  const handleNotificationSubmit = (data: {
+    title: string;
+    userType: string;
+    selectedUsers: string[];
+    body: string;
+  }) => {
+    // Create new notification
+    const now = new Date();
+    const day = now.getDate();
+    const daySuffix =
+      day === 1 || day === 21 || day === 31
+        ? "st"
+        : day === 2 || day === 22
+        ? "nd"
+        : day === 3 || day === 23
+        ? "rd"
+        : "th";
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const formattedDate = `${
+      monthNames[now.getMonth()]
+    } ${day}${daySuffix}, ${now.getFullYear()}`;
+
+    const newNotification: Notification = {
+      id: `#${notifications.length + 1}`,
+      title: data.title,
+      message: data.body,
+      date: formattedDate,
+      status: "Sent", // Default to Sent, could be randomized or based on logic
+      userType: data.userType,
+      selectedUsers: data.selectedUsers,
+    };
+    setNotifications((prev) => [newNotification, ...prev]);
+    console.log("New notification created:", newNotification);
   };
 
   return (
@@ -187,6 +285,24 @@ const AdminDashboardNotifications = () => {
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={handlePageChange}
+      />
+
+      {/* New Notification Modal */}
+      <NewNotificationModal
+        isOpen={isNewNotificationModalOpen}
+        onClose={() => setIsNewNotificationModalOpen(false)}
+        onSubmit={handleNotificationSubmit}
+      />
+
+      {/* Notification Details Modal */}
+      <NotificationDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedNotification(null);
+        }}
+        notification={selectedNotification}
+        onResend={handleResendNotification}
       />
     </div>
   );
