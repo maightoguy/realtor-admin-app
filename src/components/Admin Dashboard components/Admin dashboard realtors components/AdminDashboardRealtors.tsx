@@ -3,6 +3,8 @@ import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
 import RealtorsIcon from "../../icons/RealtorsIcon";
 import { mockRealtors, type Realtor } from "./AdminRealtorsData";
+import RealtorDetailsSection from "./RealtorDetailsSection";
+import { sampleProperties } from "../Admin dashboard properties components/adminDashboardPropertiesData";
 
 // MetricCard component (matching AdminDashboardReceipts pattern)
 interface MetricCardProps {
@@ -106,7 +108,37 @@ const AdminDashboardRealtors = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [realtors] = useState<Realtor[]>(mockRealtors);
+  const [selectedRealtor, setSelectedRealtor] = useState<Realtor | null>(null);
   const itemsPerPage = 8;
+
+  // Helper function to get properties sold by a specific realtor
+  // Uses the realtor's ID as a seed to deterministically assign properties
+  const getPropertiesForRealtor = (realtor: Realtor) => {
+    // Extract numeric part from realtor ID (e.g., "#1234" -> 1234)
+    const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
+    const seed = realtorIdNum;
+    
+    // Get a subset of properties based on the realtor's propertySold count
+    // Use the seed to deterministically select properties
+    const numProperties = Math.min(realtor.propertySold, sampleProperties.length);
+    const realtorProperties = [];
+    
+    for (let i = 0; i < numProperties; i++) {
+      const propertyIndex = (seed + i * 7) % sampleProperties.length; // Use prime number for better distribution
+      const property = sampleProperties[propertyIndex];
+      realtorProperties.push({
+        id: property.id,
+        image: property.image,
+        title: property.title,
+        price: property.price,
+        location: property.location,
+        isSoldOut: property.isSoldOut,
+        description: "Lorem ipsum dolor sit amet consectetur. Tempus aliquet duis integer porta. Volutpat integer ultricies diam consequat eget.",
+      });
+    }
+    
+    return realtorProperties;
+  };
 
   // Calculate metrics from all realtors
   const metrics = useMemo(() => {
@@ -182,9 +214,50 @@ const AdminDashboardRealtors = () => {
   };
 
   const handleViewDetails = (realtorId: string) => {
-    // TODO: Implement realtor details modal/view
-    console.log("View details for realtor:", realtorId);
+    const realtor = realtors.find((r) => r.id === realtorId);
+    if (realtor) {
+      setSelectedRealtor(realtor);
+    }
   };
+
+  const handleBackFromDetails = () => {
+    setSelectedRealtor(null);
+  };
+
+  const handleViewBankDetails = () => {
+    // TODO: Implement view bank details
+    console.log("View bank details for realtor:", selectedRealtor?.id);
+  };
+
+  const handleRemoveRealtor = () => {
+    // TODO: Implement remove realtor
+    console.log("Remove realtor:", selectedRealtor?.id);
+    // Optionally remove from list and reset selection
+    // setRealtors((prev) => prev.filter((r) => r.id !== selectedRealtor?.id));
+    setSelectedRealtor(null);
+  };
+
+  const handleViewPropertyDetails = (propertyId: number) => {
+    // TODO: Implement view property details
+    console.log("View property details:", propertyId);
+  };
+
+  // If a realtor is selected, show the details view
+  if (selectedRealtor) {
+    const realtorProperties = getPropertiesForRealtor(selectedRealtor);
+    return (
+      <div className="p-6 bg-[#FCFCFC]">
+        <RealtorDetailsSection
+          realtor={selectedRealtor}
+          properties={realtorProperties}
+          onBack={handleBackFromDetails}
+          onViewBankDetails={handleViewBankDetails}
+          onRemoveRealtor={handleRemoveRealtor}
+          onViewPropertyDetails={handleViewPropertyDetails}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
@@ -268,7 +341,7 @@ const AdminDashboardRealtors = () => {
             onSearch={handleSearch}
             onFilterClick={() => console.log("Filter clicked")}
             className="flex-1 sm:flex-initial"
-            placeholder="Q Search"
+            placeholder="Search"
           />
         </div>
       </div>
