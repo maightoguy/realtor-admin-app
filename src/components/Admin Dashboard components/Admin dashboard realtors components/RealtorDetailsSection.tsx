@@ -121,14 +121,14 @@ const RealtorDetailsSection = ({
       : Math.ceil(maxValue / 1000000) * 1000000;
 
   // Get initials for avatar
-  const getInitials = (name: string) => {
+  /* const getInitials = (name: string) => {
     return name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
+  }; */
 
   // Filter properties based on search query
   const filteredProperties = useMemo(() => {
