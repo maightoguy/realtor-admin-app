@@ -117,12 +117,15 @@ const AdminDashboardRealtors = () => {
     // Extract numeric part from realtor ID (e.g., "#1234" -> 1234)
     const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
     const seed = realtorIdNum;
-    
+
     // Get a subset of properties based on the realtor's propertySold count
     // Use the seed to deterministically select properties
-    const numProperties = Math.min(realtor.propertySold, sampleProperties.length);
+    const numProperties = Math.min(
+      realtor.propertySold,
+      sampleProperties.length
+    );
     const realtorProperties = [];
-    
+
     for (let i = 0; i < numProperties; i++) {
       const propertyIndex = (seed + i * 7) % sampleProperties.length; // Use prime number for better distribution
       const property = sampleProperties[propertyIndex];
@@ -133,10 +136,11 @@ const AdminDashboardRealtors = () => {
         price: property.price,
         location: property.location,
         isSoldOut: property.isSoldOut,
-        description: "Lorem ipsum dolor sit amet consectetur. Tempus aliquet duis integer porta. Volutpat integer ultricies diam consequat eget.",
+        description:
+          "Lorem ipsum dolor sit amet consectetur. Tempus aliquet duis integer porta. Volutpat integer ultricies diam consequat eget.",
       });
     }
-    
+
     return realtorProperties;
   };
 
@@ -242,6 +246,11 @@ const AdminDashboardRealtors = () => {
     console.log("View property details:", propertyId);
   };
 
+  const handleViewReceiptDetails = (receiptId: string) => {
+    // TODO: Implement view receipt details
+    console.log("View receipt details:", receiptId);
+  };
+
   // If a realtor is selected, show the details view
   if (selectedRealtor) {
     const realtorProperties = getPropertiesForRealtor(selectedRealtor);
@@ -254,6 +263,7 @@ const AdminDashboardRealtors = () => {
           onViewBankDetails={handleViewBankDetails}
           onRemoveRealtor={handleRemoveRealtor}
           onViewPropertyDetails={handleViewPropertyDetails}
+          onViewReceiptDetails={handleViewReceiptDetails}
         />
       </div>
     );

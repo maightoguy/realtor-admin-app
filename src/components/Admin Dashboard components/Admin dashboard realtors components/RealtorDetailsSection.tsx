@@ -3,8 +3,13 @@ import type { Realtor } from "./AdminRealtorsData";
 import type { SalesStatistics } from "../Admin dashboard properties components/adminDashboardPropertiesData";
 import AdminPropertyCard from "../Admin dashboard properties components/AdminPropertyCard";
 import AdminSearchBar from "../../AdminSearchBar";
+import AdminPagination from "../../AdminPagination";
 import { useState, useMemo } from "react";
 import { months } from "../Admin dashboard overview components/adminDashboardOverviewData";
+import {
+  mockReceipts,
+  type Receipt,
+} from "../Admin dashboard receipts components/AdminReceiptsData";
 
 interface RealtorDetailsSectionProps {
   realtor: Realtor;
@@ -21,6 +26,7 @@ interface RealtorDetailsSectionProps {
   onViewBankDetails?: () => void;
   onRemoveRealtor?: () => void;
   onViewPropertyDetails?: (propertyId: number) => void;
+  onViewReceiptDetails?: (receiptId: string) => void;
 }
 
 const RealtorDetailsSection = ({
@@ -30,11 +36,14 @@ const RealtorDetailsSection = ({
   onViewBankDetails,
   onRemoveRealtor,
   onViewPropertyDetails,
+  onViewReceiptDetails,
 }: RealtorDetailsSectionProps) => {
   const [activeTab, setActiveTab] = useState<
     "Properties sold" | "Receipts" | "Transactions" | "Referrals"
   >("Properties sold");
   const [searchQuery, setSearchQuery] = useState("");
+  const [receiptsPage, setReceiptsPage] = useState(1);
+  const receiptsPerPage = 8;
 
   // Get sales statistics data
   const salesStats: SalesStatistics = realtor.salesStatistics || {
@@ -133,6 +142,78 @@ const RealtorDetailsSection = ({
     );
   }, [properties, searchQuery]);
 
+  // Get receipts for this realtor
+  const realtorReceipts = useMemo(() => {
+    // Filter receipts by realtorId or realtorName
+    return mockReceipts.filter(
+      (receipt) =>
+        receipt.realtorId === realtor.id ||
+        receipt.realtorName === realtor.name ||
+        // Fallback: use a deterministic assignment based on realtor ID
+        (() => {
+          const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
+          const receiptIdNum = parseInt(receipt.id.replace("#", "")) || 0;
+          // Assign receipts to realtors deterministically
+          return receiptIdNum % 100 === realtorIdNum % 100;
+        })()
+    );
+  }, [realtor]);
+
+  // Filter receipts based on search query
+  const filteredReceipts = useMemo(() => {
+    if (!searchQuery.trim()) return realtorReceipts;
+
+    const query = searchQuery.toLowerCase();
+    return realtorReceipts.filter(
+      (r) =>
+        r.id.toLowerCase().includes(query) ||
+        r.propertyName.toLowerCase().includes(query) ||
+        r.clientName.toLowerCase().includes(query) ||
+        r.amount.toLowerCase().includes(query)
+    );
+  }, [realtorReceipts, searchQuery]);
+
+  // Pagination for receipts
+  const receiptsTotalItems = filteredReceipts.length;
+  const receiptsStartIndex = (receiptsPage - 1) * receiptsPerPage;
+  const receiptsEndIndex = receiptsStartIndex + receiptsPerPage;
+  const currentReceipts = filteredReceipts.slice(
+    receiptsStartIndex,
+    receiptsEndIndex
+  );
+
+  // Status badge component for receipts
+  const StatusBadge = ({ status }: { status: Receipt["status"] }) => {
+    const statusConfig = {
+      Approved: { color: "#22C55E", bgColor: "#D1FAE5", label: "Approved" },
+      Pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
+      Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
+      "Under review": {
+        color: "#6500AC",
+        bgColor: "#F0E6F7",
+        label: "Under review",
+      },
+    };
+
+    const config = statusConfig[status] || statusConfig.Pending;
+
+    return (
+      <span
+        className="flex items-center gap-1.5 text-sm font-medium px-2 py-1 rounded-md"
+        style={{
+          color: config.color,
+          backgroundColor: config.bgColor,
+        }}
+      >
+        <span
+          className="w-2 h-2 rounded-full"
+          style={{ backgroundColor: config.color }}
+        ></span>
+        {config.label}
+      </span>
+    );
+  };
+
   return (
     <div className="mb-6">
       {/* Header with back button */}
@@ -159,9 +240,7 @@ const RealtorDetailsSection = ({
             <div className="flex items-center gap-2">
               <div
                 className={`w-2 h-2 rounded-full ${
-                  realtor.status === "Active"
-                    ? "bg-[#22C55E]"
-                    : "bg-[#EF4444]"
+                  realtor.status === "Active" ? "bg-[#22C55E]" : "bg-[#EF4444]"
                 }`}
               ></div>
               <span className="text-sm font-medium text-gray-900">
@@ -355,7 +434,11 @@ const RealtorDetailsSection = ({
           ).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => {
+                setActiveTab(tab);
+                setSearchQuery(""); // Reset search when switching tabs
+                setReceiptsPage(1); // Reset pagination when switching tabs
+              }}
               className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab
                   ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
@@ -368,13 +451,18 @@ const RealtorDetailsSection = ({
         </div>
 
         {/* Search and Filter */}
-        {activeTab === "Properties sold" && (
+        {(activeTab === "Properties sold" || activeTab === "Receipts") && (
           <div className="mb-6 flex items-center gap-3">
             <AdminSearchBar
-              onSearch={setSearchQuery}
+              onSearch={(query) => {
+                setSearchQuery(query);
+                if (activeTab === "Receipts") {
+                  setReceiptsPage(1);
+                }
+              }}
               onFilterClick={() => console.log("Filter clicked")}
               className="flex-1"
-              placeholder="Q Search"
+              placeholder="Search"
             />
           </div>
         )}
@@ -405,8 +493,105 @@ const RealtorDetailsSection = ({
           </div>
         )}
 
+        {/* Receipts Table */}
+        {activeTab === "Receipts" && (
+          <>
+            <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-[#F0F1F2]">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Client name
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Property
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Amount paid
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Date Uploaded
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0F1F2]">
+                    {currentReceipts.length > 0 ? (
+                      currentReceipts.map((receipt) => (
+                        <tr
+                          key={receipt.id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                            {receipt.id}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {receipt.clientName}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {receipt.propertyName}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                            {receipt.amount}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {receipt.date}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <StatusBadge status={receipt.status} />
+                          </td>
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() => onViewReceiptDetails?.(receipt.id)}
+                              className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
+                            >
+                              View details
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-6 py-12 text-center text-sm text-gray-500"
+                        >
+                          {searchQuery
+                            ? "No receipts found matching your search"
+                            : "No receipts found for this realtor"}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pagination for Receipts */}
+            {receiptsTotalItems > 0 && (
+              <div className="mt-6">
+                <AdminPagination
+                  totalItems={receiptsTotalItems}
+                  itemsPerPage={receiptsPerPage}
+                  currentPage={receiptsPage}
+                  onPageChange={setReceiptsPage}
+                />
+              </div>
+            )}
+          </>
+        )}
+
         {/* Placeholder for other tabs */}
-        {activeTab !== "Properties sold" && (
+        {activeTab !== "Properties sold" && activeTab !== "Receipts" && (
           <div className="text-center py-12 text-gray-500">
             {activeTab} content coming soon
           </div>
@@ -417,4 +602,3 @@ const RealtorDetailsSection = ({
 };
 
 export default RealtorDetailsSection;
-
