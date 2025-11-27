@@ -339,7 +339,7 @@ const AdminDashboardTransactions = () => {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleViewDetails(transaction)}
-                        className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
+                        className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                       >
                         View details
                       </button>

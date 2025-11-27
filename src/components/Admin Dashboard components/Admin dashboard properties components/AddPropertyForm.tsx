@@ -375,7 +375,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                     onDrop={handleDrop}
                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                       isDragging
-                        ? "border-[#5E17EB] bg-[#F0E6F7]"
+                        ? "border-[#6500AC] bg-[#F0E6F7]"
                         : "border-[#E5E7EB] bg-gray-50"
                     }`}
                   >
@@ -400,7 +400,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       </div>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="bg-[#5E17EB] text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
+                        className="bg-[#6500AC] text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
                       >
                         Choose File
                       </button>
@@ -458,7 +458,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                                     onClick={() => handleSetThumbnail(image.id)}
                                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                                       image.isThumbnail
-                                        ? "bg-[#5E17EB] border-[#5E17EB]"
+                                        ? "bg-[#6500AC] border-[#6500AC]"
                                         : "bg-white border-gray-300"
                                     }`}
                                     title="Mark as thumbnail"
@@ -514,7 +514,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         name="category"
                         value={formData.category}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                       >
                         <option value="">Select category</option>
                         <option value="Land">Land</option>
@@ -532,7 +532,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         name="developer"
                         value={formData.developer}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                       >
                         <option value="Select developer">
                           Select developer
@@ -559,7 +559,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       value={formData.title}
                       onChange={handleInputChange}
                       placeholder="What is the name of this property"
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     />
                   </div>
 
@@ -574,7 +574,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       onChange={handleInputChange}
                       placeholder="Add more description about this property"
                       rows={4}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent resize-none"
+                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent resize-none"
                     />
                   </div>
                 </div>
@@ -604,7 +604,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         value={formData.startingPrice}
                         onChange={handleInputChange}
                         placeholder="What is the starting price for this property"
-                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -617,7 +617,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         value={formData.commission}
                         onChange={handleInputChange}
                         placeholder="Percentage of commison"
-                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -631,7 +631,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       value={formData.location}
                       onChange={handleInputChange}
                       placeholder="Enter the full location of the property"
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -662,7 +662,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                           e.target.value = "";
                         }
                       }}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     >
                       <option value="">
                         What are the document available for this property
@@ -731,7 +731,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       <button
                         type="button"
                         onClick={() => formFileInputRef.current?.click()}
-                        className="bg-[#5E17EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
+                        className="bg-[#6500AC] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
                       >
                         Upload
                       </button>
@@ -815,7 +815,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       value={formData.landSize}
                       onChange={handleInputChange}
                       placeholder="0"
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -826,7 +826,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       name="security"
                       value={formData.security}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     >
                       <option value="">Select security status</option>
                       <option value="very secured">Very secured</option>
@@ -842,7 +842,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       name="accessibility"
                       value={formData.accessibility}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     >
                       <option value="">is this road easily accessible</option>
                       <option value="Yes">Yes</option>
@@ -857,7 +857,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       name="topography"
                       value={formData.topography}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     >
                       <option value="">
                         What is the topography of this property
@@ -905,7 +905,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                           <div
                             key={index}
                             className={`relative aspect-square rounded-lg overflow-hidden ${
-                              index === 0 ? "ring-2 ring-[#5E17EB]" : ""
+                              index === 0 ? "ring-2 ring-[#6500AC]" : ""
                             }`}
                           >
                             <img
@@ -1216,7 +1216,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         {isGeocoding && (
                           <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
                             <div className="text-center">
-                              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5E17EB] mb-2"></div>
+                              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#6500AC] mb-2"></div>
                               <p className="text-sm text-gray-600">
                                 Finding location...
                               </p>
@@ -1244,7 +1244,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
               disabled={!isStepValid()}
               className={`w-full py-3 rounded-lg font-medium transition-colors ${
                 isStepValid()
-                  ? "bg-[#5E17EB] text-white hover:bg-[#4D14C7]"
+                  ? "bg-[#6500AC] text-white hover:bg-[#4D14C7]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
@@ -1264,7 +1264,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
               disabled={!isStepValid()}
               className={`px-6 py-2 rounded-lg font-medium transition-colors ${
                 isStepValid()
-                  ? "bg-[#5E17EB] text-white hover:bg-[#4D14C7]"
+                  ? "bg-[#6500AC] text-white hover:bg-[#4D14C7]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >

@@ -123,7 +123,7 @@ const AdminDashboardSettings = () => {
             onClick={() => setActiveTab("Profile")}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeTab === "Profile"
-                ? "text-[#5E17EB] border-[#5E17EB]"
+                ? "text-[#6500AC] border-[#6500AC]"
                 : "text-gray-600 border-transparent hover:text-gray-900"
             }`}
           >
@@ -133,7 +133,7 @@ const AdminDashboardSettings = () => {
             onClick={() => setActiveTab("Security")}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeTab === "Security"
-                ? "text-[#5E17EB] border-[#5E17EB]"
+                ? "text-[#6500AC] border-[#6500AC]"
                 : "text-gray-600 border-transparent hover:text-gray-900"
             }`}
           >
@@ -159,7 +159,7 @@ const AdminDashboardSettings = () => {
                 onClick={handleAvatarClick}
                 className="relative group cursor-pointer"
               >
-                <div className="w-20 h-20 bg-[#F0E6F7] rounded-full flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-[#5E17EB] transition-colors">
+                <div className="w-20 h-20 bg-[#F0E6F7] rounded-full flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-[#6500AC] transition-colors">
                   {avatarPreview ? (
                     <img
                       src={avatarPreview}
@@ -167,10 +167,10 @@ const AdminDashboardSettings = () => {
                       className="w-full h-full object-cover rounded-full"
                     />
                   ) : (
-                    <User className="w-10 h-10 text-[#5E17EB]" />
+                    <User className="w-10 h-10 text-[#6500AC]" />
                   )}
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-[#5E17EB] text-white rounded-full p-1.5 hover:bg-[#4A14C7] transition-colors">
+                <div className="absolute -bottom-1 -right-1 bg-[#6500AC] text-white rounded-full p-1.5 hover:bg-[#4A14C7] transition-colors">
                   <Camera className="w-3 h-3" />
                 </div>
               </button>
@@ -196,7 +196,7 @@ const AdminDashboardSettings = () => {
                 type="text"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange("firstName", e.target.value)}
-                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
             </div>
 
@@ -209,7 +209,7 @@ const AdminDashboardSettings = () => {
                 type="text"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange("lastName", e.target.value)}
-                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
             </div>
 
@@ -222,7 +222,7 @@ const AdminDashboardSettings = () => {
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
             </div>
           </div>
@@ -231,7 +231,7 @@ const AdminDashboardSettings = () => {
           <div className="pt-4">
             <button
               onClick={handleSaveProfileChanges}
-              className="px-6 py-3 bg-[#5E17EB] text-white font-medium rounded-lg hover:bg-[#4A14C7] transition-colors"
+              className="px-6 py-3 bg-[#6500AC] text-white font-medium rounded-lg hover:bg-[#4A14C7] transition-colors"
             >
               Save changes
             </button>
@@ -264,7 +264,7 @@ const AdminDashboardSettings = () => {
                     handleSecurityInputChange("oldPassword", e.target.value)
                   }
                   placeholder="Input old Password"
-                  className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent pr-10"
+                  className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent pr-10"
                 />
                 <button
                   type="button"
@@ -293,7 +293,7 @@ const AdminDashboardSettings = () => {
                     handleSecurityInputChange("newPassword", e.target.value)
                   }
                   placeholder="Input new Password"
-                  className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent pr-10"
+                  className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent pr-10"
                 />
                 <button
                   type="button"
@@ -328,7 +328,7 @@ const AdminDashboardSettings = () => {
                     handleSecurityInputChange("confirmPassword", e.target.value)
                   }
                   placeholder="Enter Password again"
-                  className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent pr-10"
+                  className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent pr-10"
                 />
                 <button
                   type="button"
@@ -356,7 +356,7 @@ const AdminDashboardSettings = () => {
               disabled={!isSecurityFormValid}
               className={`px-6 py-3 font-medium rounded-lg transition-colors ${
                 isSecurityFormValid
-                  ? "bg-[#5E17EB] text-white hover:bg-[#4A14C7]"
+                  ? "bg-[#6500AC] text-white hover:bg-[#4A14C7]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >

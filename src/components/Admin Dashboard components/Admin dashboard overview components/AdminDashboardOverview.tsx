@@ -157,7 +157,7 @@ const ReceiptRow = ({
       </span>
     </td>
     <td className="px-4 py-3">
-      <button className="text-sm text-[#5E17EB] font-medium hover:underline">
+      <button className="text-sm text-[#6500AC] font-medium hover:underline">
         View details
       </button>
     </td>
@@ -247,7 +247,7 @@ const AdminDashboardOverview = () => {
                 onClick={() => setChartView("Commission")}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   chartView === "Commission"
-                    ? "bg-[#5E17EB] text-white"
+                    ? "bg-[#6500AC] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -257,7 +257,7 @@ const AdminDashboardOverview = () => {
                 onClick={() => setChartView("Realtors")}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   chartView === "Realtors"
-                    ? "bg-[#5E17EB] text-white"
+                    ? "bg-[#6500AC] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -305,7 +305,7 @@ const AdminDashboardOverview = () => {
                           {/* Bar */}
                           <div
                             className={`w-full rounded-t transition-all relative z-10 ${
-                              isCurrentMonth ? "bg-green-500" : "bg-[#5E17EB]"
+                              isCurrentMonth ? "bg-green-500" : "bg-[#6500AC]"
                             }`}
                             style={{
                               height: `${height}%`,
@@ -406,7 +406,7 @@ const AdminDashboardOverview = () => {
           </h3>
           <button
             onClick={() => setShowAllReceipts(!showAllReceipts)}
-            className="text-sm text-[#5E17EB] font-medium hover:underline flex items-center gap-1"
+            className="text-sm text-[#6500AC] font-medium hover:underline flex items-center gap-1"
           >
             {showAllReceipts ? "Show less" : "View all"}
             <ChevronRight className="w-4 h-4" />

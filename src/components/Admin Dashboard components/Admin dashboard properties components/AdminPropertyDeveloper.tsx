@@ -104,7 +104,7 @@ const AdminPropertyDeveloper = ({
           </p>
           <button
             onClick={handleOpenModal}
-            className="bg-[#5E17EB] text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
+            className="bg-[#6500AC] text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
           >
             Add developer
           </button>
@@ -127,7 +127,7 @@ const AdminPropertyDeveloper = ({
         <h2 className="text-lg font-semibold text-gray-600">Developers</h2>
         <button
           onClick={handleOpenModal}
-          className="bg-[#5E17EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
+          className="bg-[#6500AC] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
         >
           Add new developer
         </button>
@@ -205,7 +205,7 @@ const AdminPropertyDeveloper = ({
                   <td className="px-6 py-4">
                     <button
                       onClick={() => onViewDetails?.(developer.id)}
-                      className="text-[#5E17EB] font-semibold text-sm hover:underline"
+                      className="text-[#6500AC] font-semibold text-sm hover:underline"
                     >
                       View details
                     </button>

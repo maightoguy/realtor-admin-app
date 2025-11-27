@@ -73,7 +73,7 @@ const AdminDashboardReferrals = () => {
             onClick={() => setActiveTab("all")}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeTab === "all"
-                ? "text-[#5E17EB] border-[#5E17EB]"
+                ? "text-[#6500AC] border-[#6500AC]"
                 : "text-gray-600 border-transparent hover:text-gray-900"
             }`}
           >
@@ -83,7 +83,7 @@ const AdminDashboardReferrals = () => {
             onClick={() => setActiveTab("top")}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeTab === "top"
-                ? "text-[#5E17EB] border-[#5E17EB]"
+                ? "text-[#6500AC] border-[#6500AC]"
                 : "text-gray-600 border-transparent hover:text-gray-900"
             }`}
           >
@@ -185,7 +185,7 @@ const AdminDashboardReferrals = () => {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleViewAgent(referral.id)}
-                        className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
+                        className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                       >
                         View agent
                       </button>

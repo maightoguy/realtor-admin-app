@@ -49,7 +49,7 @@ const AdminPropertyCard = ({
 
       {/* Text Section */}
       <div className="p-4">
-        <p className="text-[#5E17EB] font-bold text-lg mb-2">
+        <p className="text-[#6500AC] font-bold text-lg mb-2">
           {formattedPrice}
         </p>
         <h3 className="font-semibold text-gray-900 text-base mb-2">{title}</h3>
@@ -65,7 +65,7 @@ const AdminPropertyCard = ({
         </p>
         <button
           onClick={onViewDetails}
-          className="text-[#5E17EB] font-semibold text-sm hover:underline"
+          className="text-[#6500AC] font-semibold text-sm hover:underline"
         >
           View details →
         </button>

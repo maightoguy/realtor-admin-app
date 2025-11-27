@@ -269,7 +269,7 @@ const AdminReceiptsDetailsModal = ({
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     placeholder="Enter your reason for rejecting this receipt"
-                    className="w-full p-4 border border-[#F0F1F2] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                    className="w-full p-4 border border-[#F0F1F2] rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     rows={5}
                   />
                 )}
@@ -344,7 +344,7 @@ const AdminReceiptsDetailsModal = ({
                 <div className="flex-1 relative" ref={dropdownRef}>
                   <button
                     onClick={() => setShowDropdown(!showDropdown)}
-                    className="w-full px-4 py-3 bg-[#5E17EB] text-white rounded-lg text-sm font-semibold hover:bg-[#4D14C7] transition-colors flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 bg-[#6500AC] text-white rounded-lg text-sm font-semibold hover:bg-[#4D14C7] transition-colors flex items-center justify-center gap-2"
                   >
                     Update progress
                     <ChevronUp
@@ -383,7 +383,7 @@ const AdminReceiptsDetailsModal = ({
                       selectedAction === "under review") && (
                       <button
                         onClick={handleUpdateProgress}
-                        className="w-full mt-2 px-4 py-3 bg-[#5E17EB] hover:bg-[#4D14C7] text-white rounded-lg text-sm font-semibold transition-colors"
+                        className="w-full mt-2 px-4 py-3 bg-[#6500AC] hover:bg-[#4D14C7] text-white rounded-lg text-sm font-semibold transition-colors"
                       >
                         Update progress
                       </button>

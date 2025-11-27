@@ -70,7 +70,7 @@ const AdminDashboardPage = () => {
     isActive: boolean,
     isHovered: boolean
   ) => {
-    const color = isActive || isHovered ? "#5E17EB" : "#9CA1AA";
+    const color = isActive || isHovered ? "#6500AC" : "#9CA1AA";
     const iconProps = { color };
 
     switch (item) {
@@ -131,8 +131,8 @@ const AdminDashboardPage = () => {
                 onMouseLeave={() => setHoveredItem(null)}
                 className={`flex items-center gap-3 text-left group transition-colors duration-200 ${
                   activeSection === item
-                    ? "font-semibold text-[#5E17EB]"
-                    : "hover:text-[#5E17EB]"
+                    ? "font-semibold text-[#6500AC]"
+                    : "hover:text-[#6500AC]"
                 }`}
               >
                 <span className="transition-colors duration-200">

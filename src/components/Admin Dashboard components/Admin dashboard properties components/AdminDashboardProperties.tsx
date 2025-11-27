@@ -275,10 +275,10 @@ const AdminDashboardProperties = ({
           <MetricCard
             title="Total properties"
             value={propertiesMetricsData.totalProperties}
-            icon={<BuildingsIcon color="#5E17EB" className="w-5 h-5" />}
+            icon={<BuildingsIcon color="#6500AC" className="w-5 h-5" />}
             iconBgColor="#F0E6F7"
             iconStrokeColor="#F0E6F7"
-            iconFgColor="#5E17EB"
+            iconFgColor="#6500AC"
             valueTextColor="#101828"
           />
           <MetricCard
@@ -370,7 +370,7 @@ const AdminDashboardProperties = ({
                   </h2>
                   <button
                     onClick={() => handleFormStateChange(!showAddForm)}
-                    className="bg-[#5E17EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
+                    className="bg-[#6500AC] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
                   >
                     Add new property
                   </button>

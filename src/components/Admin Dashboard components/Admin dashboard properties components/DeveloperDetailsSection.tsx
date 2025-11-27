@@ -244,7 +244,7 @@ const DeveloperDetailsSection = ({
                         {/* Bar */}
                         <div
                           className={`w-full rounded-t transition-all relative z-10 ${
-                            isCurrentMonth ? "bg-green-500" : "bg-[#5E17EB]"
+                            isCurrentMonth ? "bg-green-500" : "bg-[#6500AC]"
                           }`}
                           style={{
                             height: `${height}%`,

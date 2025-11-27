@@ -4,12 +4,138 @@ import type { SalesStatistics } from "../Admin dashboard properties components/a
 import AdminPropertyCard from "../Admin dashboard properties components/AdminPropertyCard";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import type { ReactNode } from "react";
 import { months } from "../Admin dashboard overview components/adminDashboardOverviewData";
 import {
   mockReceipts,
   type Receipt,
 } from "../Admin dashboard receipts components/AdminReceiptsData";
+import TransactionsIcon from "../../icons/TransactionsIcon";
+import {
+  mockTransactions,
+  type Transaction,
+} from "../Admin dashboard transactions components/AdminTransactionsData";
+
+const parseCurrencyValue = (amount: string) =>
+  parseFloat(amount.replace(/[₦,]/g, "")) || 0;
+
+const formatCurrencyValue = (value: number) =>
+  `₦${Math.max(value, 0).toLocaleString("en-NG")}`;
+
+interface MetricCardProps {
+  title: string;
+  value: string;
+  icon: ReactNode;
+  iconBgColor: string;
+  iconStrokeColor: string;
+  textColor?: string;
+  variant?: "default" | "primary";
+}
+
+const MetricCard = ({
+  title,
+  value,
+  icon,
+  iconBgColor,
+  iconStrokeColor,
+  textColor = "#101828",
+  variant = "default",
+}: MetricCardProps) => {
+  const isPrimary = variant === "primary";
+  const containerClasses = isPrimary
+    ? "rounded-2xl p-5 flex flex-col gap-4 w-full bg-[#6500AC] text-white shadow-lg border border-transparent"
+    : "bg-white border border-[#F0F1F2] rounded-2xl shadow-sm p-5 flex flex-col gap-4 w-full transition duration-300 hover:shadow-lg";
+
+  const finalTextColor = isPrimary ? "#FFFFFF" : textColor;
+  const finalIconBgColor = isPrimary ? "rgba(255,255,255,0.15)" : iconBgColor;
+  const finalIconStrokeColor = isPrimary
+    ? "rgba(255,255,255,0.35)"
+    : iconStrokeColor;
+
+  return (
+    <div className={containerClasses}>
+      <div className="flex items-center gap-3">
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect
+            x="3"
+            y="3"
+            width="30"
+            height="30"
+            rx="15"
+            fill={finalIconBgColor}
+          />
+          <rect
+            x="3"
+            y="3"
+            width="30"
+            height="30"
+            rx="15"
+            stroke={finalIconStrokeColor}
+            strokeWidth="4.5"
+          />
+          <foreignObject x="3" y="3" width="30" height="30" rx="15">
+            <div className="w-full h-full flex items-center justify-center">
+              {icon}
+            </div>
+          </foreignObject>
+        </svg>
+        <p
+          className="text-sm font-medium truncate"
+          style={{
+            color: isPrimary ? "rgba(255,255,255,0.85)" : finalTextColor,
+          }}
+        >
+          {title}
+        </p>
+      </div>
+      <div className="flex flex-col gap-3 min-w-0">
+        <p
+          className="text-[24px] leading-9 font-semibold break-words max-w-full"
+          style={{ color: finalTextColor }}
+        >
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const TransactionStatusBadge = ({
+  status,
+}: {
+  status: Transaction["status"];
+}) => {
+  const statusConfig = {
+    Paid: { color: "#22C55E", bgColor: "#D1FAE5", label: "Paid" },
+    Pending: { color: "#F59E0B", bgColor: "#FEF3C7", label: "Pending" },
+    Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Failed" },
+  };
+
+  const config = statusConfig[status] || statusConfig.Pending;
+
+  return (
+    <span
+      className="flex items-center gap-1.5 text-sm font-medium px-2 py-1 rounded-md"
+      style={{
+        color: config.color,
+        backgroundColor: config.bgColor,
+      }}
+    >
+      <span
+        className="w-2 h-2 rounded-full"
+        style={{ backgroundColor: config.color }}
+      ></span>
+      {config.label}
+    </span>
+  );
+};
 
 interface RealtorDetailsSectionProps {
   realtor: Realtor;
@@ -44,6 +170,11 @@ const RealtorDetailsSection = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [receiptsPage, setReceiptsPage] = useState(1);
   const receiptsPerPage = 8;
+  const [transactionFilter, setTransactionFilter] = useState<
+    "All" | "Commission" | "Withdrawals"
+  >("All");
+  const [transactionsPage, setTransactionsPage] = useState(1);
+  const transactionsPerPage = 8;
 
   // Get sales statistics data
   const salesStats: SalesStatistics = realtor.salesStatistics || {
@@ -182,6 +313,100 @@ const RealtorDetailsSection = ({
     receiptsEndIndex
   );
 
+  // Get transactions for this realtor
+  const realtorTransactions = useMemo(() => {
+    return mockTransactions.filter(
+      (transaction) =>
+        transaction.realtorId === realtor.id ||
+        transaction.realtorName === realtor.name ||
+        (() => {
+          const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
+          const transactionIdNum =
+            parseInt(transaction.id.replace("#", "")) || 0;
+          return transactionIdNum % 100 === realtorIdNum % 100;
+        })()
+    );
+  }, [realtor]);
+
+  const transactionMetrics = useMemo(() => {
+    if (!realtorTransactions.length) {
+      return {
+        availableBalance: "₦0",
+        totalEarnings: "₦0",
+        totalWithdrawals: "₦0",
+        totalPending: "₦0",
+      };
+    }
+
+    let commissionTotal = 0;
+    let withdrawalTotal = 0;
+    let pendingTotal = 0;
+    let paidWithdrawalTotal = 0;
+
+    realtorTransactions.forEach((transaction) => {
+      const amountValue = parseCurrencyValue(transaction.amount);
+      if (transaction.type === "Commission") {
+        commissionTotal += amountValue;
+      } else {
+        withdrawalTotal += amountValue;
+        if (transaction.status === "Pending") {
+          pendingTotal += amountValue;
+        }
+        if (transaction.status === "Paid") {
+          paidWithdrawalTotal += amountValue;
+        }
+      }
+    });
+
+    const availableBalance = commissionTotal - paidWithdrawalTotal;
+
+    return {
+      availableBalance: formatCurrencyValue(availableBalance),
+      totalEarnings: formatCurrencyValue(commissionTotal),
+      totalWithdrawals: formatCurrencyValue(withdrawalTotal),
+      totalPending: formatCurrencyValue(pendingTotal),
+    };
+  }, [realtorTransactions]);
+
+  const filteredTransactions = useMemo(() => {
+    let filtered = [...realtorTransactions];
+
+    if (transactionFilter === "Commission") {
+      filtered = filtered.filter(
+        (transaction) => transaction.type === "Commission"
+      );
+    } else if (transactionFilter === "Withdrawals") {
+      filtered = filtered.filter(
+        (transaction) => transaction.type === "Withdrawal"
+      );
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (transaction) =>
+          transaction.id.toLowerCase().includes(query) ||
+          transaction.amount.toLowerCase().includes(query) ||
+          transaction.status.toLowerCase().includes(query) ||
+          transaction.type.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [realtorTransactions, transactionFilter, searchQuery]);
+
+  const transactionsTotalItems = filteredTransactions.length;
+  const transactionsStartIndex = (transactionsPage - 1) * transactionsPerPage;
+  const transactionsEndIndex = transactionsStartIndex + transactionsPerPage;
+  const currentTransactions = filteredTransactions.slice(
+    transactionsStartIndex,
+    transactionsEndIndex
+  );
+
+  useEffect(() => {
+    setTransactionsPage(1);
+  }, [transactionFilter, searchQuery, realtor.id]);
+
   // Status badge component for receipts
   const StatusBadge = ({ status }: { status: Receipt["status"] }) => {
     const statusConfig = {
@@ -312,7 +537,7 @@ const RealtorDetailsSection = ({
                   {realtor.kycStatus}
                 </span>
                 {realtor.kycStatus === "Uploaded" && (
-                  <button className="text-sm text-[#5E17EB] font-semibold hover:underline ml-2">
+                  <button className="text-sm text-[#6500AC] font-semibold hover:underline ml-2">
                     View
                   </button>
                 )}
@@ -381,7 +606,7 @@ const RealtorDetailsSection = ({
                         {/* Bar */}
                         <div
                           className={`w-full rounded-t transition-all relative z-10 ${
-                            isCurrentMonth ? "bg-green-500" : "bg-[#5E17EB]"
+                            isCurrentMonth ? "bg-green-500" : "bg-[#6500AC]"
                           }`}
                           style={{
                             height: `${height}%`,
@@ -438,6 +663,8 @@ const RealtorDetailsSection = ({
                 setActiveTab(tab);
                 setSearchQuery(""); // Reset search when switching tabs
                 setReceiptsPage(1); // Reset pagination when switching tabs
+                setTransactionsPage(1);
+                setTransactionFilter("All");
               }}
               className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab
@@ -454,6 +681,7 @@ const RealtorDetailsSection = ({
         {(activeTab === "Properties sold" || activeTab === "Receipts") && (
           <div className="mb-6 flex items-center gap-3">
             <AdminSearchBar
+              key={activeTab}
               onSearch={(query) => {
                 setSearchQuery(query);
                 if (activeTab === "Receipts") {
@@ -552,7 +780,7 @@ const RealtorDetailsSection = ({
                           <td className="px-6 py-4">
                             <button
                               onClick={() => onViewReceiptDetails?.(receipt.id)}
-                              className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
+                              className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                             >
                               View details
                             </button>
@@ -590,10 +818,213 @@ const RealtorDetailsSection = ({
           </>
         )}
 
-        {/* Placeholder for other tabs */}
-        {activeTab !== "Properties sold" && activeTab !== "Receipts" && (
+        {/* Transactions Tab */}
+        {activeTab === "Transactions" && (
+          <div className="space-y-6">
+            {/* Metric cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard
+                title="Available Balance"
+                value={transactionMetrics.availableBalance}
+                icon={<TransactionsIcon color="#FFFFFF" className="w-5 h-5" />}
+                iconBgColor="#6B7280"
+                iconStrokeColor="#CFB0E5"
+                textColor="#FFFFFF"
+                variant="primary"
+              />
+              <MetricCard
+                title="Total Earnings"
+                value={transactionMetrics.totalEarnings}
+                icon={<TransactionsIcon color="#6500AC" className="w-5 h-5" />}
+                iconBgColor="#F0E6F7"
+                iconStrokeColor="#CFB0E5"
+              />
+              <MetricCard
+                title="Total Withdrawals"
+                value={transactionMetrics.totalWithdrawals}
+                icon={<TransactionsIcon color="#6B7280" className="w-5 h-5" />}
+                iconBgColor="#F3F4F6"
+                iconStrokeColor="#E5E7EB"
+              />
+              <MetricCard
+                title="Total Pending"
+                value={transactionMetrics.totalPending}
+                icon={<TransactionsIcon color="#F59E0B" className="w-5 h-5" />}
+                iconBgColor="#FEF3C7"
+                iconStrokeColor="#FDE68A"
+              />
+            </div>
+
+            {/* Filter + search */}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex gap-2 flex-wrap">
+                {(["All", "Commission", "Withdrawals"] as const).map(
+                  (filter) => (
+                    <button
+                      key={filter}
+                      onClick={() => setTransactionFilter(filter)}
+                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+                        transactionFilter === filter
+                          ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                          : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
+                      }`}
+                    >
+                      {filter === "All" ? "All transactions" : filter}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <AdminSearchBar
+                  key="transactions-search"
+                  onSearch={(query) => {
+                    setSearchQuery(query);
+                    setTransactionsPage(1);
+                  }}
+                  onFilterClick={() => console.log("Filter clicked")}
+                  className="flex-1 lg:flex-initial"
+                  placeholder="Search transactions"
+                />
+                <div className="flex items-center gap-2">
+                  <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#F0F1F2] bg-white">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M3.75 3.375H7.5V7.125H3.75V3.375ZM10.5 3.375H14.25V7.125H10.5V3.375ZM3.75 10.125H7.5V13.875H3.75V10.125ZM10.5 10.125H14.25V13.875H10.5V10.125Z"
+                        stroke="#6B7280"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#F0F1F2] bg-white">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M3.75 4.5H14.25M3.75 9H14.25M3.75 13.5H14.25"
+                        stroke="#6B7280"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Transactions Table */}
+            <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-[#F0F1F2]">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Title
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0F1F2]">
+                    {currentTransactions.length > 0 ? (
+                      currentTransactions.map((transaction) => (
+                        <tr
+                          key={transaction.id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                            {transaction.id}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {transaction.type === "Commission"
+                              ? "Commission Payment"
+                              : "Withdrawal"}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                            {transaction.amount}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {transaction.date}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <TransactionStatusBadge
+                              status={transaction.status}
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() =>
+                                console.log(
+                                  "View transaction details",
+                                  transaction.id
+                                )
+                              }
+                              className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
+                            >
+                              View details
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-12 text-center text-sm text-gray-500"
+                        >
+                          {searchQuery
+                            ? "No transactions match your search"
+                            : "No transactions found for this realtor"}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pagination */}
+            {transactionsTotalItems > 0 && (
+              <AdminPagination
+                totalItems={transactionsTotalItems}
+                itemsPerPage={transactionsPerPage}
+                currentPage={transactionsPage}
+                onPageChange={setTransactionsPage}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Placeholder for referrals */}
+        {activeTab === "Referrals" && (
           <div className="text-center py-12 text-gray-500">
-            {activeTab} content coming soon
+            Referrals content coming soon
           </div>
         )}
       </div>

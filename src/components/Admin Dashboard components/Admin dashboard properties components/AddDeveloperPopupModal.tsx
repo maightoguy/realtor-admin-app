@@ -142,7 +142,7 @@ const AddDeveloperPopupModal = ({
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Enter full-name here"
-                  className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent ${
+                  className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent ${
                     errors.name ? "border-red-500" : "border-[#D5D7DA]"
                   }`}
                 />
@@ -166,7 +166,7 @@ const AddDeveloperPopupModal = ({
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter email address"
-                  className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent ${
+                  className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent ${
                     errors.email ? "border-red-500" : "border-[#D5D7DA]"
                   }`}
                 />
@@ -190,7 +190,7 @@ const AddDeveloperPopupModal = ({
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="Enter phone number"
-                  className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent ${
+                  className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent ${
                     errors.phone ? "border-red-500" : "border-[#D5D7DA]"
                   }`}
                 />
@@ -211,7 +211,7 @@ const AddDeveloperPopupModal = ({
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-3 bg-[#5E17EB] text-white rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
+                className="flex-1 px-4 py-3 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
               >
                 Add details
               </button>

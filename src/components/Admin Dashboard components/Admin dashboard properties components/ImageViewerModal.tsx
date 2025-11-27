@@ -106,9 +106,9 @@ const ImageViewerModal = ({
                   e.stopPropagation();
                   setCurrentIndex(index);
                 }}
-                className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
                   index === currentIndex
-                    ? "border-[#5E17EB] ring-2 ring-[#5E17EB]"
+                    ? "border-[#6500AC] ring-2 ring-[#6500AC]"
                     : "border-transparent opacity-60 hover:opacity-100"
                 }`}
               >
@@ -127,4 +127,3 @@ const ImageViewerModal = ({
 };
 
 export default ImageViewerModal;
-

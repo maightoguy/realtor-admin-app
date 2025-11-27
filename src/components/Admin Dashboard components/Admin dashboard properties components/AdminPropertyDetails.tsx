@@ -230,7 +230,7 @@ const AdminPropertyDetails = ({
                       handleImageClick(index);
                     }}
                     className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform ${
-                      index === currentImageIndex ? "ring-2 ring-[#5E17EB]" : ""
+                      index === currentImageIndex ? "ring-2 ring-[#6500AC]" : ""
                     }`}
                   >
                     <img
@@ -494,7 +494,7 @@ const AdminPropertyDetails = ({
                   {isGeocoding && (
                     <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
                       <div className="text-center">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#5E17EB] mb-2"></div>
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#6500AC] mb-2"></div>
                         <p className="text-sm text-gray-600">
                           Finding location...
                         </p>
@@ -513,7 +513,7 @@ const AdminPropertyDetails = ({
             <div className="space-y-3">
               <button
                 onClick={() => onEdit?.(property.id)}
-                className="w-full bg-[#5E17EB] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#4A14C7] transition-colors"
+                className="w-full bg-[#6500AC] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#4A14C7] transition-colors"
               >
                 Edit property details
               </button>
@@ -801,7 +801,7 @@ const AdminPropertyDetails = ({
                                 className={`w-full rounded-t transition-all relative z-10 ${
                                   isCurrentMonth
                                     ? "bg-green-500"
-                                    : "bg-[#5E17EB]"
+                                    : "bg-[#6500AC]"
                                 }`}
                                 style={{
                                   height: `${height}%`,
