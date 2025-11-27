@@ -191,7 +191,7 @@ const NotificationDetailsModal = ({
             <button
               type="button"
               onClick={handleResend}
-              className="flex-1 px-4 py-3 bg-[#5E17EB] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors"
+              className="flex-1 px-4 py-3 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors"
             >
               Resend notification
             </button>

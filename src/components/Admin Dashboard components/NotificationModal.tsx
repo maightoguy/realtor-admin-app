@@ -124,7 +124,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             {/* Back arrow*/}
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h2 className="text-lg font-semibold text-gray-800 text-center flex-grow -ml-9">
+          <h2 className="text-lg font-semibold text-gray-800 text-center grow -ml-9">
             Notifications
           </h2>
         </div>
@@ -152,15 +152,13 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
               }`}
             >
               {!item.isRead && (
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0" />
               )}
-              <div
-                className={`flex-shrink-0 mt-1 ${item.isRead ? "ml-4" : ""}`}
-              >
+              <div className={`shrink-0 mt-1 ${item.isRead ? "ml-4" : ""}`}>
                 {getNotificationIcon(item.type)}
               </div>
 
-              <div className="flex-grow">
+              <div className="grow">
                 <p className="text-sm font-semibold text-gray-800 leading-tight">
                   {item.title}
                 </p>

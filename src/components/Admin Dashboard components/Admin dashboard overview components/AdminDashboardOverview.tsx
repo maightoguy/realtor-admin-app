@@ -77,7 +77,7 @@ const MetricCard = ({
       style={{ color: valueTextColor }}
     >
       <p
-        className="text-[24px] leading-9 font-medium break-words max-w-full"
+        className="text-[24px] leading-9 font-medium wrap-break-word max-w-full"
         style={{ color: valueTextColor }}
       >
         {isEmpty ? "-" : value}
@@ -338,7 +338,7 @@ const AdminDashboardOverview = () => {
                         >
                           {/* Extend highlight to label area for current month */}
                           {isCurrentMonth && (
-                            <div className="absolute -top-8 -bottom-0 -left-1 -right-1 bg-gray-100 rounded-b-lg"></div>
+                            <div className="absolute -top-8 bottom-0 -left-1 -right-1 bg-gray-100 rounded-b-lg"></div>
                           )}
                           <span
                             className={`text-xs relative z-10 ${

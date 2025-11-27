@@ -195,7 +195,7 @@ const AdminDashboardNotifications = () => {
           {/* New Notification Button */}
           <button
             onClick={handleNewNotification}
-            className=" px-4 py-2 bg-[#5E17EB] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors whitespace-nowrap"
+            className=" px-4 py-2 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors whitespace-nowrap"
           >
             New notification
           </button>
@@ -257,7 +257,7 @@ const AdminDashboardNotifications = () => {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => handleViewDetails(notification.id)}
-                        className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
+                        className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                       >
                         View details
                       </button>

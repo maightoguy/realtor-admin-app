@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Link2 } from "lucide-react";
 import type { Realtor } from "./AdminRealtorsData";
 import type { SalesStatistics } from "../Admin dashboard properties components/adminDashboardPropertiesData";
 import AdminPropertyCard from "../Admin dashboard properties components/AdminPropertyCard";
@@ -16,12 +16,27 @@ import {
   mockTransactions,
   type Transaction,
 } from "../Admin dashboard transactions components/AdminTransactionsData";
+import {
+  mockReferrals,
+  referralCode as defaultReferralCode,
+  referralLink as defaultReferralLink,
+} from "../Admin dashboard referrals components/refferalData";
+import ReferralsIcon from "../../icons/ReferralsIcon";
 
 const parseCurrencyValue = (amount: string) =>
   parseFloat(amount.replace(/[₦,]/g, "")) || 0;
 
 const formatCurrencyValue = (value: number) =>
   `₦${Math.max(value, 0).toLocaleString("en-NG")}`;
+
+const normalizeReferralLink = (link: string) => {
+  if (!link) return "https://referral.veriplot.com";
+  if (link.startsWith("https://") || link.startsWith("http://")) return link;
+  if (link.startsWith("htt://")) {
+    return `https://${link.replace("htt://", "")}`;
+  }
+  return `https://${link.replace(/^\/+/, "")}`;
+};
 
 interface MetricCardProps {
   title: string;
@@ -97,7 +112,7 @@ const MetricCard = ({
       </div>
       <div className="flex flex-col gap-3 min-w-0">
         <p
-          className="text-[24px] leading-9 font-semibold break-words max-w-full"
+          className="text-[24px] leading-9 font-semibold wrap-break-word max-w-full"
           style={{ color: finalTextColor }}
         >
           {value}
@@ -175,6 +190,9 @@ const RealtorDetailsSection = ({
   >("All");
   const [transactionsPage, setTransactionsPage] = useState(1);
   const transactionsPerPage = 8;
+  const [referralsPage, setReferralsPage] = useState(1);
+  const referralsPerPage = 8;
+  const [copyStatus, setCopyStatus] = useState<"code" | "link" | null>(null);
 
   // Get sales statistics data
   const salesStats: SalesStatistics = realtor.salesStatistics || {
@@ -406,6 +424,98 @@ const RealtorDetailsSection = ({
   useEffect(() => {
     setTransactionsPage(1);
   }, [transactionFilter, searchQuery, realtor.id]);
+
+  const realtorReferrals = useMemo(() => {
+    const primaryMatches = mockReferrals.filter(
+      (referral) =>
+        referral.referredBy === realtor.name ||
+        referral.id === realtor.id ||
+        (realtor.firstName &&
+          referral.name.toLowerCase().includes(realtor.firstName.toLowerCase()))
+    );
+
+    if (primaryMatches.length) {
+      return primaryMatches;
+    }
+
+    const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
+    return mockReferrals.filter((referral, index) => {
+      const referralIdNum = parseInt(referral.id.replace("#", "")) || index + 1;
+      return referralIdNum % 5 === realtorIdNum % 5;
+    });
+  }, [realtor]);
+
+  const filteredReferrals = useMemo(() => {
+    if (!searchQuery.trim()) return realtorReferrals;
+
+    const query = searchQuery.toLowerCase();
+    return realtorReferrals.filter(
+      (referral) =>
+        referral.id.toLowerCase().includes(query) ||
+        referral.name.toLowerCase().includes(query) ||
+        referral.dateJoined.toLowerCase().includes(query) ||
+        referral.totalReferralCommission.toLowerCase().includes(query)
+    );
+  }, [realtorReferrals, searchQuery]);
+
+  const referralsTotalItems = filteredReferrals.length;
+  const referralsStartIndex = (referralsPage - 1) * referralsPerPage;
+  const referralsEndIndex = referralsStartIndex + referralsPerPage;
+  const currentReferrals = filteredReferrals.slice(
+    referralsStartIndex,
+    referralsEndIndex
+  );
+
+  useEffect(() => {
+    setReferralsPage(1);
+  }, [searchQuery, realtor.id, activeTab]);
+
+  const referralMetrics = useMemo(() => {
+    const totalCommissionValue = realtorReferrals.reduce((sum, referral) => {
+      return sum + parseCurrencyValue(referral.totalReferralCommission);
+    }, 0);
+
+    return {
+      count: realtorReferrals.length,
+      totalCommission: formatCurrencyValue(totalCommissionValue),
+    };
+  }, [realtorReferrals]);
+
+  const realtorReferralCode = useMemo(() => {
+    const idSuffix = realtor.id.replace("#", "") || "0000";
+    const baseCode = defaultReferralCode || "AGTREF";
+    return `${baseCode}-${idSuffix}`;
+  }, [realtor]);
+
+  const realtorReferralLink = useMemo(() => {
+    const normalizedBase = normalizeReferralLink(defaultReferralLink);
+    const slug = realtor.name
+      ? realtor.name.toLowerCase().replace(/\s+/g, "-")
+      : `agent-${realtor.id.replace("#", "")}`;
+    const separator = normalizedBase.includes("?") ? "&" : "?";
+    return `${normalizedBase}${separator}agent=${slug}`;
+  }, [realtor]);
+
+  const referralLinkDisplay =
+    defaultReferralLink?.replace(/^htt:\/\//, "http://") ||
+    "http://referral/code.com";
+
+  const handleCopyValue = (value: string, type: "code" | "link") => {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      navigator.clipboard
+        .writeText(value)
+        .then(() => setCopyStatus(type))
+        .catch(() => setCopyStatus(type));
+    } else {
+      setCopyStatus(type);
+    }
+  };
+
+  useEffect(() => {
+    if (!copyStatus) return;
+    const timer = setTimeout(() => setCopyStatus(null), 1500);
+    return () => clearTimeout(timer);
+  }, [copyStatus]);
 
   // Status badge component for receipts
   const StatusBadge = ({ status }: { status: Receipt["status"] }) => {
@@ -1021,10 +1131,175 @@ const RealtorDetailsSection = ({
           </div>
         )}
 
-        {/* Placeholder for referrals */}
+        {/* Referrals Tab */}
         {activeTab === "Referrals" && (
-          <div className="text-center py-12 text-gray-500">
-            Referrals content coming soon
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
+              <div className="bg-[#6500AC] text-white rounded-2xl p-6 flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/15 border border-white/30 flex items-center justify-center">
+                    <Link2 className="w-5 h-5 text-white" strokeWidth={1.5} />
+                  </div>
+                  <p className="text-sm font-medium text-white/80">
+                    Realtors referral code
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-3xl font-semibold tracking-wide">
+                    {realtorReferralCode}
+                  </p>
+                  <button
+                    onClick={() => handleCopyValue(realtorReferralCode, "code")}
+                    className="px-4 py-2 bg-white text-[#5E17EB] rounded-2xl text-sm font-semibold hover:bg-white/90 transition-colors"
+                  >
+                    {copyStatus === "code" ? "Copied" : "Copy"}
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-sm text-white/80">or</span>
+                  <div className="flex flex-1 items-center gap-3 flex-wrap min-w-0">
+                    <a
+                      href={realtorReferralLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 min-w-[200px] px-4 py-2 border border-white/30 rounded-2xl bg-white/5 text-sm text-white font-medium break-all hover:bg-white/10 transition-colors"
+                    >
+                      {referralLinkDisplay}
+                    </a>
+                    <button
+                      onClick={() =>
+                        handleCopyValue(realtorReferralLink, "link")
+                      }
+                      className="px-4 py-2 bg-white text-[#5E17EB] rounded-2xl text-sm font-semibold hover:bg-white/90 transition-colors"
+                    >
+                      {copyStatus === "link" ? "Copied" : "Copy link"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#F0F1F2] rounded-2xl shadow-sm p-6 flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-[#F4F0FE] border border-[#E0D1FB] flex items-center justify-center">
+                    <ReferralsIcon color="#6500AC" className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Total Referrals
+                  </p>
+                </div>
+                <p className="text-4xl font-semibold text-gray-900">
+                  {referralMetrics.count}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Commission earned{" "}
+                  <span className="font-semibold text-gray-900">
+                    {referralMetrics.totalCommission}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-gray-600">
+                Showing {currentReferrals.length} of {referralMetrics.count}{" "}
+                referrals
+              </p>
+              <AdminSearchBar
+                key="referrals-search"
+                onSearch={(query) => {
+                  setSearchQuery(query);
+                  setReferralsPage(1);
+                }}
+                onFilterClick={() => console.log("Filter clicked")}
+                className="flex-1 md:flex-initial"
+                placeholder="Search referrals"
+              />
+            </div>
+
+            <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-[#F0F1F2]">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Date joined
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Total commission earned
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0F1F2]">
+                    {currentReferrals.length > 0 ? (
+                      currentReferrals.map((referral) => (
+                        <tr
+                          key={referral.id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                            {referral.id}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {referral.name}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">
+                            {referral.dateJoined}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {referral.totalCommissionEarned ||
+                              referral.totalReferralCommission}
+                          </td>
+                          <td className="px-6 py-4">
+                            <button
+                              className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
+                              onClick={() =>
+                                console.log(
+                                  "View referral details",
+                                  referral.id
+                                )
+                              }
+                            >
+                              View details
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-6 py-12 text-center text-sm text-gray-500"
+                        >
+                          {searchQuery
+                            ? "No referrals match your search"
+                            : "No referrals found for this realtor"}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {referralsTotalItems > 0 && (
+              <AdminPagination
+                totalItems={referralsTotalItems}
+                itemsPerPage={referralsPerPage}
+                currentPage={referralsPage}
+                onPageChange={setReferralsPage}
+              />
+            )}
           </div>
         )}
       </div>

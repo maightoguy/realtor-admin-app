@@ -227,7 +227,7 @@ const NewNotificationModal = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Enter the title of this notification"
-                className="w-full px-4 py-3 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                className="w-full px-4 py-3 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                 required
               />
             </div>
@@ -241,7 +241,7 @@ const NewNotificationModal = ({
                 <button
                   type="button"
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  className="w-full px-4 py-3 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 bg-white flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                 >
                   <span
                     className={
@@ -293,7 +293,7 @@ const NewNotificationModal = ({
                               setSelectedUsers([]);
                               setUserSearchQuery("");
                             }}
-                            className="text-xs text-[#5E17EB] hover:underline"
+                            className="text-xs text-[#6500AC] hover:underline"
                           >
                             Change
                           </button>
@@ -310,7 +310,7 @@ const NewNotificationModal = ({
                                 setUserSearchQuery(e.target.value)
                               }
                               placeholder="Search by name"
-                              className="w-full pl-10 pr-4 py-2 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent"
+                              className="w-full pl-10 pr-4 py-2 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                               onClick={(e) => e.stopPropagation()}
                             />
                           </div>
@@ -374,7 +374,7 @@ const NewNotificationModal = ({
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Type here..."
                 rows={6}
-                className="w-full px-4 py-3 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5E17EB] focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent resize-none"
                 required
               />
             </div>
@@ -390,7 +390,7 @@ const NewNotificationModal = ({
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-3 bg-[#5E17EB] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors"
+                className="flex-1 px-4 py-3 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors"
               >
                 Send notification
               </button>
