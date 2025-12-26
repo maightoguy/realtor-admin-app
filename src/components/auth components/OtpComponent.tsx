@@ -1,49 +1,59 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { authService } from "../../services/authService";
 
 interface OTPFormProps {
   email: string;
   onBack: () => void;
-  onVerified: () => void | Promise<void>;
+  onContinue: () => void | Promise<void>;
 }
 
-const OTPForm: React.FC<OTPFormProps> = ({ email, onBack, onVerified }) => {
-  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
-  const [timeLeft, setTimeLeft] = useState(59);
+const OTPForm: React.FC<OTPFormProps> = ({ email, onBack, onContinue }) => {
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
-      return () => clearInterval(timer);
-    }
-  }, [timeLeft]);
+  const handleResend = async () => {
+    setIsResending(true);
+    setResendMessage(null);
+    setError(null);
 
-  const handleChange = (index: number, value: string) => {
-    if (/^\d?$/.test(value)) {
-      const newOtp = [...otp];
-      newOtp[index] = value;
-      setOtp(newOtp);
-
-      // Auto-focus next input
-      if (value && index < 5) {
-        const next = document.getElementById(`otp-${index + 1}`);
-        next?.focus();
+    try {
+      const { error: resendError } = await authService.resendConfirmationEmail(
+        email
+      );
+      if (resendError) {
+        setResendMessage({ type: "error", text: resendError.message });
+      } else {
+        setResendMessage({
+          type: "success",
+          text: "Confirmation email sent! Please check your inbox.",
+        });
       }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to resend email.";
+      setResendMessage({ type: "error", text: message });
+    } finally {
+      setIsResending(false);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const fullOtp = otp.join("");
-
-    if (fullOtp.length === 6) {
-      alert("Mock OTP verified!");
-      setTimeout(onVerified, 1000);
-    } else {
-      alert("Please enter all 6 digits");
+  const handleContinue = async () => {
+    setIsChecking(true);
+    setError(null);
+    try {
+      await onContinue();
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Unable to continue. Please try again.";
+      setError(message);
+    } finally {
+      setIsChecking(false);
     }
   };
-
-  const isDisabled = otp.join("").length < 6;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6 bg-white">
@@ -58,59 +68,92 @@ const OTPForm: React.FC<OTPFormProps> = ({ email, onBack, onVerified }) => {
         </button>
       </div>
 
-      {/* Content */}
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm flex flex-col items-center gap-6"
-      >
-        {/* Heading */}
-        <div className="text-start">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">
-            OTP Verification
-          </h2>
-          <p className="text-gray-500 text-sm">
-            Please enter the 6-digit sent to{" "}
-            <span className="font-semibold text-black">{email}</span>
-          </p>
+      <div className="w-full max-w-sm">
+        <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+              <svg
+                className="h-8 w-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Check Your Email!
+            </h2>
+            <p className="text-gray-600 mb-4">
+              We need you to confirm your email before continuing.
+            </p>
+            <p className="text-lg font-semibold text-purple-700 mb-6">
+              {email}
+            </p>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+              <p className="text-sm text-blue-800 mb-2">
+                <strong>Next steps:</strong>
+              </p>
+              <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                <li>Check your inbox (and spam folder)</li>
+                <li>Click the confirmation link in the email</li>
+                <li>Return here to continue</li>
+              </ol>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleContinue}
+              disabled={isChecking}
+              className={`w-full py-3 rounded-lg font-semibold text-white transition ${
+                isChecking
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-purple-700 hover:bg-purple-800"
+              }`}
+            >
+              {isChecking ? "Checking..." : "I've Confirmed, Continue"}
+            </button>
+
+            <div className="text-center mt-4">
+              <p className="text-sm text-gray-500">
+                Didn't receive the email?{" "}
+                <button
+                  onClick={handleResend}
+                  disabled={isResending}
+                  className={`text-purple-700 font-medium hover:underline ${
+                    isResending ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {isResending ? "Resending..." : "Resend"}
+                </button>
+              </p>
+              {resendMessage && (
+                <p
+                  className={`text-sm mt-2 ${
+                    resendMessage.type === "success"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {resendMessage.text}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-
-        {/* OTP Inputs */}
-        <div className="flex justify-between w-full max-w-xs">
-          {otp.map((digit, index) => (
-            <input
-              key={index}
-              id={`otp-${index}`}
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleChange(index, e.target.value)}
-              className="w-12 h-12 text-center text-lg font-semibold border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-            />
-          ))}
-        </div>
-
-        {/* Countdown */}
-        <p className="text-gray-600 text-sm">
-          Resend In{" "}
-          <span className="text-purple-700 font-medium">
-            00:{timeLeft.toString().padStart(2, "0")}
-          </span>
-        </p>
-
-        {/* Confirm Button */}
-        <button
-          type="submit"
-          disabled={isDisabled}
-          className={`w-full py-3 rounded-lg font-semibold text-white transition ${
-            isDisabled
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-purple-700 hover:bg-purple-800"
-          }`}
-        >
-          Confirm OTP
-        </button>
-      </form>
+      </div>
     </div>
   );
 };

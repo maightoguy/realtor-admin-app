@@ -2,18 +2,21 @@ import { Menu, Calendar, Bell } from "lucide-react";
 import { useState } from "react";
 import ProfilePic from "../assets/Profile 1.jpg";
 import NotificationModal from "../components/Admin Dashboard components/NotificationModal";
+import type { User } from "../services/types";
 
 interface HeaderProps {
   activeSection: string;
   onSectionChange?: (section: string) => void;
   onProfileClick?: () => void;
   isAddPropertyFormActive?: boolean;
+  user?: User | null;
 }
 
 const AdminDashboardHeader = ({
   activeSection,
   onProfileClick,
   isAddPropertyFormActive = false,
+  user,
 }: HeaderProps) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const currentDate = new Date().toLocaleDateString("en-GB", {
@@ -21,6 +24,8 @@ const AdminDashboardHeader = ({
     month: "long",
     year: "numeric",
   });
+  const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "Admin";
+  const profileSrc = user?.avatar_url ? user.avatar_url : ProfilePic;
 
   return (
     <>
@@ -29,7 +34,7 @@ const AdminDashboardHeader = ({
         <div className="flex items-center gap-4">
           {activeSection === "Overview" ? (
             <span className="text-lg font-semibold text-gray-900">
-              Welcome back, Admin
+              Welcome back, {displayName || "Admin"}
             </span>
           ) : activeSection === "Properties" && isAddPropertyFormActive ? (
             <span className="text-lg text-gray-900">
@@ -66,7 +71,7 @@ const AdminDashboardHeader = ({
               className="rounded-full overflow-hidden border border-gray-200 w-8 h-8 hover:ring-2 hover:ring-gray-300 transition-all"
             >
               <img
-                src={ProfilePic}
+                src={profileSrc}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />

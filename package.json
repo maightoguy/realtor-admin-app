@@ -9,6 +9,7 @@
     "preview": "vite preview --host 0.0.0.0 --port 5000"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
     "@tailwindcss/vite": "^4.1.16",
     "express": "^5.1.0",
     "leaflet": "^1.9.4",

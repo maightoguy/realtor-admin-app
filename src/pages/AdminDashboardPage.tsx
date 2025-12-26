@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
 import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 import ProfilePic from "../assets/Profile 1.jpg";
 import AdminDashboardHeader from "../components/AdminDashboardHearder.tsx";
+import { authManager } from "../services/authManager";
+import type { User } from "../services/types";
 
 // Icons
 import ReceiptsIcon from "../components/icons/ReceiptsIcon.tsx";
@@ -23,14 +25,22 @@ import AdminDashboardNotifications from "../components/Admin Dashboard component
 import AdminDashboardReferrals from "../components/Admin Dashboard components/Admin dashboard referrals components/AdminDashboardReferrals.tsx";
 import AdminDashboardSettings from "../components/Admin Dashboard components/Admin dashboard settings components/AdminDashboardSettings.tsx";
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import OverviewIcon from "../components/icons/OverviewIcon.tsx";
 
 const AdminDashboardPage = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("Overview");
   const [isAddPropertyFormActive, setIsAddPropertyFormActive] = useState(false);
+  const [currentUser] = useState<User | null>(() => authManager.getUser());
 
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentUser) {
+      navigate("/login");
+    }
+  }, [currentUser, navigate]);
 
   const handleProfileClick = () => {
     setActiveSection("Settings");
@@ -153,14 +163,18 @@ const AdminDashboardPage = () => {
           <div className="flex items-center gap-3 flex-1">
             <div className="rounded-full overflow-hidden border border-gray-200 w-10 h-10">
               <img
-                src={ProfilePic}
+                src={currentUser?.avatar_url ? currentUser.avatar_url : ProfilePic}
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Olivia Rhye</p>
-              <p className="text-xs text-gray-500">Super-admin</p>
+              <p className="text-sm font-medium text-gray-900">
+                {currentUser
+                  ? `${currentUser.first_name} ${currentUser.last_name}`.trim()
+                  : "Admin"}
+              </p>
+              <p className="text-xs text-gray-500">Admin</p>
             </div>
           </div>
           <button
@@ -179,6 +193,7 @@ const AdminDashboardPage = () => {
           onSectionChange={setActiveSection}
           onProfileClick={handleProfileClick}
           isAddPropertyFormActive={isAddPropertyFormActive}
+          user={currentUser}
         />
         <div className="p-0">{renderSection()}</div>
       </main>

@@ -1,21 +1,44 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { authService } from "../../services/authService";
 
 interface ForgotPasswordFormProps {
-  onOtp: (email: string) => void;
   onBack: () => void;
 }
 
 const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
-  onOtp,
   onBack,
 }) => {
   const [email, setEmail] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
+    null
+  );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    onOtp(email);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
+
+    setIsSending(true);
+    setMessage(null);
+    try {
+      const { error } = await authService.resetPasswordForEmail(trimmedEmail);
+      if (error) {
+        setMessage({ type: "error", text: error.message });
+        return;
+      }
+      setMessage({
+        type: "success",
+        text: "Password reset email sent! Please check your inbox.",
+      });
+    } catch (e) {
+      const text =
+        e instanceof Error ? e.message : "Failed to send password reset email.";
+      setMessage({ type: "error", text });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const isActive = email.trim() !== "";
@@ -56,17 +79,35 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
           />
         </div>
 
+        {message && (
+          <div
+            className={`p-3 rounded-lg border ${
+              message.type === "success"
+                ? "bg-green-50 border-green-200"
+                : "bg-red-50 border-red-200"
+            }`}
+          >
+            <p
+              className={`text-sm ${
+                message.type === "success" ? "text-green-700" : "text-red-600"
+              }`}
+            >
+              {message.text}
+            </p>
+          </div>
+        )}
+
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={!isActive}
+          disabled={!isActive || isSending}
           className={`w-full py-3 rounded-xl font-semibold text-white transition ${
-            isActive
+            isActive && !isSending
               ? "bg-purple-700 hover:bg-purple-800"
               : "bg-gray-300 cursor-not-allowed"
           }`}
         >
-          Send OTP
+          {isSending ? "Sending..." : "Send Reset Email"}
         </button>
       </form>
     </div>
