@@ -1,0 +1,57 @@
+interface Step {
+  label: string;
+}
+
+interface StepProgressProps {
+  steps: Step[];
+  currentStep: number;
+}
+
+function StepProgress({ steps, currentStep }: StepProgressProps) {
+  return (
+    <div className="w-full flex flex-col items-center md:items-start md:ml-4 md:mb-4">
+      <div className="relative w-full max-w-xs flex justify-between items-center">
+        {/* Progress line (background) */}
+        <div className="absolute top-1/3 left-5 right-0 h-[2px] bg-gray-200 -translate-y-1/2">
+          {/* Filled progress */}
+          <div
+            className="h-[2px]  bg-[#6500AC] transition-all"
+            style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+          />
+        </div>
+
+        {steps.map((step, idx) => {
+          const isCompleted = idx < currentStep;
+          const isActive = idx === currentStep;
+
+          return (
+            <div key={idx} className="flex flex-col items-center z-10">
+              {/* Circle */}
+              <div
+                className={`flex items-center justify-center w-6 h-6 rounded-full text-white text-[10px] font-medium 
+                  ${
+                    isCompleted || isActive
+                      ? "bg-[#6500AC]"
+                      : "bg-white border border-gray-300"
+                  }`}
+              >
+                {isCompleted ? "✓" : idx + 1}
+              </div>
+
+              {/* Label */}
+              <span
+                className={`text-[10px] leading-[15px] font-medium text-center ${
+                  isActive || isCompleted ? "text-[#6500AC]" : "text-gray-400"
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default StepProgress;

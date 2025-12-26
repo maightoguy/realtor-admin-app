@@ -1,0 +1,190 @@
+import { useState, useEffect } from "react";
+import { X } from "lucide-react";
+
+interface BankDetailsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAddBankAccount?: (bankData: {
+    bankName: string;
+    accountNo: string;
+    accountName: string;
+  }) => void;
+}
+
+const BankDetailsModal = ({
+  isOpen,
+  onClose,
+  onAddBankAccount,
+}: BankDetailsModalProps) => {
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountName, setAccountName] = useState("");
+
+  // Example mock bank list
+  const banks = [
+    "Access Bank",
+    "GTBank",
+    "First Bank of Nigeria",
+    "United Bank for Africa",
+    "Zenith Bank",
+    "FCMB",
+    "Union Bank",
+    "Opay",
+    "Kuda Bank",
+    "Sterling Bank",
+    "Wema Bank",
+  ];
+
+  const isValidAccountNumber = accountNumber.length === 10;
+  const isFormValid =
+    bankName && isValidAccountNumber && accountName.length > 0;
+
+  // Prevent background scroll when modal is open
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-50">
+      <div className="bg-white w-[480px] rounded-2xl shadow-xl p-6 relative">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100"
+        >
+          <X className="w-5 h-5 text-gray-500" />
+        </button>
+
+        {/* Header */}
+        <div className="flex flex-col items-start space-y-2 mb-6">
+          <div className="p-3 border rounded-lg text-gray-200 bg-white shadow-sm">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M10.5 6.5L5.5 10V22"
+                stroke="black"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M10.5 2L15.5 5.5V12L19 14.5V22H10.5V2Z"
+                fill="black"
+                stroke="black"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M2 22H22"
+                stroke="black"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <h2 className="font-bold text-lg text-black">Bank details</h2>
+          <p className="text-gray-500 text-sm">
+            Please kindly fill the form below to add your bank details
+          </p>
+        </div>
+
+        {/* Bank Name */}
+        <div className="mb-4">
+          <label className="text-sm text-gray-600 mb-1 block">Bank name</label>
+          <select
+            value={bankName}
+            onChange={(e) => {
+              setBankName(e.target.value);
+            }}
+            className="w-full bg-[#FAFAFA] border border-[#F0F1F2] rounded-md px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5E17EB]"
+          >
+            <option value="">Select a bank</option>
+            {banks.map((bank) => (
+              <option key={bank} value={bank}>
+                {bank}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Account Number */}
+        <div className="mb-4">
+          <label className="text-sm text-gray-600 mb-1 block">
+            Account number
+          </label>
+          <input
+            type="text"
+            maxLength={10}
+            value={accountNumber}
+            onChange={(e) =>
+              setAccountNumber(e.target.value.replace(/\D/g, ""))
+            }
+            placeholder="1234567890"
+            className="w-full bg-[#FAFAFA] border border-[#F0F1F2] rounded-md px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5E17EB]"
+          />
+        </div>
+
+        {/* Account Name */}
+        <div className="mb-4">
+          <label className="text-sm text-gray-600 mb-1 block">
+            Account name
+          </label>
+          <input
+            type="text"
+            value={accountName}
+            onChange={(e) => setAccountName(e.target.value)}
+            placeholder="e.g. John Doe"
+            className="w-full bg-[#FAFAFA] border border-[#F0F1F2] rounded-md px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5E17EB]"
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-gray-300 text-gray-700 font-medium rounded-lg py-2 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (isFormValid && onAddBankAccount) {
+                onAddBankAccount({
+                  bankName,
+                  accountNo: accountNumber,
+                  accountName,
+                });
+              }
+              onClose();
+            }}
+            disabled={!isFormValid}
+            className={`flex-1 py-2 rounded-lg font-medium text-white transition-colors ${
+              isFormValid
+                ? "bg-[#6500AC] hover:bg-[#52008A]"
+                : "bg-gray-300 cursor-not-allowed"
+            }`}
+          >
+            Add details
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BankDetailsModal;
