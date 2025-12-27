@@ -22,6 +22,13 @@ function errorToLogPayload(err: unknown) {
   };
 }
 
+function isMissingDeveloperColumn(err: unknown): boolean {
+  const payload = errorToLogPayload(err);
+  const message = `${String(payload.message ?? "")} ${String(payload.details ?? "")}`.toLowerCase();
+  if (payload.code === "42703" && message.includes("developer")) return true;
+  return message.includes("developer") && message.includes("does not exist");
+}
+
 export const userService = {
   async getById(id: string): Promise<User | null> {
     logger.info("[API][users] getById start", { id });
@@ -184,6 +191,31 @@ export const propertyService = {
       .select("*")
       .single();
     if (error) {
+      if (
+        Object.prototype.hasOwnProperty.call(input, "developer") &&
+        isMissingDeveloperColumn(error)
+      ) {
+        const { developer: _developer, ...withoutDeveloper } = input as Omit<
+          Property,
+          "id" | "created_at"
+        > & { developer?: unknown };
+        logger.warn("[API][properties] create retry without developer column", {
+          ...errorToLogPayload(error),
+        });
+        const retry = await getSupabaseClient()
+          .from("properties")
+          .insert(withoutDeveloper)
+          .select("*")
+          .single();
+        if (retry.error) {
+          logger.error("[API][properties] create failed", {
+            ...errorToLogPayload(retry.error),
+          });
+          throw retry.error;
+        }
+        logger.info("[API][properties] create success", { id: retry.data.id });
+        return retry.data as Property;
+      }
       logger.error("[API][properties] create failed", { ...errorToLogPayload(error) });
       throw error;
     }
@@ -200,6 +232,33 @@ export const propertyService = {
       .select("*")
       .single();
     if (error) {
+      if (
+        Object.prototype.hasOwnProperty.call(updates, "developer") &&
+        isMissingDeveloperColumn(error)
+      ) {
+        const { developer: _developer, ...withoutDeveloper } = updates as Partial<
+          Omit<Property, "id" | "created_at">
+        > & { developer?: unknown };
+        logger.warn("[API][properties] update retry without developer column", {
+          id,
+          ...errorToLogPayload(error),
+        });
+        const retry = await getSupabaseClient()
+          .from("properties")
+          .update(withoutDeveloper)
+          .eq("id", id)
+          .select("*")
+          .single();
+        if (retry.error) {
+          logger.error("[API][properties] update failed", {
+            id,
+            ...errorToLogPayload(retry.error),
+          });
+          throw retry.error;
+        }
+        logger.info("[API][properties] update success", { id: retry.data.id });
+        return retry.data as Property;
+      }
       logger.error("[API][properties] update failed", { id, ...errorToLogPayload(error) });
       throw error;
     }
@@ -252,9 +311,22 @@ export const propertyService = {
       .select("*", { count: "exact", head: true })
       .eq("developer", developer);
     if (error) {
+      const payload = errorToLogPayload(error);
+      const message = String(payload.message ?? "");
+      if (
+        payload.code === "42703" ||
+        message.toLowerCase().includes("properties.developer") ||
+        message.toLowerCase().includes("column") && message.toLowerCase().includes("does not exist")
+      ) {
+        logger.warn("[API][properties] countByDeveloper missing column, returning 0", {
+          developer,
+          ...payload,
+        });
+        return 0;
+      }
       logger.error("[API][properties] countByDeveloper failed", {
         developer,
-        ...errorToLogPayload(error),
+        ...payload,
       });
       throw error;
     }

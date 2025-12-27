@@ -3,6 +3,9 @@ import IslandIcon from "../../icons/IslandIcon";
 
 import MapViewer from "../../MapViewer"; // <--- ADD THIS
 import { logger } from "../../../utils/logger";
+import { developerService } from "../../../services/apiService";
+import type { Developer } from "../../../services/types";
+import AddDeveloperPopupModal from "./AddDeveloperPopupModal";
 
 interface AddPropertyFormProps {
   onClose: () => void;
@@ -35,6 +38,9 @@ interface ImageFile {
 const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [developers, setDevelopers] = useState<Developer[]>([]);
+  const [isLoadingDevelopers, setIsLoadingDevelopers] = useState(false);
+  const [isAddDeveloperModalOpen, setIsAddDeveloperModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     price: "",
@@ -72,6 +78,54 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingDevelopers(true);
+    developerService
+      .getAll({ limit: 5000 })
+      .then((rows) => {
+        if (cancelled) return;
+        setDevelopers(rows);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        logger.error("[ADMIN][ADD PROPERTY] Developers fetch failed", {
+          error: e,
+        });
+        setDevelopers([]);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsLoadingDevelopers(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activeDevelopers = developers.filter(
+    (d) => String(d.status).toLowerCase() !== "removed"
+  );
+
+  const handleAddDeveloperFromModal = async (developerData: {
+    name: string;
+    email: string;
+    phone: string;
+  }) => {
+    try {
+      const created = await developerService.create(developerData);
+      setDevelopers((prev) => [created, ...prev]);
+      setFormData((prev) => ({ ...prev, developer: created.name }));
+      setIsAddDeveloperModalOpen(false);
+    } catch (e: unknown) {
+      logger.error("[ADMIN][ADD PROPERTY] Developer create failed", {
+        error: e,
+      });
+      alert("Failed to add developer");
+    }
   };
 
   const handleFileSelect = (files: FileList | null) => {
@@ -301,10 +355,15 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
       });
       onClose();
     } catch (e: unknown) {
-      const message =
+      const rawMessage =
         e && typeof e === "object" && "message" in e
           ? String((e as { message?: unknown }).message)
-          : "Failed to save property";
+          : "";
+      const message =
+        rawMessage.toLowerCase().includes("row-level security") ||
+        rawMessage.toLowerCase().includes("violates row-level security policy")
+          ? "Permission denied: your Supabase RLS policy blocks creating properties. Ensure you’re logged in, then add an INSERT policy for `properties` (or disable RLS for that table)."
+          : rawMessage || "Failed to save property";
       logger.error("[ADMIN][ADD PROPERTY] Submit failed", {
         title: newProperty.title,
         message,
@@ -563,23 +622,39 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Developer
                       </label>
-                      <select
-                        name="developer"
-                        value={formData.developer}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
-                      >
-                        <option value="Select developer">
-                          Select developer
-                        </option>
-                        <option value="Add developer">
-                          + Add new developer
-                        </option>
-                        <option value="Musa Aliyu">Musa Aliyu</option>
-                        <option value="Chijioke Orji">Chijioke Orji</option>
-                        <option value="Monye idamiebi">Monye idamiebi</option>
-                        <option value="Gionbo Ekisagha">Gionbo Ekisagha</option>
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select
+                          name="developer"
+                          value={formData.developer}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                        >
+                          <option value="">Select developer</option>
+                          {isLoadingDevelopers && (
+                            <option value="" disabled>
+                              Loading developers...
+                            </option>
+                          )}
+                          {!isLoadingDevelopers &&
+                            activeDevelopers.length === 0 && (
+                              <option value="" disabled>
+                                No active developers
+                              </option>
+                            )}
+                          {activeDevelopers.map((dev) => (
+                            <option key={dev.id} value={dev.name}>
+                              {dev.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddDeveloperModalOpen(true)}
+                          className="px-3 py-2 border border-[#F0F1F2] rounded-lg text-sm font-medium text-[#6500AC] hover:bg-gray-50 transition-colors whitespace-nowrap"
+                        >
+                          Add developer
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -1308,6 +1383,14 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
           </div>
         )}
       </div>
+
+      <AddDeveloperPopupModal
+        isOpen={isAddDeveloperModalOpen}
+        onClose={() => setIsAddDeveloperModalOpen(false)}
+        onAddDeveloper={(developerData) => {
+          void handleAddDeveloperFromModal(developerData);
+        }}
+      />
     </>
   );
 };

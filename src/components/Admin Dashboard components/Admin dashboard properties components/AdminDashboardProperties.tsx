@@ -126,6 +126,9 @@ const AdminDashboardProperties = ({
   const [soldOutPropertiesCount, setSoldOutPropertiesCount] = useState(0);
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [developerPropertiesCount, setDeveloperPropertiesCount] = useState(0);
+  const [developerPropertiesMessage, setDeveloperPropertiesMessage] = useState<
+    string | null
+  >(null);
   const [selectedDeveloper, setSelectedDeveloper] = useState<Developer | null>(
     null
   );
@@ -184,6 +187,7 @@ const AdminDashboardProperties = ({
   ) => {
     setIsLoadingProperties(true);
     setPropertiesError(null);
+    setDeveloperPropertiesMessage(null);
     try {
       logger.info("[ADMIN][PROPERTIES] Fetch start", { page, q, developer });
       let rows: DbProperty[] = [];
@@ -202,6 +206,33 @@ const AdminDashboardProperties = ({
       setProperties(rows.map(adaptDbProperty));
       logger.info("[ADMIN][PROPERTIES] Fetch success", { count: rows.length });
     } catch (e: unknown) {
+      const missingDeveloperColumn = (() => {
+        if (!e || typeof e !== "object") return false;
+        const anyErr = e as Record<string, unknown>;
+        const code = typeof anyErr.code === "string" ? anyErr.code : "";
+        const message =
+          typeof anyErr.message === "string" ? anyErr.message : "";
+        const details =
+          typeof anyErr.details === "string" ? anyErr.details : "";
+        const combined = `${message} ${details}`.toLowerCase();
+        if (code === "42703") return true;
+        return (
+          combined.includes("properties.developer") &&
+          combined.includes("does not exist")
+        );
+      })();
+
+      if (developer && missingDeveloperColumn) {
+        setProperties([]);
+        setPropertiesError(null);
+        setDeveloperPropertiesCount(0);
+        setDeveloperPropertiesMessage("This developer has no properties yet.");
+        logger.warn("[ADMIN][PROPERTIES] Missing developer link column", {
+          developer,
+        });
+        return;
+      }
+
       const message =
         e && typeof e === "object" && "message" in e
           ? String((e as { message?: unknown }).message)
@@ -240,7 +271,13 @@ const AdminDashboardProperties = ({
     fetchPropertiesPage(1, searchQuery, selectedDeveloper?.name).catch(
       () => undefined
     );
-  }, [activeTab, searchQuery, showAddForm, selectedProperty, selectedDeveloper?.name]);
+  }, [
+    activeTab,
+    searchQuery,
+    showAddForm,
+    selectedProperty,
+    selectedDeveloper?.name,
+  ]);
 
   useEffect(() => {
     if (!selectedDeveloper?.name) {
@@ -263,7 +300,9 @@ const AdminDashboardProperties = ({
             propertyService.countByDeveloper(d.name).catch(() => 0)
           )
         );
-        setDevelopers(rows.map((d, idx) => ({ ...d, totalProperties: counts[idx] })));
+        setDevelopers(
+          rows.map((d, idx) => ({ ...d, totalProperties: counts[idx] }))
+        );
       })
       .catch((e: unknown) => {
         logger.error("[ADMIN][DEVELOPERS] Fetch failed", { error: e });
@@ -370,7 +409,10 @@ const AdminDashboardProperties = ({
         setSelectedDeveloper(null);
       }
     } catch (e: unknown) {
-      logger.error("[ADMIN][DEVELOPERS] Remove failed", { developerId, error: e });
+      logger.error("[ADMIN][DEVELOPERS] Remove failed", {
+        developerId,
+        error: e,
+      });
       alert("Failed to remove developer");
     }
   };
@@ -613,6 +655,17 @@ const AdminDashboardProperties = ({
                     {propertiesError}
                   </div>
                 )}
+                {!isLoadingProperties &&
+                  !propertiesError &&
+                  selectedDeveloper &&
+                  currentProperties.length === 0 && (
+                    <div className="py-10 text-center text-sm text-gray-500">
+                      {searchQuery.trim().length > 0
+                        ? "No matching properties for this developer."
+                        : developerPropertiesMessage ||
+                          "This developer has no properties yet."}
+                    </div>
+                  )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {currentProperties.map((property) => (
                     <AdminPropertyCard
