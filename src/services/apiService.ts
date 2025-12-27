@@ -263,15 +263,22 @@ export const propertyService = {
 };
 
 function adaptDeveloperRow(row: Record<string, unknown>): Developer {
+  const rawStatus = typeof row.status === "string" ? row.status : "";
+  const statusNormalized = rawStatus.trim().toLowerCase();
   return {
     id: String(row.id ?? ""),
     name: String(row.name ?? ""),
     email: String(row.email ?? ""),
     phone: String(row.phone ?? ""),
-    status: (row.status === "Removed" ? "Removed" : "Active") as Developer["status"],
+    status: (statusNormalized === "removed" ? "Removed" : "Active") as Developer["status"],
     dateAdded: typeof row.created_at === "string" ? row.created_at : new Date().toISOString(),
     totalProperties: 0,
   };
+}
+
+function toDbDeveloperStatus(status: Developer["status"]): "active" | "removed" {
+  if (typeof status === "string" && status.toLowerCase() === "removed") return "removed";
+  return "active";
 }
 
 export const developerService = {
@@ -303,22 +310,36 @@ export const developerService = {
 
   async create(input: { name: string; email: string; phone: string }): Promise<Developer> {
     logger.info("[API][developers] create start", { name: input.name });
-    const { data, error } = await getSupabaseClient()
+    const baseInsert = {
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
+    } as const;
+
+    const supabase = getSupabaseClient();
+    const first = await supabase
       .from("developers")
-      .insert({
-        name: input.name,
-        email: input.email,
-        phone: input.phone,
-        status: "Active",
-      })
+      .insert({ ...baseInsert, status: "active" })
       .select("*")
       .single();
-    if (error) {
-      logger.error("[API][developers] create failed", { ...errorToLogPayload(error) });
-      throw error;
+
+    if (!first.error) {
+      logger.info("[API][developers] create success", { id: first.data.id });
+      return adaptDeveloperRow(first.data as Record<string, unknown>);
     }
-    logger.info("[API][developers] create success", { id: data.id });
-    return adaptDeveloperRow(data as Record<string, unknown>);
+
+    if (first.error.code === "23514") {
+      const second = await supabase.from("developers").insert(baseInsert).select("*").single();
+      if (second.error) {
+        logger.error("[API][developers] create failed", { ...errorToLogPayload(second.error) });
+        throw second.error;
+      }
+      logger.info("[API][developers] create success", { id: second.data.id });
+      return adaptDeveloperRow(second.data as Record<string, unknown>);
+    }
+
+    logger.error("[API][developers] create failed", { ...errorToLogPayload(first.error) });
+    throw first.error;
   },
 
   async update(
@@ -326,9 +347,13 @@ export const developerService = {
     updates: Partial<{ name: string; email: string; phone: string; status: Developer["status"] }>
   ): Promise<Developer> {
     logger.info("[API][developers] update start", { id, keys: Object.keys(updates ?? {}) });
+    const payload = { ...updates } as Record<string, unknown>;
+    if (typeof updates?.status === "string") {
+      payload.status = toDbDeveloperStatus(updates.status as Developer["status"]);
+    }
     const { data, error } = await getSupabaseClient()
       .from("developers")
-      .update(updates)
+      .update(payload)
       .eq("id", id)
       .select("*")
       .single();

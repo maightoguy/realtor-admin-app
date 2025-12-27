@@ -5,7 +5,7 @@ export type PropertyType = "land" | "housing";
 export type PropertyStatus = "available" | "sold" | "pending";
 export type ReceiptStatus = "pending" | "approved" | "rejected" | "under_review";
 export type CommissionStatus = "pending" | "approved" | "paid" | "rejected";
-export type DeveloperStatus = "Active" | "Removed";
+export type DeveloperStatus = "Active" | "Removed" | "active" | "removed";
 
 export interface BankAccount {
   bankName: string;
