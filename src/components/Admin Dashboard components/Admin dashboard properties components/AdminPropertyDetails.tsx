@@ -11,7 +11,7 @@ import {
 import ReceiptsIcon from "../../icons/ReceiptsIcon";
 
 interface Property {
-  id: number;
+  id: string;
   image: string;
   title: string;
   price: number;
@@ -20,13 +20,14 @@ interface Property {
   category?: string;
   description?: string;
   developer?: string;
+  images?: string[];
 }
 
 interface AdminPropertyDetailsProps {
   property: Property;
   onBack: () => void;
-  onEdit?: (propertyId: number) => void;
-  onMarkSoldOut?: (propertyId: number) => void;
+  onEdit?: (propertyId: string) => void;
+  onMarkSoldOut?: (propertyId: string) => void;
 }
 
 const AdminPropertyDetails = ({
@@ -46,20 +47,24 @@ const AdminPropertyDetails = ({
   >([6.5244, 3.3792]);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
-  // Generate random images for this property (using propertyImages array)
-  const propertyImagesList = (() => {
-    // Use the property's ID as a seed to get consistent random images per property
-    const seed = property.id;
-    const shuffled = [...propertyImages];
-    // Simple shuffle based on property ID
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = (seed + i) % (i + 1);
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    // Return 4-6 random images, always including the property's main image first
-    const numImages = 4 + (seed % 3); // 4, 5, or 6 images
-    return [property.image, ...shuffled.slice(0, numImages - 1)];
-  })();
+  const idSeed = Array.from(property.id).reduce(
+    (acc, ch) => acc + ch.charCodeAt(0),
+    0
+  );
+
+  const propertyImagesList =
+    property.images && property.images.length > 0
+      ? property.images
+      : (() => {
+          const seed = idSeed;
+          const shuffled = [...propertyImages];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = (seed + i) % (i + 1);
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          const numImages = 4 + (seed % 3);
+          return [property.image, ...shuffled.slice(0, numImages - 1)];
+        })();
 
   // Geocoding function to convert location name to coordinates
   const geocodeLocation = async (
@@ -711,9 +716,9 @@ const AdminPropertyDetails = ({
           // Mock receipt statistics (in a real app, this would come from API)
           // Using property ID as seed for consistent mock data
           const receiptStats = {
-            totalUploaded: 100 + (property.id % 50),
-            totalApproved: 500 + (property.id % 200),
-            totalRejected: 10 + (property.id % 20),
+            totalUploaded: 100 + (idSeed % 50),
+            totalApproved: 500 + (idSeed % 200),
+            totalRejected: 10 + (idSeed % 20),
           };
 
           // Get current month index (0-based, where 0 = Jan)

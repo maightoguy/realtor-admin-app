@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminPropertyCard from "./AdminPropertyCard.tsx";
 import AdminPropertyDeveloper from "./AdminPropertyDeveloper.tsx";
 import AdminSearchBar from "../../AdminSearchBar.tsx";
@@ -12,11 +12,17 @@ import AddPropertyForm from "./AddPropertyForm.tsx";
 import DeveloperDetailsSection from "./DeveloperDetailsSection.tsx";
 import AdminPropertyDetails from "./AdminPropertyDetails.tsx";
 import {
-  propertiesMetricsData,
-  sampleProperties,
   sampleDevelopers,
   type Developer,
 } from "./adminDashboardPropertiesData";
+import {
+  propertyMediaService,
+  propertyService,
+} from "../../../services/apiService";
+import type {
+  Property as DbProperty,
+  PropertyStatus,
+} from "../../../services/types";
 
 interface MetricCardProps {
   title: string;
@@ -88,7 +94,7 @@ const MetricCard = ({
 );
 
 interface Property {
-  id: number;
+  id: string;
   image: string;
   title: string;
   price: number;
@@ -97,6 +103,7 @@ interface Property {
   category?: string;
   description?: string;
   developer?: string;
+  images?: string[];
 }
 
 interface AdminDashboardPropertiesProps {
@@ -111,7 +118,13 @@ const AdminDashboardProperties = ({
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [properties, setProperties] = useState<Property[]>(sampleProperties);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [propertiesError, setPropertiesError] = useState<string | null>(null);
+  const [totalPropertiesCount, setTotalPropertiesCount] = useState(0);
+  const [activePropertiesCount, setActivePropertiesCount] = useState(0);
+  const [soldOutPropertiesCount, setSoldOutPropertiesCount] = useState(0);
   const [developers, setDevelopers] = useState<Developer[]>(sampleDevelopers);
   const [selectedDeveloper, setSelectedDeveloper] = useState<Developer | null>(
     null
@@ -121,6 +134,85 @@ const AdminDashboardProperties = ({
   );
   const itemsPerPage = 8;
 
+  const adaptDbProperty = (p: DbProperty): Property => {
+    const imgPaths = Array.isArray(p.images) ? p.images : [];
+    const urls = imgPaths.map((img) => propertyMediaService.getPublicUrl(img));
+    const image = urls[0] || "/placeholder-property.jpg";
+    return {
+      id: p.id,
+      image,
+      images: urls.length > 0 ? urls : [image],
+      title: p.title,
+      price: Number(p.price) || 0,
+      location: p.location,
+      isSoldOut: p.status === "sold",
+      description: p.description ?? undefined,
+    };
+  };
+
+  const metrics = useMemo(
+    () => ({
+      totalProperties: totalPropertiesCount.toLocaleString(),
+      activeProperties: activePropertiesCount.toLocaleString(),
+      soldOutProperties: soldOutPropertiesCount.toLocaleString(),
+    }),
+    [totalPropertiesCount, activePropertiesCount, soldOutPropertiesCount]
+  );
+
+  const refreshMetrics = async () => {
+    const [total, active, sold] = await Promise.all([
+      propertyService.countAll(),
+      propertyService.countByStatus("available"),
+      propertyService.countByStatus("sold"),
+    ]);
+    setTotalPropertiesCount(total);
+    setActivePropertiesCount(active);
+    setSoldOutPropertiesCount(sold);
+  };
+
+  const fetchPropertiesPage = async (page: number, q: string) => {
+    setIsLoadingProperties(true);
+    setPropertiesError(null);
+    try {
+      let rows: DbProperty[] = [];
+      if (q.trim().length > 0) {
+        rows = await propertyService.search(q.trim(), { limit: 5000 });
+      } else {
+        rows = await propertyService.getAll({
+          limit: itemsPerPage,
+          offset: (page - 1) * itemsPerPage,
+        });
+      }
+      setProperties(rows.map(adaptDbProperty));
+    } catch (e: unknown) {
+      const message =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message?: unknown }).message)
+          : "Failed to load properties";
+      setPropertiesError(message);
+    } finally {
+      setIsLoadingProperties(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshMetrics().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "Properties") return;
+    if (showAddForm || selectedProperty) return;
+    if (searchQuery.trim().length > 0) return;
+    fetchPropertiesPage(currentPage, "").catch(() => undefined);
+  }, [activeTab, currentPage, searchQuery, showAddForm, selectedProperty]);
+
+  useEffect(() => {
+    if (activeTab !== "Properties") return;
+    if (showAddForm || selectedProperty) return;
+    if (searchQuery.trim().length === 0) return;
+    fetchPropertiesPage(1, searchQuery).catch(() => undefined);
+  }, [activeTab, searchQuery, showAddForm, selectedProperty]);
+
   // Notify parent when form state changes
   const handleFormStateChange = (isActive: boolean) => {
     setShowAddForm(isActive);
@@ -128,9 +220,7 @@ const AdminDashboardProperties = ({
   };
 
   const handleSearch = (query: string) => {
-    // Handle search functionality
-    console.log("Search query:", query);
-    // Reset to page 1 when searching
+    setSearchQuery(query);
     setCurrentPage(1);
   };
 
@@ -139,7 +229,7 @@ const AdminDashboardProperties = ({
     console.log("Filter clicked");
   };
 
-  const handleViewDetails = (propertyId: number) => {
+  const handleViewDetails = (propertyId: string) => {
     const property = properties.find((p) => p.id === propertyId);
     if (property) {
       setSelectedProperty(property);
@@ -150,18 +240,30 @@ const AdminDashboardProperties = ({
     setSelectedProperty(null);
   };
 
-  const handleEditProperty = (propertyId: number) => {
+  const handleEditProperty = (propertyId: string) => {
     // Handle edit property
     console.log("Edit property:", propertyId);
   };
 
-  const handleMarkSoldOut = (propertyId: number) => {
-    // Handle mark as sold out
-    setProperties((prev) =>
-      prev.map((p) =>
-        p.id === propertyId ? { ...p, isSoldOut: !p.isSoldOut } : p
-      )
-    );
+  const handleMarkSoldOut = async (propertyId: string) => {
+    const current = properties.find((p) => p.id === propertyId);
+    if (!current) return;
+    const newStatus: PropertyStatus = current.isSoldOut ? "available" : "sold";
+    try {
+      await propertyService.update(propertyId, { status: newStatus });
+      setProperties((prev) =>
+        prev.map((p) =>
+          p.id === propertyId ? { ...p, isSoldOut: !p.isSoldOut } : p
+        )
+      );
+      refreshMetrics().catch(() => undefined);
+    } catch (e: unknown) {
+      const message =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message?: unknown }).message)
+          : "Failed to update property";
+      alert(message);
+    }
   };
 
   const handleViewDeveloperDetails = (developerId: number) => {
@@ -218,7 +320,7 @@ const AdminDashboardProperties = ({
     setCurrentPage(page);
   };
 
-  const handleAddProperty = (newProperty: {
+  const handleAddProperty = async (newProperty: {
     image: string;
     title: string;
     price: number;
@@ -227,25 +329,56 @@ const AdminDashboardProperties = ({
     category?: string;
     description?: string;
     developer?: string;
+    mediaFiles: File[];
   }) => {
-    const propertyWithId: Property = {
-      ...newProperty,
-      id:
-        properties.length > 0
-          ? Math.max(...properties.map((p) => p.id)) + 1
-          : 1,
-    };
-    setProperties([...properties, propertyWithId]);
-    handleFormStateChange(false);
-    // Reset to first page to see the new property
-    setCurrentPage(1);
+    try {
+      const uploadedPaths = await propertyMediaService.uploadMany(
+        newProperty.mediaFiles
+      );
+
+      const type =
+        newProperty.category &&
+        newProperty.category.toLowerCase().includes("land")
+          ? "land"
+          : "housing";
+
+      const status: PropertyStatus = newProperty.isSoldOut
+        ? "sold"
+        : "available";
+
+      await propertyService.create({
+        title: newProperty.title,
+        location: newProperty.location,
+        price: newProperty.price,
+        type,
+        status,
+        description: newProperty.description || null,
+        images: uploadedPaths,
+      });
+
+      setCurrentPage(1);
+      setSearchQuery("");
+      await Promise.all([fetchPropertiesPage(1, ""), refreshMetrics()]);
+      handleFormStateChange(false);
+    } catch (e: unknown) {
+      const message =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message?: unknown }).message)
+          : "Failed to create property";
+      alert(message);
+      throw e;
+    }
   };
 
   // Calculate pagination
-  const totalItems = properties.length;
+  const totalItems =
+    searchQuery.trim().length > 0 ? properties.length : totalPropertiesCount;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProperties = properties.slice(startIndex, endIndex);
+  const currentProperties =
+    searchQuery.trim().length > 0
+      ? properties.slice(startIndex, endIndex)
+      : properties;
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
@@ -274,7 +407,7 @@ const AdminDashboardProperties = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <MetricCard
             title="Total properties"
-            value={propertiesMetricsData.totalProperties}
+            value={metrics.totalProperties}
             icon={<BuildingsIcon color="#6500AC" className="w-5 h-5" />}
             iconBgColor="#F0E6F7"
             iconStrokeColor="#F0E6F7"
@@ -283,7 +416,7 @@ const AdminDashboardProperties = ({
           />
           <MetricCard
             title="Active properties"
-            value={propertiesMetricsData.activeProperties}
+            value={metrics.activeProperties}
             icon={<IslandIcon color="#22C55E" className="w-5 h-5" />}
             iconBgColor="#E9F9EF"
             iconStrokeColor="#E9F9EF"
@@ -292,7 +425,7 @@ const AdminDashboardProperties = ({
           />
           <MetricCard
             title="Sold out properties"
-            value={propertiesMetricsData.soldOutProperties}
+            value={metrics.soldOutProperties}
             icon={<SoldOutIcon color="#EF4444" className="w-5 h-5" />}
             iconBgColor="#FAC5C5"
             iconStrokeColor="#FAC5C5"
@@ -375,6 +508,16 @@ const AdminDashboardProperties = ({
                     Add new property
                   </button>
                 </div>
+                {isLoadingProperties && (
+                  <div className="py-10 text-center text-sm text-gray-500">
+                    Loading...
+                  </div>
+                )}
+                {propertiesError && (
+                  <div className="py-10 text-center text-sm text-red-600">
+                    {propertiesError}
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {currentProperties.map((property) => (
                     <AdminPropertyCard

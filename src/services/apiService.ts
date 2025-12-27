@@ -1,5 +1,12 @@
 import { getSupabaseClient } from "./supabaseClient";
-import type { Commission, Property, Receipt, User } from "./types";
+import type {
+  Commission,
+  Property,
+  PropertyStatus,
+  PropertyType,
+  Receipt,
+  User,
+} from "./types";
 
 export const userService = {
   async getById(id: string): Promise<User | null> {
@@ -48,12 +55,156 @@ export const propertyService = {
     return (data ?? []) as Property[];
   },
 
+  async getAll(filters?: {
+    type?: PropertyType;
+    status?: PropertyStatus;
+    limit?: number;
+    offset?: number;
+  }): Promise<Property[]> {
+    let query = getSupabaseClient()
+      .from("properties")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (filters?.type) {
+      query = query.eq("type", filters.type);
+    }
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
+    }
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    if (typeof filters?.offset === "number") {
+      const limit = filters?.limit ?? 10;
+      query = query.range(filters.offset, filters.offset + limit - 1);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as Property[];
+  },
+
+  async search(
+    searchText: string,
+    filters?: {
+      type?: PropertyType;
+      status?: PropertyStatus;
+      minPrice?: number;
+      maxPrice?: number;
+      limit?: number;
+    }
+  ): Promise<Property[]> {
+    const q = searchText.trim();
+    let query = getSupabaseClient()
+      .from("properties")
+      .select("*")
+      .or(`title.ilike.%${q}%,location.ilike.%${q}%,description.ilike.%${q}%`)
+      .order("created_at", { ascending: false });
+
+    if (filters?.type) {
+      query = query.eq("type", filters.type);
+    }
+    if (filters?.status) {
+      query = query.eq("status", filters.status);
+    }
+    if (typeof filters?.minPrice === "number") {
+      query = query.gte("price", filters.minPrice);
+    }
+    if (typeof filters?.maxPrice === "number") {
+      query = query.lte("price", filters.maxPrice);
+    }
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as Property[];
+  },
+
+  async create(input: Omit<Property, "id" | "created_at">): Promise<Property> {
+    const { data, error } = await getSupabaseClient()
+      .from("properties")
+      .insert(input)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data as Property;
+  },
+
+  async update(id: string, updates: Partial<Omit<Property, "id" | "created_at">>): Promise<Property> {
+    const { data, error } = await getSupabaseClient()
+      .from("properties")
+      .update(updates)
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data as Property;
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await getSupabaseClient()
+      .from("properties")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+  },
+
   async countAll(): Promise<number> {
     const { count, error } = await getSupabaseClient()
       .from("properties")
       .select("*", { count: "exact", head: true });
     if (error) throw error;
     return count ?? 0;
+  },
+
+  async countByStatus(status: PropertyStatus): Promise<number> {
+    const { count, error } = await getSupabaseClient()
+      .from("properties")
+      .select("*", { count: "exact", head: true })
+      .eq("status", status);
+    if (error) throw error;
+    return count ?? 0;
+  },
+};
+
+export const propertyMediaService = {
+  bucket: "properties",
+
+  getPublicUrl(pathOrUrl: string): string {
+    if (!pathOrUrl) return "";
+    if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+    const { data } = getSupabaseClient()
+      .storage.from(this.bucket)
+      .getPublicUrl(pathOrUrl);
+    return data.publicUrl;
+  },
+
+  async uploadMany(files: File[], opts?: { folder?: string; upsert?: boolean }): Promise<string[]> {
+    if (files.length === 0) return [];
+
+    const supabase = getSupabaseClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const ownerFolder = opts?.folder ?? authData.user?.id ?? "admin";
+
+    const uploadedPaths: string[] = [];
+    for (const file of files) {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${ownerFolder}/property-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${ext}`;
+
+      const { data, error } = await supabase.storage.from(this.bucket).upload(path, file, {
+        contentType: file.type,
+        upsert: opts?.upsert ?? false,
+      });
+      if (error) throw error;
+      uploadedPaths.push(data.path);
+    }
+
+    return uploadedPaths;
   },
 };
 

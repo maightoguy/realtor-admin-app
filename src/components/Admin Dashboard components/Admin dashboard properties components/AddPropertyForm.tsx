@@ -14,7 +14,8 @@ interface AddPropertyFormProps {
     category?: string;
     description?: string;
     developer?: string;
-  }) => void;
+    mediaFiles: File[];
+  }) => Promise<void> | void;
 }
 
 const STEPS = [
@@ -32,6 +33,7 @@ interface ImageFile {
 
 const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     price: "",
@@ -261,8 +263,12 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     };
   }, [formData.location]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSaving) return;
     const thumbnailImage = images.find((img) => img.isThumbnail);
+    const ordered = [...images].sort((a, b) =>
+      a.isThumbnail === b.isThumbnail ? 0 : a.isThumbnail ? -1 : 1
+    );
     const newProperty = {
       image:
         thumbnailImage?.preview ||
@@ -275,9 +281,21 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
       category: formData.category,
       description: formData.description,
       developer: formData.developer,
+      mediaFiles: ordered.map((img) => img.file),
     };
-    onSave(newProperty);
-    onClose();
+    try {
+      setIsSaving(true);
+      await onSave(newProperty);
+      onClose();
+    } catch (e: unknown) {
+      const message =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message?: unknown }).message)
+          : "Failed to save property";
+      alert(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const isStepValid = () => {
@@ -1241,9 +1259,9 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
           <div className="pt-6">
             <button
               onClick={handleSave}
-              disabled={!isStepValid()}
+              disabled={!isStepValid() || isSaving}
               className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                isStepValid()
+                isStepValid() && !isSaving
                   ? "bg-[#6500AC] text-white hover:bg-[#4D14C7]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
