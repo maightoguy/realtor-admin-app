@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import IslandIcon from "../../icons/IslandIcon";
 
 import MapViewer from "../../MapViewer"; // <--- ADD THIS
+import { logger } from "../../../utils/logger";
 
 interface AddPropertyFormProps {
   onClose: () => void;
@@ -228,7 +229,10 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
 
       return null;
     } catch (error) {
-      console.error("Error geocoding location:", error);
+      logger.error("[ADMIN][ADD PROPERTY] Geocoding failed", {
+        locationName,
+        error,
+      });
       return null;
     } finally {
       setIsGeocoding(false);
@@ -285,13 +289,26 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     };
     try {
       setIsSaving(true);
+      logger.info("[ADMIN][ADD PROPERTY] Submit start", {
+        title: newProperty.title,
+        location: newProperty.location,
+        price: newProperty.price,
+        mediaCount: newProperty.mediaFiles.length,
+      });
       await onSave(newProperty);
+      logger.info("[ADMIN][ADD PROPERTY] Submit success", {
+        title: newProperty.title,
+      });
       onClose();
     } catch (e: unknown) {
       const message =
         e && typeof e === "object" && "message" in e
           ? String((e as { message?: unknown }).message)
           : "Failed to save property";
+      logger.error("[ADMIN][ADD PROPERTY] Submit failed", {
+        title: newProperty.title,
+        message,
+      });
       alert(message);
     } finally {
       setIsSaving(false);

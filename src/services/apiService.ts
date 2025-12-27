@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "./supabaseClient";
+import { logger } from "../utils/logger";
 import type {
   Commission,
   Property,
@@ -8,8 +9,21 @@ import type {
   User,
 } from "./types";
 
+function errorToLogPayload(err: unknown) {
+  if (!err || typeof err !== "object") return { message: String(err) };
+  const anyErr = err as Record<string, unknown>;
+  return {
+    message: typeof anyErr.message === "string" ? anyErr.message : String(err),
+    code: typeof anyErr.code === "string" ? anyErr.code : undefined,
+    details: typeof anyErr.details === "string" ? anyErr.details : undefined,
+    hint: typeof anyErr.hint === "string" ? anyErr.hint : undefined,
+    name: typeof anyErr.name === "string" ? anyErr.name : undefined,
+  };
+}
+
 export const userService = {
   async getById(id: string): Promise<User | null> {
+    logger.info("[API][users] getById start", { id });
     const { data, error } = await getSupabaseClient()
       .from("users")
       .select("*")
@@ -18,28 +32,40 @@ export const userService = {
 
     if (error) {
       if (error.code === "PGRST116") return null;
+      logger.error("[API][users] getById failed", { id, ...errorToLogPayload(error) });
       throw error;
     }
 
+    logger.info("[API][users] getById success", { id });
     return data as User;
   },
 
   async getByIds(ids: string[]): Promise<User[]> {
     if (ids.length === 0) return [];
+    logger.info("[API][users] getByIds start", { count: ids.length });
     const { data, error } = await getSupabaseClient()
       .from("users")
       .select("*")
       .in("id", ids);
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][users] getByIds failed", { ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][users] getByIds success", { count: (data ?? []).length });
     return (data ?? []) as User[];
   },
 
   async countByRole(role: User["role"]): Promise<number> {
+    logger.info("[API][users] countByRole start", { role });
     const { count, error } = await getSupabaseClient()
       .from("users")
       .select("*", { count: "exact", head: true })
       .eq("role", role);
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][users] countByRole failed", { role, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][users] countByRole success", { role, count: count ?? 0 });
     return count ?? 0;
   },
 };
@@ -47,11 +73,16 @@ export const userService = {
 export const propertyService = {
   async getByIds(ids: string[]): Promise<Property[]> {
     if (ids.length === 0) return [];
+    logger.info("[API][properties] getByIds start", { count: ids.length });
     const { data, error } = await getSupabaseClient()
       .from("properties")
       .select("*")
       .in("id", ids);
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][properties] getByIds failed", { ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][properties] getByIds success", { count: (data ?? []).length });
     return (data ?? []) as Property[];
   },
 
@@ -61,6 +92,7 @@ export const propertyService = {
     limit?: number;
     offset?: number;
   }): Promise<Property[]> {
+    logger.info("[API][properties] getAll start", { filters: filters ?? null });
     let query = getSupabaseClient()
       .from("properties")
       .select("*")
@@ -81,7 +113,11 @@ export const propertyService = {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][properties] getAll failed", { filters: filters ?? null, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][properties] getAll success", { count: (data ?? []).length });
     return (data ?? []) as Property[];
   },
 
@@ -96,6 +132,7 @@ export const propertyService = {
     }
   ): Promise<Property[]> {
     const q = searchText.trim();
+    logger.info("[API][properties] search start", { q, filters: filters ?? null });
     let query = getSupabaseClient()
       .from("properties")
       .select("*")
@@ -119,53 +156,83 @@ export const propertyService = {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][properties] search failed", { q, filters: filters ?? null, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][properties] search success", { count: (data ?? []).length });
     return (data ?? []) as Property[];
   },
 
   async create(input: Omit<Property, "id" | "created_at">): Promise<Property> {
+    logger.info("[API][properties] create start", {
+      title: input.title,
+      hasImages: Array.isArray(input.images) && input.images.length > 0,
+    });
     const { data, error } = await getSupabaseClient()
       .from("properties")
       .insert(input)
       .select("*")
       .single();
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][properties] create failed", { ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][properties] create success", { id: data.id });
     return data as Property;
   },
 
   async update(id: string, updates: Partial<Omit<Property, "id" | "created_at">>): Promise<Property> {
+    logger.info("[API][properties] update start", { id, keys: Object.keys(updates ?? {}) });
     const { data, error } = await getSupabaseClient()
       .from("properties")
       .update(updates)
       .eq("id", id)
       .select("*")
       .single();
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][properties] update failed", { id, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][properties] update success", { id: data.id });
     return data as Property;
   },
 
   async delete(id: string): Promise<void> {
+    logger.info("[API][properties] delete start", { id });
     const { error } = await getSupabaseClient()
       .from("properties")
       .delete()
       .eq("id", id);
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][properties] delete failed", { id, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][properties] delete success", { id });
   },
 
   async countAll(): Promise<number> {
+    logger.info("[API][properties] countAll start");
     const { count, error } = await getSupabaseClient()
       .from("properties")
       .select("*", { count: "exact", head: true });
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][properties] countAll failed", { ...errorToLogPayload(error) });
+      throw error;
+    }
     return count ?? 0;
   },
 
   async countByStatus(status: PropertyStatus): Promise<number> {
+    logger.info("[API][properties] countByStatus start", { status });
     const { count, error } = await getSupabaseClient()
       .from("properties")
       .select("*", { count: "exact", head: true })
       .eq("status", status);
-    if (error) throw error;
+    if (error) {
+      logger.error("[API][properties] countByStatus failed", { status, ...errorToLogPayload(error) });
+      throw error;
+    }
     return count ?? 0;
   },
 };
@@ -196,11 +263,21 @@ export const propertyMediaService = {
         .toString(36)
         .slice(2)}.${ext}`;
 
+      logger.info("[STORAGE][properties] upload start", {
+        path,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+      });
       const { data, error } = await supabase.storage.from(this.bucket).upload(path, file, {
         contentType: file.type,
         upsert: opts?.upsert ?? false,
       });
-      if (error) throw error;
+      if (error) {
+        logger.error("[STORAGE][properties] upload failed", { path, ...errorToLogPayload(error) });
+        throw error;
+      }
+      logger.info("[STORAGE][properties] upload success", { path: data.path });
       uploadedPaths.push(data.path);
     }
 

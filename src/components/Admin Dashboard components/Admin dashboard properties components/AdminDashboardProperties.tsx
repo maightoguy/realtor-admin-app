@@ -23,6 +23,7 @@ import type {
   Property as DbProperty,
   PropertyStatus,
 } from "../../../services/types";
+import { logger } from "../../../utils/logger";
 
 interface MetricCardProps {
   title: string;
@@ -160,6 +161,7 @@ const AdminDashboardProperties = ({
   );
 
   const refreshMetrics = async () => {
+    logger.info("[ADMIN][PROPERTIES] Refresh metrics start");
     const [total, active, sold] = await Promise.all([
       propertyService.countAll(),
       propertyService.countByStatus("available"),
@@ -168,12 +170,18 @@ const AdminDashboardProperties = ({
     setTotalPropertiesCount(total);
     setActivePropertiesCount(active);
     setSoldOutPropertiesCount(sold);
+    logger.info("[ADMIN][PROPERTIES] Refresh metrics done", {
+      total,
+      active,
+      sold,
+    });
   };
 
   const fetchPropertiesPage = async (page: number, q: string) => {
     setIsLoadingProperties(true);
     setPropertiesError(null);
     try {
+      logger.info("[ADMIN][PROPERTIES] Fetch start", { page, q });
       let rows: DbProperty[] = [];
       if (q.trim().length > 0) {
         rows = await propertyService.search(q.trim(), { limit: 5000 });
@@ -184,12 +192,14 @@ const AdminDashboardProperties = ({
         });
       }
       setProperties(rows.map(adaptDbProperty));
+      logger.info("[ADMIN][PROPERTIES] Fetch success", { count: rows.length });
     } catch (e: unknown) {
       const message =
         e && typeof e === "object" && "message" in e
           ? String((e as { message?: unknown }).message)
           : "Failed to load properties";
       setPropertiesError(message);
+      logger.error("[ADMIN][PROPERTIES] Fetch failed", { message });
     } finally {
       setIsLoadingProperties(false);
     }
@@ -220,13 +230,13 @@ const AdminDashboardProperties = ({
   };
 
   const handleSearch = (query: string) => {
+    logger.info("[ADMIN][PROPERTIES] Search change", { query });
     setSearchQuery(query);
     setCurrentPage(1);
   };
 
   const handleFilterClick = () => {
-    // Handle filter click
-    console.log("Filter clicked");
+    logger.info("[ADMIN][PROPERTIES] Filter clicked");
   };
 
   const handleViewDetails = (propertyId: string) => {
@@ -242,7 +252,7 @@ const AdminDashboardProperties = ({
 
   const handleEditProperty = (propertyId: string) => {
     // Handle edit property
-    console.log("Edit property:", propertyId);
+    logger.info("[ADMIN][PROPERTIES] Edit clicked", { propertyId });
   };
 
   const handleMarkSoldOut = async (propertyId: string) => {
@@ -250,6 +260,10 @@ const AdminDashboardProperties = ({
     if (!current) return;
     const newStatus: PropertyStatus = current.isSoldOut ? "available" : "sold";
     try {
+      logger.info("[ADMIN][PROPERTIES] Toggle sold-out start", {
+        propertyId,
+        newStatus,
+      });
       await propertyService.update(propertyId, { status: newStatus });
       setProperties((prev) =>
         prev.map((p) =>
@@ -257,11 +271,20 @@ const AdminDashboardProperties = ({
         )
       );
       refreshMetrics().catch(() => undefined);
+      logger.info("[ADMIN][PROPERTIES] Toggle sold-out success", {
+        propertyId,
+        newStatus,
+      });
     } catch (e: unknown) {
       const message =
         e && typeof e === "object" && "message" in e
           ? String((e as { message?: unknown }).message)
           : "Failed to update property";
+      logger.error("[ADMIN][PROPERTIES] Toggle sold-out failed", {
+        propertyId,
+        newStatus,
+        message,
+      });
       alert(message);
     }
   };
@@ -282,12 +305,12 @@ const AdminDashboardProperties = ({
 
   const handleEditDeveloper = (developerId: number) => {
     // Handle edit developer
-    console.log("Edit developer:", developerId);
+    logger.info("[ADMIN][DEVELOPERS] Edit clicked", { developerId });
   };
 
   const handleRemoveDeveloper = (developerId: number) => {
     // Handle remove developer
-    console.log("Remove developer:", developerId);
+    logger.info("[ADMIN][DEVELOPERS] Remove clicked", { developerId });
     // Optionally remove from list and reset selection
     setDevelopers((prev) => prev.filter((d) => d.id !== developerId));
     setSelectedDeveloper(null);
@@ -332,6 +355,10 @@ const AdminDashboardProperties = ({
     mediaFiles: File[];
   }) => {
     try {
+      logger.info("[ADMIN][PROPERTIES] Create start", {
+        title: newProperty.title,
+        mediaCount: newProperty.mediaFiles.length,
+      });
       const uploadedPaths = await propertyMediaService.uploadMany(
         newProperty.mediaFiles
       );
@@ -360,11 +387,19 @@ const AdminDashboardProperties = ({
       setSearchQuery("");
       await Promise.all([fetchPropertiesPage(1, ""), refreshMetrics()]);
       handleFormStateChange(false);
+      logger.info("[ADMIN][PROPERTIES] Create success", {
+        title: newProperty.title,
+        uploadedCount: uploadedPaths.length,
+      });
     } catch (e: unknown) {
       const message =
         e && typeof e === "object" && "message" in e
           ? String((e as { message?: unknown }).message)
           : "Failed to create property";
+      logger.error("[ADMIN][PROPERTIES] Create failed", {
+        title: newProperty.title,
+        message,
+      });
       alert(message);
       throw e;
     }

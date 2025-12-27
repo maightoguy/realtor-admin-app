@@ -9,6 +9,7 @@ import {
   type SalesStatistics,
 } from "./adminDashboardPropertiesData";
 import ReceiptsIcon from "../../icons/ReceiptsIcon";
+import { logger } from "../../../utils/logger";
 
 interface Property {
   id: string;
@@ -100,7 +101,10 @@ const AdminPropertyDetails = ({
 
       return null;
     } catch (error) {
-      console.error("Error geocoding location:", error);
+      logger.error("[ADMIN][PROPERTY DETAILS] Geocoding failed", {
+        locationName,
+        error,
+      });
       return null;
     } finally {
       setIsGeocoding(false);
