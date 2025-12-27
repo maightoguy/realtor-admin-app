@@ -1,6 +1,10 @@
 export type Gender = "male" | "female" | "other";
 export type UserRole = "realtor" | "admin";
 export type KYCStatus = "pending" | "approved" | "rejected";
+export type PropertyType = "land" | "housing";
+export type PropertyStatus = "available" | "sold" | "pending";
+export type ReceiptStatus = "pending" | "approved" | "rejected" | "under_review";
+export type CommissionStatus = "pending" | "approved" | "paid" | "rejected";
 
 export interface BankAccount {
   bankName: string;
@@ -25,3 +29,34 @@ export interface User {
   avatar_url?: string | null;
 }
 
+export interface Property {
+  id: string;
+  title: string;
+  location: string;
+  price: number;
+  type: PropertyType;
+  description?: string | null;
+  status: PropertyStatus;
+  images?: string[] | null;
+  created_at: string;
+}
+
+export interface Receipt {
+  id: string;
+  realtor_id?: string | null;
+  client_name: string;
+  property_id?: string | null;
+  amount: number;
+  receipt_file_url?: string | null;
+  status: ReceiptStatus;
+  created_at: string;
+}
+
+export interface Commission {
+  id: string;
+  amount: number;
+  status: CommissionStatus;
+  realtor_id: string;
+  receipt_id?: string | null;
+  created_at: string;
+}

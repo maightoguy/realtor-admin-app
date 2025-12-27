@@ -1,19 +1,12 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import AdminPagination from "../../AdminPagination.tsx";
 import RealtorsIcon from "../../icons/RealtorsIcon.tsx";
 import IslandIcon from "../../icons/IslandIcon.tsx";
 import ReceiptsIcon from "../../icons/ReceiptsIcon.tsx";
 import TransactionsIcon from "../../icons/TransactionsIcon.tsx";
-import {
-  metricsData,
-  topRealtorsData,
-  commissionData,
-  realtorsData,
-  recentReceiptsData,
-  months,
-  ProfilePic1,
-} from "./adminDashboardOverviewData";
+import { months, ProfilePic1 } from "./adminDashboardOverviewData";
+import { overviewService } from "../../../services/apiService";
 
 interface MetricCardProps {
   title: string;
@@ -170,13 +163,115 @@ const AdminDashboardOverview = () => {
   );
   //const [currentPage, setCurrentPage] = useState(1);
   const [showAllReceipts, setShowAllReceipts] = useState(false);
+  const [snapshot, setSnapshot] = useState<Awaited<
+    ReturnType<typeof overviewService.getOverviewSnapshot>
+  > | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Empty state - no data available
-  // TODO: This will be replaced with API call
-  const hasData = true;
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+    overviewService
+      .getOverviewSnapshot()
+      .then((data) => {
+        if (cancelled) return;
+        setSnapshot(data);
+      })
+      .catch((e) => {
+        const message =
+          e instanceof Error ? e.message : "Failed to load overview.";
+        if (!cancelled) setLoadError(message);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-  const chartData = chartView === "Commission" ? commissionData : realtorsData;
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const hasData = !isLoading && !loadError && snapshot !== null;
+
+  const formatNaira = (amount: number) =>
+    `₦${Math.round(amount).toLocaleString()}`;
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "-";
+    const day = d.getDate();
+    const suffix =
+      day % 10 === 1 && day % 100 !== 11
+        ? "st"
+        : day % 10 === 2 && day % 100 !== 12
+        ? "nd"
+        : day % 10 === 3 && day % 100 !== 13
+        ? "rd"
+        : "th";
+    const monthName = d.toLocaleDateString("en-US", { month: "long" });
+    const year = d.getFullYear();
+    return `${monthName} ${day}${suffix}, ${year}`;
+  };
+
+  const chartData = useMemo(() => {
+    if (!snapshot) return [];
+    return chartView === "Commission"
+      ? snapshot.monthlyCommission
+      : snapshot.monthlyNewRealtors;
+  }, [chartView, snapshot]);
   const maxValue = Math.max(...chartData, 1);
+
+  const metrics = useMemo(() => {
+    if (!snapshot) {
+      return {
+        totalRealtors: 0,
+        totalProperties: 0,
+        pendingReceipts: 0,
+        commissionPaid: "₦0",
+        totalSale: "₦0",
+      };
+    }
+    return {
+      totalRealtors: snapshot.totalRealtors,
+      totalProperties: snapshot.totalProperties,
+      pendingReceipts: snapshot.pendingReceipts,
+      commissionPaid: formatNaira(snapshot.commissionPaid),
+      totalSale: formatNaira(snapshot.totalSale),
+    };
+  }, [snapshot]);
+
+  const topRealtors = useMemo(() => {
+    if (!snapshot) return [];
+    return snapshot.topRealtors.map((row) => ({
+      name: `${row.user.first_name} ${row.user.last_name}`.trim() || "---",
+      value: formatNaira(row.total),
+      avatar: row.user.avatar_url || ProfilePic1,
+    }));
+  }, [snapshot]);
+
+  const recentReceipts = useMemo(() => {
+    if (!snapshot) return [];
+    const mapStatus = (status: string): "Pending" | "Approved" | "Rejected" => {
+      const normalized = status.toLowerCase();
+      if (normalized === "approved") return "Approved";
+      if (normalized === "rejected") return "Rejected";
+      return "Pending";
+    };
+
+    return snapshot.recentReceipts.map(({ receipt, realtor, property }) => ({
+      receiptId: `#${receipt.id.slice(0, 6)}`,
+      property: property?.title ?? "-",
+      realtorName: realtor
+        ? `${realtor.first_name} ${realtor.last_name}`.trim() || "---"
+        : "---",
+      realtorAvatar: realtor?.avatar_url || ProfilePic1,
+      clientName: receipt.client_name ?? "-",
+      dateUploaded: formatDate(receipt.created_at),
+      status: mapStatus(receipt.status),
+    }));
+  }, [snapshot]);
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
@@ -184,7 +279,7 @@ const AdminDashboardOverview = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <MetricCard
           title="Total Realtors"
-          value={hasData ? metricsData.totalRealtors : "-"}
+          value={hasData ? metrics.totalRealtors : "-"}
           icon={<RealtorsIcon color="#6500AC" className="w-5 h-5" />}
           iconBgColor="#F0E6F7"
           iconStrokeColor="#F0E6F7"
@@ -194,7 +289,7 @@ const AdminDashboardOverview = () => {
         />
         <MetricCard
           title="Total Properties"
-          value={hasData ? metricsData.totalProperties : "-"}
+          value={hasData ? metrics.totalProperties : "-"}
           icon={<IslandIcon color="#22C55E" className="w-5 h-5" />}
           iconBgColor="#E9F9EF"
           iconStrokeColor="#E9F9EF"
@@ -204,7 +299,7 @@ const AdminDashboardOverview = () => {
         />
         <MetricCard
           title="Pending Receipts"
-          value={hasData ? metricsData.pendingReceipts : "-"}
+          value={hasData ? metrics.pendingReceipts : "-"}
           icon={<ReceiptsIcon color="#EF4444" className="w-5 h-5" />}
           iconBgColor="#FAC5C5"
           iconStrokeColor="#FAC5C5"
@@ -214,7 +309,7 @@ const AdminDashboardOverview = () => {
         />
         <MetricCard
           title="Commission paid"
-          value={hasData ? metricsData.commissionPaid : "-"}
+          value={hasData ? metrics.commissionPaid : "-"}
           icon={<TransactionsIcon color="#6B7280" className="w-5 h-5" />}
           iconBgColor="#F0F1F2"
           iconStrokeColor="#F0E6F7"
@@ -224,7 +319,7 @@ const AdminDashboardOverview = () => {
         />
         <MetricCard
           title="Total sale"
-          value={hasData ? metricsData.totalSale : "-"}
+          value={hasData ? metrics.totalSale : "-"}
           icon={<TransactionsIcon color="#DD900D" className="w-5 h-5" />}
           iconBgColor="#F4DDB4"
           iconStrokeColor="#F4DDB4"
@@ -372,15 +467,29 @@ const AdminDashboardOverview = () => {
           </h3>
           {hasData ? (
             <div>
-              {topRealtorsData.map((realtor, index) => (
-                <TopRealtorItem
-                  key={index}
-                  name={realtor.name}
-                  value={realtor.value}
-                  avatar={realtor.avatar}
-                  isEmpty={false}
-                />
-              ))}
+              {topRealtors.length > 0 ? (
+                topRealtors.map((realtor, index) => (
+                  <TopRealtorItem
+                    key={index}
+                    name={realtor.name}
+                    value={realtor.value}
+                    avatar={realtor.avatar}
+                    isEmpty={false}
+                  />
+                ))
+              ) : (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <TopRealtorItem
+                      key={i}
+                      name="---"
+                      value="₦0"
+                      avatar={ProfilePic1}
+                      isEmpty={true}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -444,10 +553,10 @@ const AdminDashboardOverview = () => {
                 </thead>
                 <tbody>
                   {(showAllReceipts
-                    ? recentReceiptsData
-                    : recentReceiptsData.slice(0, 2)
-                  ).map((receipt, index) => (
-                    <ReceiptRow key={index} {...receipt} />
+                    ? recentReceipts
+                    : recentReceipts.slice(0, 2)
+                  ).map((receipt) => (
+                    <ReceiptRow key={receipt.receiptId} {...receipt} />
                   ))}
                 </tbody>
               </table>
