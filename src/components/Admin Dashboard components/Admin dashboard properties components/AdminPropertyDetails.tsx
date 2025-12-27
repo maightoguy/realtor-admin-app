@@ -5,11 +5,11 @@ import ImageViewerModal from "./ImageViewerModal";
 import IslandIcon from "../../icons/IslandIcon";
 import {
   propertyImages,
-  sampleDevelopers,
   type SalesStatistics,
 } from "./adminDashboardPropertiesData";
 import ReceiptsIcon from "../../icons/ReceiptsIcon";
 import { logger } from "../../../utils/logger";
+import type { Developer } from "../../../services/types";
 
 interface Property {
   id: string;
@@ -26,6 +26,7 @@ interface Property {
 
 interface AdminPropertyDetailsProps {
   property: Property;
+  developers?: Developer[];
   onBack: () => void;
   onEdit?: (propertyId: string) => void;
   onMarkSoldOut?: (propertyId: string) => void;
@@ -33,6 +34,7 @@ interface AdminPropertyDetailsProps {
 
 const AdminPropertyDetails = ({
   property,
+  developers,
   onBack,
   onEdit,
   onMarkSoldOut,
@@ -275,7 +277,7 @@ const AdminPropertyDetails = ({
               {/* Developer Info */}
               {property.developer &&
                 (() => {
-                  const developer = sampleDevelopers.find(
+                  const developer = developers?.find(
                     (d) => d.name === property.developer
                   );
                   return (
@@ -616,20 +618,15 @@ const AdminPropertyDetails = ({
           );
 
           // Find the developer associated with this property
-          // If property has a developer name, find it; otherwise use first developer as fallback
           let developer = null;
           if (property.developer) {
-            developer = sampleDevelopers.find(
-              (d) => d.name === property.developer
-            );
-          }
-          // Fallback to first developer if property doesn't have one assigned
-          if (!developer && sampleDevelopers.length > 0) {
-            developer = sampleDevelopers[0];
+            developer = developers?.find((d) => d.name === property.developer) ?? null;
           }
 
           // Get sales statistics from developer or use defaults
-          const salesStats: SalesStatistics = developer?.salesStatistics || {
+          const salesStats: SalesStatistics =
+            (developer as unknown as { salesStatistics?: SalesStatistics })?.salesStatistics ||
+            {
             jan: 0,
             feb: 0,
             mar: 0,

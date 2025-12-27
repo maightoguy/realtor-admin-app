@@ -2,6 +2,7 @@ import { getSupabaseClient } from "./supabaseClient";
 import { logger } from "../utils/logger";
 import type {
   Commission,
+  Developer,
   Property,
   PropertyStatus,
   PropertyType,
@@ -89,6 +90,7 @@ export const propertyService = {
   async getAll(filters?: {
     type?: PropertyType;
     status?: PropertyStatus;
+    developer?: string;
     limit?: number;
     offset?: number;
   }): Promise<Property[]> {
@@ -103,6 +105,9 @@ export const propertyService = {
     }
     if (filters?.status) {
       query = query.eq("status", filters.status);
+    }
+    if (filters?.developer) {
+      query = query.eq("developer", filters.developer);
     }
     if (filters?.limit) {
       query = query.limit(filters.limit);
@@ -126,6 +131,7 @@ export const propertyService = {
     filters?: {
       type?: PropertyType;
       status?: PropertyStatus;
+      developer?: string;
       minPrice?: number;
       maxPrice?: number;
       limit?: number;
@@ -144,6 +150,9 @@ export const propertyService = {
     }
     if (filters?.status) {
       query = query.eq("status", filters.status);
+    }
+    if (filters?.developer) {
+      query = query.eq("developer", filters.developer);
     }
     if (typeof filters?.minPrice === "number") {
       query = query.gte("price", filters.minPrice);
@@ -234,6 +243,111 @@ export const propertyService = {
       throw error;
     }
     return count ?? 0;
+  },
+
+  async countByDeveloper(developer: string): Promise<number> {
+    logger.info("[API][properties] countByDeveloper start", { developer });
+    const { count, error } = await getSupabaseClient()
+      .from("properties")
+      .select("*", { count: "exact", head: true })
+      .eq("developer", developer);
+    if (error) {
+      logger.error("[API][properties] countByDeveloper failed", {
+        developer,
+        ...errorToLogPayload(error),
+      });
+      throw error;
+    }
+    return count ?? 0;
+  },
+};
+
+function adaptDeveloperRow(row: Record<string, unknown>): Developer {
+  return {
+    id: String(row.id ?? ""),
+    name: String(row.name ?? ""),
+    email: String(row.email ?? ""),
+    phone: String(row.phone ?? ""),
+    status: (row.status === "Removed" ? "Removed" : "Active") as Developer["status"],
+    dateAdded: typeof row.created_at === "string" ? row.created_at : new Date().toISOString(),
+    totalProperties: 0,
+  };
+}
+
+export const developerService = {
+  async getAll(params?: { limit?: number; offset?: number }): Promise<Developer[]> {
+    logger.info("[API][developers] getAll start", { params: params ?? null });
+    let query = getSupabaseClient()
+      .from("developers")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (params?.limit) {
+      query = query.limit(params.limit);
+    }
+    if (typeof params?.offset === "number") {
+      const limit = params?.limit ?? 10;
+      query = query.range(params.offset, params.offset + limit - 1);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      logger.error("[API][developers] getAll failed", { ...errorToLogPayload(error) });
+      throw error;
+    }
+
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    logger.info("[API][developers] getAll success", { count: rows.length });
+    return rows.map(adaptDeveloperRow);
+  },
+
+  async create(input: { name: string; email: string; phone: string }): Promise<Developer> {
+    logger.info("[API][developers] create start", { name: input.name });
+    const { data, error } = await getSupabaseClient()
+      .from("developers")
+      .insert({
+        name: input.name,
+        email: input.email,
+        phone: input.phone,
+        status: "Active",
+      })
+      .select("*")
+      .single();
+    if (error) {
+      logger.error("[API][developers] create failed", { ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][developers] create success", { id: data.id });
+    return adaptDeveloperRow(data as Record<string, unknown>);
+  },
+
+  async update(
+    id: string,
+    updates: Partial<{ name: string; email: string; phone: string; status: Developer["status"] }>
+  ): Promise<Developer> {
+    logger.info("[API][developers] update start", { id, keys: Object.keys(updates ?? {}) });
+    const { data, error } = await getSupabaseClient()
+      .from("developers")
+      .update(updates)
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) {
+      logger.error("[API][developers] update failed", { id, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][developers] update success", { id: data.id });
+    return adaptDeveloperRow(data as Record<string, unknown>);
+  },
+
+  async delete(id: string): Promise<void> {
+    logger.info("[API][developers] delete start", { id });
+    const { error } = await getSupabaseClient().from("developers").delete().eq("id", id);
+    if (error) {
+      logger.error("[API][developers] delete failed", { id, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][developers] delete success", { id });
   },
 };
 

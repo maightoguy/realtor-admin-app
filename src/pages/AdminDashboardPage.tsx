@@ -4,7 +4,9 @@ import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 import ProfilePic from "../assets/Profile 1.jpg";
 import AdminDashboardHeader from "../components/AdminDashboardHearder.tsx";
 import { authManager } from "../services/authManager";
+import { authService } from "../services/authService";
 import type { User } from "../services/types";
+import { logger } from "../utils/logger";
 
 // Icons
 import ReceiptsIcon from "../components/icons/ReceiptsIcon.tsx";
@@ -44,6 +46,16 @@ const AdminDashboardPage = () => {
 
   const handleProfileClick = () => {
     setActiveSection("Settings");
+  };
+
+  const handleLogoutClick = async () => {
+    logger.info("[ADMIN] Logout clicked");
+    try {
+      await authService.signOut();
+    } finally {
+      authManager.clearUser();
+      navigate("/login", { replace: true });
+    }
   };
 
   const renderSection = () => {
@@ -163,7 +175,9 @@ const AdminDashboardPage = () => {
           <div className="flex items-center gap-3 flex-1">
             <div className="rounded-full overflow-hidden border border-gray-200 w-10 h-10">
               <img
-                src={currentUser?.avatar_url ? currentUser.avatar_url : ProfilePic}
+                src={
+                  currentUser?.avatar_url ? currentUser.avatar_url : ProfilePic
+                }
                 alt="Profile"
                 className="w-full h-full object-cover"
               />
@@ -178,7 +192,7 @@ const AdminDashboardPage = () => {
             </div>
           </div>
           <button
-            onClick={handleProfileClick}
+            onClick={handleLogoutClick}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <LogOut className="w-5 h-5 text-red-600" />

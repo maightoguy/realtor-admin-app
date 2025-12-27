@@ -12,14 +12,12 @@ import AddPropertyForm from "./AddPropertyForm.tsx";
 import DeveloperDetailsSection from "./DeveloperDetailsSection.tsx";
 import AdminPropertyDetails from "./AdminPropertyDetails.tsx";
 import {
-  sampleDevelopers,
-  type Developer,
-} from "./adminDashboardPropertiesData";
-import {
+  developerService,
   propertyMediaService,
   propertyService,
 } from "../../../services/apiService";
 import type {
+  Developer,
   Property as DbProperty,
   PropertyStatus,
 } from "../../../services/types";
@@ -126,7 +124,8 @@ const AdminDashboardProperties = ({
   const [totalPropertiesCount, setTotalPropertiesCount] = useState(0);
   const [activePropertiesCount, setActivePropertiesCount] = useState(0);
   const [soldOutPropertiesCount, setSoldOutPropertiesCount] = useState(0);
-  const [developers, setDevelopers] = useState<Developer[]>(sampleDevelopers);
+  const [developers, setDevelopers] = useState<Developer[]>([]);
+  const [developerPropertiesCount, setDeveloperPropertiesCount] = useState(0);
   const [selectedDeveloper, setSelectedDeveloper] = useState<Developer | null>(
     null
   );
@@ -148,6 +147,7 @@ const AdminDashboardProperties = ({
       location: p.location,
       isSoldOut: p.status === "sold",
       description: p.description ?? undefined,
+      developer: p.developer ?? undefined,
     };
   };
 
@@ -177,18 +177,26 @@ const AdminDashboardProperties = ({
     });
   };
 
-  const fetchPropertiesPage = async (page: number, q: string) => {
+  const fetchPropertiesPage = async (
+    page: number,
+    q: string,
+    developer?: string
+  ) => {
     setIsLoadingProperties(true);
     setPropertiesError(null);
     try {
-      logger.info("[ADMIN][PROPERTIES] Fetch start", { page, q });
+      logger.info("[ADMIN][PROPERTIES] Fetch start", { page, q, developer });
       let rows: DbProperty[] = [];
       if (q.trim().length > 0) {
-        rows = await propertyService.search(q.trim(), { limit: 5000 });
+        rows = await propertyService.search(q.trim(), {
+          limit: 5000,
+          developer,
+        });
       } else {
         rows = await propertyService.getAll({
           limit: itemsPerPage,
           offset: (page - 1) * itemsPerPage,
+          developer,
         });
       }
       setProperties(rows.map(adaptDbProperty));
@@ -213,15 +221,55 @@ const AdminDashboardProperties = ({
     if (activeTab !== "Properties") return;
     if (showAddForm || selectedProperty) return;
     if (searchQuery.trim().length > 0) return;
-    fetchPropertiesPage(currentPage, "").catch(() => undefined);
-  }, [activeTab, currentPage, searchQuery, showAddForm, selectedProperty]);
+    fetchPropertiesPage(currentPage, "", selectedDeveloper?.name).catch(
+      () => undefined
+    );
+  }, [
+    activeTab,
+    currentPage,
+    searchQuery,
+    showAddForm,
+    selectedProperty,
+    selectedDeveloper?.name,
+  ]);
 
   useEffect(() => {
     if (activeTab !== "Properties") return;
     if (showAddForm || selectedProperty) return;
     if (searchQuery.trim().length === 0) return;
-    fetchPropertiesPage(1, searchQuery).catch(() => undefined);
-  }, [activeTab, searchQuery, showAddForm, selectedProperty]);
+    fetchPropertiesPage(1, searchQuery, selectedDeveloper?.name).catch(
+      () => undefined
+    );
+  }, [activeTab, searchQuery, showAddForm, selectedProperty, selectedDeveloper?.name]);
+
+  useEffect(() => {
+    if (!selectedDeveloper?.name) {
+      setDeveloperPropertiesCount(0);
+      return;
+    }
+    propertyService
+      .countByDeveloper(selectedDeveloper.name)
+      .then(setDeveloperPropertiesCount)
+      .catch(() => setDeveloperPropertiesCount(0));
+  }, [selectedDeveloper?.name]);
+
+  useEffect(() => {
+    if (activeTab !== "Developers") return;
+    developerService
+      .getAll({ limit: 5000 })
+      .then(async (rows) => {
+        const counts = await Promise.all(
+          rows.map((d) =>
+            propertyService.countByDeveloper(d.name).catch(() => 0)
+          )
+        );
+        setDevelopers(rows.map((d, idx) => ({ ...d, totalProperties: counts[idx] })));
+      })
+      .catch((e: unknown) => {
+        logger.error("[ADMIN][DEVELOPERS] Fetch failed", { error: e });
+        setDevelopers([]);
+      });
+  }, [activeTab]);
 
   // Notify parent when form state changes
   const handleFormStateChange = (isActive: boolean) => {
@@ -289,7 +337,7 @@ const AdminDashboardProperties = ({
     }
   };
 
-  const handleViewDeveloperDetails = (developerId: number) => {
+  const handleViewDeveloperDetails = (developerId: string) => {
     // Find and set the selected developer
     const developer = developers.find((d) => d.id === developerId);
     if (developer) {
@@ -301,19 +349,30 @@ const AdminDashboardProperties = ({
 
   const handleBackFromDeveloperDetails = () => {
     setSelectedDeveloper(null);
+    setCurrentPage(1);
   };
 
-  const handleEditDeveloper = (developerId: number) => {
+  const handleEditDeveloper = (developerId: string) => {
     // Handle edit developer
     logger.info("[ADMIN][DEVELOPERS] Edit clicked", { developerId });
   };
 
-  const handleRemoveDeveloper = (developerId: number) => {
-    // Handle remove developer
+  const handleRemoveDeveloper = async (developerId: string) => {
     logger.info("[ADMIN][DEVELOPERS] Remove clicked", { developerId });
-    // Optionally remove from list and reset selection
-    setDevelopers((prev) => prev.filter((d) => d.id !== developerId));
-    setSelectedDeveloper(null);
+    try {
+      await developerService.update(developerId, { status: "Removed" });
+      setDevelopers((prev) =>
+        prev.map((d) =>
+          d.id === developerId ? { ...d, status: "Removed" } : d
+        )
+      );
+      if (selectedDeveloper?.id === developerId) {
+        setSelectedDeveloper(null);
+      }
+    } catch (e: unknown) {
+      logger.error("[ADMIN][DEVELOPERS] Remove failed", { developerId, error: e });
+      alert("Failed to remove developer");
+    }
   };
 
   const handleAddDeveloper = (developerData: {
@@ -321,22 +380,15 @@ const AdminDashboardProperties = ({
     email: string;
     phone: string;
   }) => {
-    // Create new developer with default values
-    const newDeveloper: Developer = {
-      id:
-        developers.length > 0
-          ? Math.max(...developers.map((d) => d.id)) + 1
-          : 1,
-      name: developerData.name,
-      email: developerData.email,
-      phone: developerData.phone,
-      totalProperties: 0,
-      dateAdded: new Date().toISOString(),
-      status: "Active",
-    };
-
-    // Add developer to the list
-    setDevelopers((prev) => [...prev, newDeveloper]);
+    developerService
+      .create(developerData)
+      .then((created) => {
+        setDevelopers((prev) => [{ ...created, totalProperties: 0 }, ...prev]);
+      })
+      .catch((e: unknown) => {
+        logger.error("[ADMIN][DEVELOPERS] Create failed", { error: e });
+        alert("Failed to add developer");
+      });
   };
 
   const handlePageChange = (page: number) => {
@@ -381,11 +433,15 @@ const AdminDashboardProperties = ({
         status,
         description: newProperty.description || null,
         images: uploadedPaths,
+        developer: newProperty.developer || null,
       });
 
       setCurrentPage(1);
       setSearchQuery("");
-      await Promise.all([fetchPropertiesPage(1, ""), refreshMetrics()]);
+      await Promise.all([
+        fetchPropertiesPage(1, "", selectedDeveloper?.name),
+        refreshMetrics(),
+      ]);
       handleFormStateChange(false);
       logger.info("[ADMIN][PROPERTIES] Create success", {
         title: newProperty.title,
@@ -406,8 +462,11 @@ const AdminDashboardProperties = ({
   };
 
   // Calculate pagination
-  const totalItems =
-    searchQuery.trim().length > 0 ? properties.length : totalPropertiesCount;
+  const totalItems = (() => {
+    if (searchQuery.trim().length > 0) return properties.length;
+    if (selectedDeveloper) return developerPropertiesCount;
+    return totalPropertiesCount;
+  })();
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProperties =
@@ -421,6 +480,7 @@ const AdminDashboardProperties = ({
       {!showAddForm && selectedProperty && (
         <AdminPropertyDetails
           property={selectedProperty}
+          developers={developers}
           onBack={handleBackFromPropertyDetails}
           onEdit={handleEditProperty}
           onMarkSoldOut={handleMarkSoldOut}

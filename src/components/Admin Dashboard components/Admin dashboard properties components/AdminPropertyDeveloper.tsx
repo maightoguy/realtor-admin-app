@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AdminPagination from "../../AdminPagination.tsx";
 import AddDeveloperPopupModal from "./AddDeveloperPopupModal.tsx";
-import type { Developer } from "./adminDashboardPropertiesData";
+import type { Developer } from "../../../services/types";
 
 interface AdminPropertyDeveloperProps {
   developers: Developer[];
@@ -10,7 +10,7 @@ interface AdminPropertyDeveloperProps {
     email: string;
     phone: string;
   }) => void;
-  onViewDetails?: (developerId: number) => void;
+  onViewDetails?: (developerId: string) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
   itemsPerPage: number;

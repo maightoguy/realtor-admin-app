@@ -1,14 +1,12 @@
 import { ArrowLeft } from "lucide-react";
-import type {
-  Developer,
-  SalesStatistics,
-} from "./adminDashboardPropertiesData";
+import type { Developer } from "../../../services/types";
+import type { SalesStatistics } from "./adminDashboardPropertiesData";
 
 interface DeveloperDetailsSectionProps {
-  developer: Developer;
+  developer: Developer & { salesStatistics?: SalesStatistics };
   onBack: () => void;
-  onEdit?: (developerId: number) => void;
-  onRemove?: (developerId: number) => void;
+  onEdit?: (developerId: string) => void;
+  onRemove?: (developerId: string) => void;
 }
 
 const DeveloperDetailsSection = ({

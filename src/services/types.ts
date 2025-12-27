@@ -5,6 +5,7 @@ export type PropertyType = "land" | "housing";
 export type PropertyStatus = "available" | "sold" | "pending";
 export type ReceiptStatus = "pending" | "approved" | "rejected" | "under_review";
 export type CommissionStatus = "pending" | "approved" | "paid" | "rejected";
+export type DeveloperStatus = "Active" | "Removed";
 
 export interface BankAccount {
   bankName: string;
@@ -29,6 +30,16 @@ export interface User {
   avatar_url?: string | null;
 }
 
+export interface Developer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  totalProperties: number;
+  dateAdded: string;
+  status: DeveloperStatus;
+}
+
 export interface Property {
   id: string;
   title: string;
@@ -38,6 +49,7 @@ export interface Property {
   description?: string | null;
   status: PropertyStatus;
   images?: string[] | null;
+  developer?: string | null;
   created_at: string;
 }
 
