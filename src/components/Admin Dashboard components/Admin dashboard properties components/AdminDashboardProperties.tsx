@@ -110,6 +110,7 @@ interface Property {
   developer?: string;
   developerId?: string;
   images?: string[];
+  imagePaths?: string[];
   contractDocs?: string[];
 }
 
@@ -143,6 +144,7 @@ const AdminDashboardProperties = ({
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(
     null
   );
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const itemsPerPage = 8;
 
   const developersById = useMemo(() => {
@@ -178,6 +180,7 @@ const AdminDashboardProperties = ({
       id: p.id,
       image,
       images: urls.length > 0 ? urls : [image],
+      imagePaths: imgPaths,
       title: p.title,
       price: Number(p.price) || 0,
       location: p.location,
@@ -203,6 +206,41 @@ const AdminDashboardProperties = ({
       developer: developerName,
       contractDocs,
     };
+  };
+
+  const toUserErrorMessage = (e: unknown, fallback: string) => {
+    const obj =
+      e && typeof e === "object" ? (e as Record<string, unknown>) : null;
+    const messageRaw =
+      typeof (obj?.message ?? null) === "string"
+        ? String(obj?.message)
+        : e instanceof Error
+        ? e.message
+        : "";
+    const code =
+      typeof (obj?.code ?? null) === "string" ? String(obj?.code) : "";
+    const details =
+      typeof (obj?.details ?? null) === "string" ? String(obj?.details) : "";
+    const hint =
+      typeof (obj?.hint ?? null) === "string" ? String(obj?.hint) : "";
+    const combined = `${messageRaw} ${details} ${hint}`.toLowerCase();
+
+    if (
+      code === "42501" ||
+      combined.includes("row level security") ||
+      combined.includes("row-level security") ||
+      combined.includes("permission denied") ||
+      combined.includes("insufficient_privilege") ||
+      combined.includes("update did not return a row")
+    ) {
+      return "You don't have permission to perform this action. Please sign in with an admin account.";
+    }
+
+    if (combined.includes("not authenticated")) {
+      return "Your session has expired. Please sign in again.";
+    }
+
+    return messageRaw.trim().length > 0 ? messageRaw : fallback;
   };
 
   const metrics = useMemo(
@@ -410,8 +448,13 @@ const AdminDashboardProperties = ({
   };
 
   const handleEditProperty = (propertyId: string) => {
-    // Handle edit property
+    const current =
+      properties.find((p) => p.id === propertyId) ?? selectedProperty;
+    if (!current) return;
     logger.info("[ADMIN][PROPERTIES] Edit clicked", { propertyId });
+    setEditingProperty(current);
+    setSelectedProperty(null);
+    handleFormStateChange(true);
   };
 
   const handleMarkSoldOut = async (propertyId: string) => {
@@ -429,16 +472,16 @@ const AdminDashboardProperties = ({
           p.id === propertyId ? { ...p, isSoldOut: !p.isSoldOut } : p
         )
       );
+      setSelectedProperty((prev) =>
+        prev?.id === propertyId ? { ...prev, isSoldOut: !prev.isSoldOut } : prev
+      );
       refreshMetrics().catch(() => undefined);
       logger.info("[ADMIN][PROPERTIES] Toggle sold-out success", {
         propertyId,
         newStatus,
       });
     } catch (e: unknown) {
-      const message =
-        e && typeof e === "object" && "message" in e
-          ? String((e as { message?: unknown }).message)
-          : "Failed to update property";
+      const message = toUserErrorMessage(e, "Failed to update property");
       logger.error("[ADMIN][PROPERTIES] Toggle sold-out failed", {
         propertyId,
         newStatus,
@@ -485,7 +528,7 @@ const AdminDashboardProperties = ({
         developerId,
         error: e,
       });
-      alert("Failed to remove developer");
+      alert(toUserErrorMessage(e, "Failed to remove developer"));
     }
   };
 
@@ -501,7 +544,7 @@ const AdminDashboardProperties = ({
       })
       .catch((e: unknown) => {
         logger.error("[ADMIN][DEVELOPERS] Create failed", { error: e });
-        alert("Failed to add developer");
+        alert(toUserErrorMessage(e, "Failed to add developer"));
       });
   };
 
@@ -510,6 +553,7 @@ const AdminDashboardProperties = ({
   };
 
   const handleAddProperty = async (newProperty: {
+    id?: string;
     image: string;
     title: string;
     price: number;
@@ -523,8 +567,12 @@ const AdminDashboardProperties = ({
     accessibility?: string;
     topography?: string;
     developerId?: string;
+    imageOrder: Array<
+      { kind: "existing"; path: string } | { kind: "new"; fileIndex: number }
+    >;
     mediaFiles: File[];
     contractDocs: string[];
+    existingContractDocs: string[];
     contractFiles: File[];
   }) => {
     try {
@@ -542,6 +590,9 @@ const AdminDashboardProperties = ({
         ...(newProperty.contractDocs ?? []).filter(
           (doc) => typeof doc === "string" && doc.trim().length > 0
         ),
+        ...(newProperty.existingContractDocs ?? []).filter(
+          (doc) => typeof doc === "string" && doc.trim().length > 0
+        ),
         ...uploadedContractPaths,
       ];
 
@@ -555,6 +606,20 @@ const AdminDashboardProperties = ({
         ? "sold"
         : "available";
 
+      const imagesToSave =
+        Array.isArray(newProperty.imageOrder) &&
+        newProperty.imageOrder.length > 0
+          ? newProperty.imageOrder
+              .map((item) =>
+                item.kind === "existing"
+                  ? item.path
+                  : uploadedPaths[item.fileIndex]
+              )
+              .filter(
+                (v): v is string => typeof v === "string" && v.trim().length > 0
+              )
+          : uploadedPaths;
+
       await propertyService.create({
         title: newProperty.title,
         location: newProperty.location,
@@ -562,7 +627,7 @@ const AdminDashboardProperties = ({
         type,
         status,
         description: newProperty.description || null,
-        images: uploadedPaths,
+        images: imagesToSave,
         contract_docs: contractDocs.length > 0 ? contractDocs : null,
         developer_id: newProperty.developerId || null,
         category: newProperty.category || null,
@@ -597,12 +662,126 @@ const AdminDashboardProperties = ({
         uploadedCount: uploadedPaths.length,
       });
     } catch (e: unknown) {
-      const message =
-        e && typeof e === "object" && "message" in e
-          ? String((e as { message?: unknown }).message)
-          : "Failed to create property";
+      const message = toUserErrorMessage(e, "Failed to create property");
       logger.error("[ADMIN][PROPERTIES] Create failed", {
         title: newProperty.title,
+        message,
+      });
+      alert(message);
+      throw e;
+    }
+  };
+
+  const handleUpdateProperty = async (updated: {
+    id?: string;
+    image: string;
+    title: string;
+    price: number;
+    location: string;
+    isSoldOut: boolean;
+    category?: string;
+    description?: string;
+    commissionPercent?: number;
+    landSizeSqm?: number;
+    security?: string;
+    accessibility?: string;
+    topography?: string;
+    developerId?: string;
+    imageOrder: Array<
+      { kind: "existing"; path: string } | { kind: "new"; fileIndex: number }
+    >;
+    mediaFiles: File[];
+    contractDocs: string[];
+    existingContractDocs: string[];
+    contractFiles: File[];
+  }) => {
+    const propertyId = updated.id ?? editingProperty?.id;
+    if (!propertyId) return;
+    try {
+      logger.info("[ADMIN][PROPERTIES] Update start", {
+        propertyId,
+        title: updated.title,
+        mediaCount: updated.mediaFiles.length,
+      });
+
+      const uploadedPaths = await propertyMediaService.uploadMany(
+        updated.mediaFiles
+      );
+      const uploadedContractPaths = await propertyMediaService.uploadMany(
+        updated.contractFiles
+      );
+
+      const imagesToSave =
+        Array.isArray(updated.imageOrder) && updated.imageOrder.length > 0
+          ? updated.imageOrder
+              .map((item) =>
+                item.kind === "existing"
+                  ? item.path
+                  : uploadedPaths[item.fileIndex]
+              )
+              .filter(
+                (v): v is string => typeof v === "string" && v.trim().length > 0
+              )
+          : uploadedPaths;
+
+      const contractDocsToSave = [
+        ...(updated.contractDocs ?? []).filter(
+          (doc) => typeof doc === "string" && doc.trim().length > 0
+        ),
+        ...(updated.existingContractDocs ?? []).filter(
+          (doc) => typeof doc === "string" && doc.trim().length > 0
+        ),
+        ...uploadedContractPaths,
+      ];
+
+      const type =
+        updated.category && updated.category.toLowerCase().includes("land")
+          ? "land"
+          : "housing";
+      const status: PropertyStatus = updated.isSoldOut ? "sold" : "available";
+
+      const updatedDb = await propertyService.update(propertyId, {
+        title: updated.title,
+        location: updated.location,
+        price: updated.price,
+        type,
+        status,
+        description: updated.description || null,
+        images: imagesToSave.length > 0 ? imagesToSave : null,
+        contract_docs:
+          contractDocsToSave.length > 0 ? contractDocsToSave : null,
+        developer_id: updated.developerId || null,
+        category: updated.category || null,
+        commission_percent:
+          typeof updated.commissionPercent === "number" &&
+          Number.isFinite(updated.commissionPercent)
+            ? updated.commissionPercent
+            : null,
+        land_size_sqm:
+          typeof updated.landSizeSqm === "number" &&
+          Number.isFinite(updated.landSizeSqm)
+            ? updated.landSizeSqm
+            : null,
+        security: updated.security?.trim() ? updated.security : null,
+        accessibility: updated.accessibility?.trim()
+          ? updated.accessibility
+          : null,
+        topography: updated.topography?.trim() ? updated.topography : null,
+      });
+
+      const updatedUi = adaptDbProperty(updatedDb);
+      setProperties((prev) =>
+        prev.map((p) => (p.id === propertyId ? updatedUi : p))
+      );
+      setSelectedProperty(updatedUi);
+      setEditingProperty(null);
+      handleFormStateChange(false);
+      refreshMetrics().catch(() => undefined);
+      logger.info("[ADMIN][PROPERTIES] Update success", { propertyId });
+    } catch (e: unknown) {
+      const message = toUserErrorMessage(e, "Failed to update property");
+      logger.error("[ADMIN][PROPERTIES] Update failed", {
+        propertyId,
         message,
       });
       alert(message);
@@ -728,8 +907,37 @@ const AdminDashboardProperties = ({
       {/* Add Property Form */}
       {showAddForm && (
         <AddPropertyForm
-          onClose={() => handleFormStateChange(false)}
-          onSave={handleAddProperty}
+          initialProperty={
+            editingProperty
+              ? {
+                  id: editingProperty.id,
+                  title: editingProperty.title,
+                  price: editingProperty.price,
+                  location: editingProperty.location,
+                  category: editingProperty.category,
+                  description: editingProperty.description,
+                  commissionPercent: editingProperty.commissionPercent,
+                  landSizeSqm: editingProperty.landSizeSqm,
+                  security: editingProperty.security,
+                  accessibility: editingProperty.accessibility,
+                  topography: editingProperty.topography,
+                  developerId: editingProperty.developerId,
+                  isSoldOut: editingProperty.isSoldOut,
+                  imagePaths: editingProperty.imagePaths,
+                  imageUrls: editingProperty.images,
+                  contractDocs: editingProperty.contractDocs,
+                }
+              : undefined
+          }
+          onClose={() => {
+            setEditingProperty(null);
+            handleFormStateChange(false);
+          }}
+          onSave={(payload) =>
+            editingProperty
+              ? handleUpdateProperty(payload)
+              : handleAddProperty(payload)
+          }
         />
       )}
 
@@ -747,7 +955,10 @@ const AdminDashboardProperties = ({
                       : "All properties"}
                   </h2>
                   <button
-                    onClick={() => handleFormStateChange(!showAddForm)}
+                    onClick={() => {
+                      setEditingProperty(null);
+                      handleFormStateChange(!showAddForm);
+                    }}
                     className="bg-[#6500AC] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
                   >
                     Add new property

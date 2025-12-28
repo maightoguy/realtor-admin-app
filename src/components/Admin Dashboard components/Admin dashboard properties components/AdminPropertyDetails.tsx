@@ -620,9 +620,13 @@ const AdminPropertyDetails = ({
               </button>
               <button
                 onClick={() => onMarkSoldOut?.(property.id)}
-                className="w-full bg-white border-2 border-red-500 text-red-500 py-3 px-4 rounded-lg font-semibold hover:bg-red-50 transition-colors"
+                className={`w-full bg-white border-2 py-3 px-4 rounded-lg font-semibold transition-colors ${
+                  property.isSoldOut
+                    ? "border-[#22C55E] text-[#22C55E] hover:bg-green-50"
+                    : "border-red-500 text-red-500 hover:bg-red-50"
+                }`}
               >
-                Mark as sold-out
+                {property.isSoldOut ? "Mark as available" : "Mark as sold-out"}
               </button>
             </div>
           </div>

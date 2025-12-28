@@ -3,14 +3,42 @@ import IslandIcon from "../../icons/IslandIcon";
 
 import MapViewer from "../../MapViewer"; // <--- ADD THIS
 import { logger } from "../../../utils/logger";
-import { developerService } from "../../../services/apiService";
+import {
+  developerService,
+  propertyMediaService,
+} from "../../../services/apiService";
 import type { Developer } from "../../../services/types";
 import AddDeveloperPopupModal from "./AddDeveloperPopupModal";
 import Loader from "../../Loader";
 
+type ImageOrderItem =
+  | { kind: "existing"; path: string }
+  | { kind: "new"; fileIndex: number };
+
+interface InitialPropertyData {
+  id: string;
+  title: string;
+  price: number;
+  location: string;
+  category?: string;
+  description?: string;
+  commissionPercent?: number;
+  landSizeSqm?: number;
+  security?: string;
+  accessibility?: string;
+  topography?: string;
+  developerId?: string;
+  isSoldOut: boolean;
+  imagePaths?: string[];
+  imageUrls?: string[];
+  contractDocs?: string[];
+}
+
 interface AddPropertyFormProps {
+  initialProperty?: InitialPropertyData;
   onClose: () => void;
   onSave: (property: {
+    id?: string;
     image: string;
     title: string;
     price: number;
@@ -24,8 +52,10 @@ interface AddPropertyFormProps {
     accessibility?: string;
     topography?: string;
     developerId?: string;
+    imageOrder: ImageOrderItem[];
     mediaFiles: File[];
     contractDocs: string[];
+    existingContractDocs: string[];
     contractFiles: File[];
   }) => Promise<void> | void;
 }
@@ -38,12 +68,18 @@ const STEPS = [
 
 interface ImageFile {
   id: string;
-  file: File;
+  kind: "new" | "existing";
+  file?: File;
+  path?: string;
   preview: string;
   isThumbnail: boolean;
 }
 
-const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
+const AddPropertyForm = ({
+  initialProperty,
+  onClose,
+  onSave,
+}: AddPropertyFormProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [developers, setDevelopers] = useState<Developer[]>([]);
@@ -66,6 +102,9 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     isSoldOut: false,
   });
   const [images, setImages] = useState<ImageFile[]>([]);
+  const [existingUploadedForms, setExistingUploadedForms] = useState<
+    Array<{ ref: string; name: string; url: string }>
+  >([]);
   const [uploadedForms, setUploadedForms] = useState<
     Array<{ file: File; name: string; size: string; date: string }>
   >([]);
@@ -118,6 +157,113 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     (d) => String(d.status).toLowerCase() !== "removed"
   );
 
+  useEffect(() => {
+    if (!initialProperty) return;
+
+    const isUrl = (value: string) => /^https?:\/\//i.test(value);
+    const isLikelyFilePath = (value: string) =>
+      value.includes("/") || /\.[a-z0-9]{2,6}$/i.test(value);
+
+    const getLabel = (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return "";
+      if (isUrl(trimmed)) {
+        try {
+          const url = new URL(trimmed);
+          const last = url.pathname.split("/").filter(Boolean).pop();
+          return last ? decodeURIComponent(last) : trimmed;
+        } catch {
+          return trimmed;
+        }
+      }
+      if (trimmed.includes("/")) {
+        const last = trimmed.split("/").filter(Boolean).pop();
+        return last || trimmed;
+      }
+      return trimmed;
+    };
+
+    setCurrentStep(1);
+    setFormData((prev) => ({
+      ...prev,
+      title: initialProperty.title ?? "",
+      startingPrice:
+        typeof initialProperty.price === "number" &&
+        Number.isFinite(initialProperty.price)
+          ? String(initialProperty.price)
+          : "",
+      commission:
+        typeof initialProperty.commissionPercent === "number" &&
+        Number.isFinite(initialProperty.commissionPercent)
+          ? String(initialProperty.commissionPercent)
+          : "",
+      location: initialProperty.location ?? "",
+      category: initialProperty.category ?? "",
+      description: initialProperty.description ?? "",
+      developerId: initialProperty.developerId ?? "",
+      landSize:
+        typeof initialProperty.landSizeSqm === "number" &&
+        Number.isFinite(initialProperty.landSizeSqm)
+          ? String(initialProperty.landSizeSqm)
+          : "",
+      security: initialProperty.security ?? "",
+      accessibility: initialProperty.accessibility ?? "",
+      topography: initialProperty.topography ?? "",
+      isSoldOut: Boolean(initialProperty.isSoldOut),
+      documentOnProperty: [],
+    }));
+
+    const urlByPath = new Map<string, string>();
+    const paths = Array.isArray(initialProperty.imagePaths)
+      ? initialProperty.imagePaths
+      : [];
+    const urls = Array.isArray(initialProperty.imageUrls)
+      ? initialProperty.imageUrls
+      : [];
+    for (let i = 0; i < Math.min(paths.length, urls.length); i += 1) {
+      urlByPath.set(paths[i], urls[i]);
+    }
+    setImages(
+      paths.map((path, idx) => ({
+        id: `existing_${idx}_${path}`,
+        kind: "existing" as const,
+        path,
+        preview: urlByPath.get(path) ?? propertyMediaService.getPublicUrl(path),
+        isThumbnail: idx === 0,
+      }))
+    );
+
+    const rawDocs = Array.isArray(initialProperty.contractDocs)
+      ? initialProperty.contractDocs
+      : [];
+    const docTypeSet = new Map<string, string>();
+    const existingFiles = new Map<
+      string,
+      { ref: string; name: string; url: string }
+    >();
+    for (const raw of rawDocs) {
+      if (typeof raw !== "string") continue;
+      const trimmed = raw.trim();
+      if (!trimmed) continue;
+      if (isUrl(trimmed) || isLikelyFilePath(trimmed)) {
+        const name = getLabel(trimmed);
+        const url = isUrl(trimmed)
+          ? trimmed
+          : propertyMediaService.getPublicUrl(trimmed);
+        existingFiles.set(trimmed, { ref: trimmed, name, url });
+        continue;
+      }
+      const name = getLabel(trimmed);
+      if (!name) continue;
+      docTypeSet.set(name.toLowerCase(), name);
+    }
+    setFormData((prev) => ({
+      ...prev,
+      documentOnProperty: Array.from(docTypeSet.values()),
+    }));
+    setExistingUploadedForms(Array.from(existingFiles.values()));
+  }, [initialProperty]);
+
   const handleAddDeveloperFromModal = async (developerData: {
     name: string;
     email: string;
@@ -145,6 +291,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
         reader.onloadend = () => {
           const newImage: ImageFile = {
             id: Date.now().toString() + Math.random().toString(36),
+            kind: "new",
             file,
             preview: reader.result as string,
             isThumbnail: images.length === 0, // First image is thumbnail by default
@@ -257,6 +404,10 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     setUploadedForms((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleRemoveExistingForm = (ref: string) => {
+    setExistingUploadedForms((prev) => prev.filter((f) => f.ref !== ref));
+  };
+
   // Geocoding function to convert location name to coordinates
   const geocodeLocation = async (
     locationName: string
@@ -332,15 +483,33 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
 
   const handleSave = async () => {
     if (isSaving) return;
-    const thumbnailImage = images.find((img) => img.isThumbnail);
-    const ordered = [...images].sort((a, b) =>
-      a.isThumbnail === b.isThumbnail ? 0 : a.isThumbnail ? -1 : 1
-    );
+    const thumbnailImage = images.find((img) => img.isThumbnail) ?? images[0];
+    const orderedImages = thumbnailImage
+      ? [
+          thumbnailImage,
+          ...images.filter((img) => img.id !== thumbnailImage.id),
+        ]
+      : images;
+
+    const mediaFiles: File[] = [];
+    const imageOrder: ImageOrderItem[] = [];
+    for (const img of orderedImages) {
+      if (img.kind === "existing" && img.path) {
+        imageOrder.push({ kind: "existing", path: img.path });
+        continue;
+      }
+      if (img.kind === "new" && img.file) {
+        const fileIndex = mediaFiles.length;
+        mediaFiles.push(img.file);
+        imageOrder.push({ kind: "new", fileIndex });
+      }
+    }
     const selectedDeveloperName =
       (formData.developerId
         ? developers.find((d) => d.id === formData.developerId)?.name
         : "") ?? "";
     const newProperty = {
+      id: initialProperty?.id,
       image:
         thumbnailImage?.preview ||
         images[0]?.preview ||
@@ -361,8 +530,10 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
       accessibility: formData.accessibility || undefined,
       topography: formData.topography || undefined,
       developerId: formData.developerId || undefined,
-      mediaFiles: ordered.map((img) => img.file),
+      imageOrder,
+      mediaFiles,
       contractDocs: formData.documentOnProperty,
+      existingContractDocs: existingUploadedForms.map((f) => f.ref),
       contractFiles: uploadedForms.map((form) => form.file),
     };
     try {
@@ -551,7 +722,9 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                           >
                             {image ? (
                               <>
-                                {image.file.type.startsWith("image/") ? (
+                                {image.kind === "existing" ||
+                                (image.kind === "new" &&
+                                  image.file?.type.startsWith("image/")) ? (
                                   <img
                                     src={image.preview}
                                     alt={`Property ${index + 1}`}
@@ -880,8 +1053,56 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         className="hidden"
                       />
                     </div>
-                    {uploadedForms.length > 0 && (
+                    {(existingUploadedForms.length > 0 ||
+                      uploadedForms.length > 0) && (
                       <div className="mt-4 space-y-2">
+                        {existingUploadedForms.map((form) => (
+                          <div
+                            key={form.ref}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          >
+                            <div className="flex items-center gap-3">
+                              <svg
+                                className="w-5 h-5 text-green-500"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <div>
+                                <a
+                                  href={form.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-sm font-medium text-gray-900 hover:underline"
+                                >
+                                  {form.name}
+                                </a>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveExistingForm(form.ref)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <svg
+                                className="w-5 h-5"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
                         {uploadedForms.map((form, index) => (
                           <div
                             key={index}
@@ -1272,12 +1493,60 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                 {/* Right Column - Forms and Location */}
                 <div className="space-y-6">
                   {/* Uploaded Forms */}
-                  {uploadedForms.length > 0 && (
+                  {(existingUploadedForms.length > 0 ||
+                    uploadedForms.length > 0) && (
                     <div>
                       <h3 className="text-sm font-semibold text-gray-900 mb-3">
                         Uploaded forms
                       </h3>
                       <div className="space-y-2">
+                        {existingUploadedForms.map((form) => (
+                          <div
+                            key={form.ref}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg overflow-auto no-scrollbar"
+                          >
+                            <div className="flex items-center gap-3">
+                              <svg
+                                className="w-5 h-5 text-green-500 shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              <div className="min-w-0 flex-1">
+                                <a
+                                  href={form.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-sm font-medium text-gray-900 truncate hover:underline block"
+                                >
+                                  {form.name}
+                                </a>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveExistingForm(form.ref)}
+                              className="text-red-500 hover:text-red-700 shrink-0 ml-2"
+                            >
+                              <svg
+                                className="w-5 h-5"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
                         {uploadedForms.map((form, index) => (
                           <div
                             key={index}
@@ -1380,7 +1649,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
 
         {/* Action Buttons */}
         {currentStep === 3 ? (
-          <div className="pt-6">
+          <div className="pt-6 space-y-3">
             <button
               onClick={handleSave}
               disabled={!isStepValid() || isSaving}
@@ -1392,6 +1661,14 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
             >
               Publish property
             </button>
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              disabled={isSaving}
+              className="w-full py-3 rounded-lg font-medium transition-colors border border-[#D5D7DA] text-[#414651] hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+            >
+              Edit details
+            </button>
           </div>
         ) : (
           <div className="flex justify-between gap-4 pt-4 border-t border-[#F0F1F2]">
@@ -1399,7 +1676,11 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
               onClick={currentStep === 1 ? onClose : handlePrevious}
               className="px-6 py-2 border border-[#D5D7DA] rounded-lg font-medium text-[#414651] hover:bg-gray-50 transition-colors"
             >
-              {currentStep === 1 ? "Cancel" : "Previous"}
+              {currentStep === 1
+                ? "Cancel"
+                : currentStep === 2
+                ? "Back"
+                : "Previous"}
             </button>
             <button
               onClick={handleNext}

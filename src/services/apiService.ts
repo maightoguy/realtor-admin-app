@@ -245,8 +245,7 @@ export const propertyService = {
       .from("properties")
       .update(updates)
       .eq("id", id)
-      .select("*")
-      .single();
+      .select("*");
     if (error) {
       if (
         Object.prototype.hasOwnProperty.call(updates, "developer_id") &&
@@ -263,8 +262,7 @@ export const propertyService = {
           .from("properties")
           .update(withoutDeveloper)
           .eq("id", id)
-          .select("*")
-          .single();
+          .select("*");
         if (retry.error) {
           logger.error("[API][properties] update failed", {
             id,
@@ -272,14 +270,47 @@ export const propertyService = {
           });
           throw retry.error;
         }
-        logger.info("[API][properties] update success", { id: retry.data.id });
-        return retry.data as Property;
+        const rows = (retry.data ?? []) as unknown[];
+        if (rows.length !== 1) {
+          logger.error("[API][properties] update unexpected row count", {
+            id,
+            rowCount: rows.length,
+          });
+          if (rows.length === 0) {
+            throw new Error(
+              "Update did not return a row. This usually means the update matched 0 rows or was blocked by Row Level Security."
+            );
+          }
+          throw new Error(
+            "Update returned multiple rows. Ensure the 'id' filter targets a single property."
+          );
+        }
+        const row = rows[0] as Property;
+        logger.info("[API][properties] update success", { id: row.id });
+        return row;
       }
       logger.error("[API][properties] update failed", { id, ...errorToLogPayload(error) });
       throw error;
     }
-    logger.info("[API][properties] update success", { id: data.id });
-    return data as Property;
+    const rows = (data ?? []) as unknown[];
+    if (rows.length !== 1) {
+      logger.error("[API][properties] update unexpected row count", {
+        id,
+        rowCount: rows.length,
+        keys: Object.keys(updates ?? {}),
+      });
+      if (rows.length === 0) {
+        throw new Error(
+          "Update did not return a row. This usually means the update matched 0 rows or was blocked by Row Level Security."
+        );
+      }
+      throw new Error(
+        "Update returned multiple rows. Ensure the 'id' filter targets a single property."
+      );
+    }
+    const row = rows[0] as Property;
+    logger.info("[API][properties] update success", { id: row.id });
+    return row;
   },
 
   async delete(id: string): Promise<void> {
