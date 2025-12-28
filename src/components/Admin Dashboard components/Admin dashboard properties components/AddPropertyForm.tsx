@@ -6,6 +6,7 @@ import { logger } from "../../../utils/logger";
 import { developerService } from "../../../services/apiService";
 import type { Developer } from "../../../services/types";
 import AddDeveloperPopupModal from "./AddDeveloperPopupModal";
+import Loader from "../../Loader";
 
 interface AddPropertyFormProps {
   onClose: () => void;
@@ -400,6 +401,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
 
   return (
     <>
+      <Loader isOpen={isSaving} text="Saving property..." />
       {/* Step Progress Bar - Based on Inspiration */}
       <div className="mb-6 w-full flex flex-col items-center md:items-center">
         <div className="relative w-full max-w-full flex justify-between items-center">

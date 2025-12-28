@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { authService } from "../../services/authService";
+import Loader from "../Loader";
 
 interface LoginFormProps {
   onForgot: () => void;
@@ -87,10 +88,12 @@ const LoginForm: React.FC<LoginFormProps> = ({
   const mergedError = localError ?? error ?? null;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col space-y-6 max-w-sm mx-auto justify-center p-6 md:mt-20"
-    >
+    <>
+      <Loader isOpen={loading} text="Verifying..." />
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col space-y-6 max-w-sm mx-auto justify-center p-6 md:mt-20"
+      >
       <div className="">
         <h2 className="text-[25px] font-bold text-gray-900">
           Welcome back Admin!
@@ -168,7 +171,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
           Recover
         </button>
       </p>
-    </form>
+      </form>
+    </>
   );
 };
 

@@ -16,6 +16,7 @@ import {
   propertyMediaService,
   propertyService,
 } from "../../../services/apiService";
+import Loader from "../../Loader.tsx";
 import type {
   Developer,
   Property as DbProperty,
@@ -565,6 +566,7 @@ const AdminDashboardProperties = ({
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
+      <Loader isOpen={isLoadingProperties} text="Loading properties..." />
       {/* Property Details Section - Shows when a property is selected */}
       {!showAddForm && selectedProperty && (
         <AdminPropertyDetails
@@ -692,11 +694,6 @@ const AdminDashboardProperties = ({
                     Add new property
                   </button>
                 </div>
-                {isLoadingProperties && (
-                  <div className="py-10 text-center text-sm text-gray-500">
-                    Loading...
-                  </div>
-                )}
                 {propertiesError && (
                   <div className="py-10 text-center text-sm text-red-600">
                     {propertiesError}

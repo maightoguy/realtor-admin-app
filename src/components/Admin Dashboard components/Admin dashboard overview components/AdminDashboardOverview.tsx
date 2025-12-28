@@ -7,6 +7,7 @@ import ReceiptsIcon from "../../icons/ReceiptsIcon.tsx";
 import TransactionsIcon from "../../icons/TransactionsIcon.tsx";
 import { months, ProfilePic1 } from "./adminDashboardOverviewData";
 import { overviewService } from "../../../services/apiService";
+import Loader from "../../Loader";
 
 interface MetricCardProps {
   title: string;
@@ -275,6 +276,7 @@ const AdminDashboardOverview = () => {
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
+      <Loader isOpen={isLoading} text="Loading overview..." />
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <MetricCard
