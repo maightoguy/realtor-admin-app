@@ -1,0 +1,1 @@
+INSERT INTO "public"."developers" ("id", "name", "email", "phone", "status", "created_at") VALUES ('80403476-9cac-432d-970f-f4cdef07cc62', 'Bruce', 'batman@gmail.com', '545454545', 'active', '2025-12-28 10:10:30.471373+00'), ('a9a94378-ccdc-4384-b2cd-1a47025acdb6', 'Richard Saliu Olugbenga', 'maightoguy@gmail.com', '09052580288', 'active', '2025-12-27 13:11:16.846432+00');

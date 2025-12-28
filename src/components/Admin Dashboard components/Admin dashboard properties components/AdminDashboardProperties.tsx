@@ -102,6 +102,7 @@ interface Property {
   category?: string;
   description?: string;
   developer?: string;
+  developerId?: string;
   images?: string[];
 }
 
@@ -137,10 +138,34 @@ const AdminDashboardProperties = ({
   );
   const itemsPerPage = 8;
 
+  const developersById = useMemo(() => {
+    return new Map(developers.map((d) => [d.id, d]));
+  }, [developers]);
+
+  useEffect(() => {
+    setProperties((prev) => {
+      if (prev.length === 0) return prev;
+      let changed = false;
+      const next = prev.map((p) => {
+        if (!p.developerId) return p;
+        if (p.developer && p.developer.trim().length > 0) return p;
+        const name = developersById.get(p.developerId)?.name;
+        if (!name) return p;
+        changed = true;
+        return { ...p, developer: name };
+      });
+      return changed ? next : prev;
+    });
+  }, [developersById]);
+
   const adaptDbProperty = (p: DbProperty): Property => {
     const imgPaths = Array.isArray(p.images) ? p.images : [];
     const urls = imgPaths.map((img) => propertyMediaService.getPublicUrl(img));
     const image = urls[0] || "/placeholder-property.jpg";
+    const developerId = p.developer_id ?? undefined;
+    const developerName = developerId
+      ? developersById.get(developerId)?.name
+      : undefined;
     return {
       id: p.id,
       image,
@@ -150,7 +175,8 @@ const AdminDashboardProperties = ({
       location: p.location,
       isSoldOut: p.status === "sold",
       description: p.description ?? undefined,
-      developer: p.developer ?? undefined,
+      developerId,
+      developer: developerName,
     };
   };
 
@@ -183,24 +209,24 @@ const AdminDashboardProperties = ({
   const fetchPropertiesPage = async (
     page: number,
     q: string,
-    developer?: string
+    developerId?: string
   ) => {
     setIsLoadingProperties(true);
     setPropertiesError(null);
     setDeveloperPropertiesMessage(null);
     try {
-      logger.info("[ADMIN][PROPERTIES] Fetch start", { page, q, developer });
+      logger.info("[ADMIN][PROPERTIES] Fetch start", { page, q, developerId });
       let rows: DbProperty[] = [];
       if (q.trim().length > 0) {
         rows = await propertyService.search(q.trim(), {
           limit: 5000,
-          developer,
+          developerId,
         });
       } else {
         rows = await propertyService.getAll({
           limit: itemsPerPage,
           offset: (page - 1) * itemsPerPage,
-          developer,
+          developerId,
         });
       }
       setProperties(rows.map(adaptDbProperty));
@@ -216,19 +242,22 @@ const AdminDashboardProperties = ({
           typeof anyErr.details === "string" ? anyErr.details : "";
         const combined = `${message} ${details}`.toLowerCase();
         if (code === "42703") return true;
+        if (code === "PGRST204" && combined.includes("developer")) return true;
+        if (combined.includes("schema cache") && combined.includes("developer"))
+          return true;
         return (
           combined.includes("properties.developer") &&
           combined.includes("does not exist")
         );
       })();
 
-      if (developer && missingDeveloperColumn) {
+      if (developerId && missingDeveloperColumn) {
         setProperties([]);
         setPropertiesError(null);
         setDeveloperPropertiesCount(0);
         setDeveloperPropertiesMessage("This developer has no properties yet.");
         logger.warn("[ADMIN][PROPERTIES] Missing developer link column", {
-          developer,
+          developerId,
         });
         return;
       }
@@ -249,10 +278,28 @@ const AdminDashboardProperties = ({
   }, []);
 
   useEffect(() => {
+    developerService
+      .getAll({ limit: 5000 })
+      .then((rows) => {
+        setDevelopers((prev) => {
+          const prevById = new Map(prev.map((d) => [d.id, d]));
+          return rows.map((d) => ({
+            ...d,
+            totalProperties:
+              prevById.get(d.id)?.totalProperties ?? d.totalProperties,
+          }));
+        });
+      })
+      .catch((e: unknown) => {
+        logger.error("[ADMIN][DEVELOPERS] Prefetch failed", { error: e });
+      });
+  }, []);
+
+  useEffect(() => {
     if (activeTab !== "Properties") return;
     if (showAddForm || selectedProperty) return;
     if (searchQuery.trim().length > 0) return;
-    fetchPropertiesPage(currentPage, "", selectedDeveloper?.name).catch(
+    fetchPropertiesPage(currentPage, "", selectedDeveloper?.id).catch(
       () => undefined
     );
   }, [
@@ -261,14 +308,14 @@ const AdminDashboardProperties = ({
     searchQuery,
     showAddForm,
     selectedProperty,
-    selectedDeveloper?.name,
+    selectedDeveloper?.id,
   ]);
 
   useEffect(() => {
     if (activeTab !== "Properties") return;
     if (showAddForm || selectedProperty) return;
     if (searchQuery.trim().length === 0) return;
-    fetchPropertiesPage(1, searchQuery, selectedDeveloper?.name).catch(
+    fetchPropertiesPage(1, searchQuery, selectedDeveloper?.id).catch(
       () => undefined
     );
   }, [
@@ -276,19 +323,19 @@ const AdminDashboardProperties = ({
     searchQuery,
     showAddForm,
     selectedProperty,
-    selectedDeveloper?.name,
+    selectedDeveloper?.id,
   ]);
 
   useEffect(() => {
-    if (!selectedDeveloper?.name) {
+    if (!selectedDeveloper?.id) {
       setDeveloperPropertiesCount(0);
       return;
     }
     propertyService
-      .countByDeveloper(selectedDeveloper.name)
+      .countByDeveloperId(selectedDeveloper.id)
       .then(setDeveloperPropertiesCount)
       .catch(() => setDeveloperPropertiesCount(0));
-  }, [selectedDeveloper?.name]);
+  }, [selectedDeveloper?.id]);
 
   useEffect(() => {
     if (activeTab !== "Developers") return;
@@ -297,7 +344,7 @@ const AdminDashboardProperties = ({
       .then(async (rows) => {
         const counts = await Promise.all(
           rows.map((d) =>
-            propertyService.countByDeveloper(d.name).catch(() => 0)
+            propertyService.countByDeveloperId(d.id).catch(() => 0)
           )
         );
         setDevelopers(
@@ -445,7 +492,7 @@ const AdminDashboardProperties = ({
     isSoldOut: boolean;
     category?: string;
     description?: string;
-    developer?: string;
+    developerId?: string;
     mediaFiles: File[];
   }) => {
     try {
@@ -475,13 +522,13 @@ const AdminDashboardProperties = ({
         status,
         description: newProperty.description || null,
         images: uploadedPaths,
-        developer: newProperty.developer || null,
+        developer_id: newProperty.developerId || null,
       });
 
       setCurrentPage(1);
       setSearchQuery("");
       await Promise.all([
-        fetchPropertiesPage(1, "", selectedDeveloper?.name),
+        fetchPropertiesPage(1, "", selectedDeveloper?.id),
         refreshMetrics(),
       ]);
       handleFormStateChange(false);

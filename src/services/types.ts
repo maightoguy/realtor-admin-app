@@ -49,7 +49,7 @@ export interface Property {
   description?: string | null;
   status: PropertyStatus;
   images?: string[] | null;
-  developer?: string | null;
+  developer_id?: string | null;
   created_at: string;
 }
 

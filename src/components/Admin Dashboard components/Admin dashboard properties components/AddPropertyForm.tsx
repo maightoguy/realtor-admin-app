@@ -17,7 +17,7 @@ interface AddPropertyFormProps {
     isSoldOut: boolean;
     category?: string;
     description?: string;
-    developer?: string;
+    developerId?: string;
     mediaFiles: File[];
   }) => Promise<void> | void;
 }
@@ -49,7 +49,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     location: "",
     category: "",
     description: "",
-    developer: "",
+    developerId: "",
     documentOnProperty: [] as string[],
     landSize: "",
     security: "",
@@ -118,7 +118,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     try {
       const created = await developerService.create(developerData);
       setDevelopers((prev) => [created, ...prev]);
-      setFormData((prev) => ({ ...prev, developer: created.name }));
+      setFormData((prev) => ({ ...prev, developerId: created.id }));
       setIsAddDeveloperModalOpen(false);
     } catch (e: unknown) {
       logger.error("[ADMIN][ADD PROPERTY] Developer create failed", {
@@ -327,6 +327,10 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     const ordered = [...images].sort((a, b) =>
       a.isThumbnail === b.isThumbnail ? 0 : a.isThumbnail ? -1 : 1
     );
+    const selectedDeveloperName =
+      (formData.developerId
+        ? developers.find((d) => d.id === formData.developerId)?.name
+        : "") ?? "";
     const newProperty = {
       image:
         thumbnailImage?.preview ||
@@ -338,7 +342,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
       isSoldOut: formData.isSoldOut,
       category: formData.category,
       description: formData.description,
-      developer: formData.developer,
+      developerId: formData.developerId || undefined,
       mediaFiles: ordered.map((img) => img.file),
     };
     try {
@@ -348,10 +352,12 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
         location: newProperty.location,
         price: newProperty.price,
         mediaCount: newProperty.mediaFiles.length,
+        developerId: newProperty.developerId,
       });
       await onSave(newProperty);
       logger.info("[ADMIN][ADD PROPERTY] Submit success", {
         title: newProperty.title,
+        developer: selectedDeveloperName,
       });
       onClose();
     } catch (e: unknown) {
@@ -380,7 +386,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
         return (
           formData.title.trim() !== "" &&
           formData.category !== "" &&
-          formData.developer !== "" &&
+          formData.developerId !== "" &&
           images.length > 0
         );
       case 2:
@@ -624,8 +630,8 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                       </label>
                       <div className="flex items-center gap-2">
                         <select
-                          name="developer"
-                          value={formData.developer}
+                          name="developerId"
+                          value={formData.developerId}
                           onChange={handleInputChange}
                           className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                         >
@@ -642,7 +648,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                               </option>
                             )}
                           {activeDevelopers.map((dev) => (
-                            <option key={dev.id} value={dev.name}>
+                            <option key={dev.id} value={dev.id}>
                               {dev.name}
                             </option>
                           ))}
@@ -1051,16 +1057,21 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
                         </span>
                       </div>
                     </div>
-                    {formData.developer && (
-                      <div className="mt-4">
-                        <p className="text-sm font-semibold text-gray-900 mb-1">
-                          Developer:
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {formData.developer}
-                        </p>
-                      </div>
-                    )}
+                    {formData.developerId &&
+                      (() => {
+                        const name =
+                          developers.find((d) => d.id === formData.developerId)
+                            ?.name ?? "";
+                        if (!name) return null;
+                        return (
+                          <div className="mt-4">
+                            <p className="text-sm font-semibold text-gray-900 mb-1">
+                              Developer:
+                            </p>
+                            <p className="text-sm text-gray-600">{name}</p>
+                          </div>
+                        );
+                      })()}
                   </div>
 
                   {/* About Section */}

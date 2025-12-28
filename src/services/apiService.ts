@@ -25,8 +25,12 @@ function errorToLogPayload(err: unknown) {
 function isMissingDeveloperColumn(err: unknown): boolean {
   const payload = errorToLogPayload(err);
   const message = `${String(payload.message ?? "")} ${String(payload.details ?? "")}`.toLowerCase();
-  if (payload.code === "42703" && message.includes("developer")) return true;
-  return message.includes("developer") && message.includes("does not exist");
+  const mentionsDeveloper =
+    message.includes("developer_id") || message.includes("developer");
+  if (payload.code === "42703" && mentionsDeveloper) return true;
+  if (payload.code === "PGRST204" && mentionsDeveloper) return true;
+  if (message.includes("schema cache") && mentionsDeveloper) return true;
+  return mentionsDeveloper && message.includes("does not exist");
 }
 
 export const userService = {
@@ -97,7 +101,7 @@ export const propertyService = {
   async getAll(filters?: {
     type?: PropertyType;
     status?: PropertyStatus;
-    developer?: string;
+    developerId?: string;
     limit?: number;
     offset?: number;
   }): Promise<Property[]> {
@@ -113,8 +117,8 @@ export const propertyService = {
     if (filters?.status) {
       query = query.eq("status", filters.status);
     }
-    if (filters?.developer) {
-      query = query.eq("developer", filters.developer);
+    if (filters?.developerId) {
+      query = query.eq("developer_id", filters.developerId);
     }
     if (filters?.limit) {
       query = query.limit(filters.limit);
@@ -138,7 +142,7 @@ export const propertyService = {
     filters?: {
       type?: PropertyType;
       status?: PropertyStatus;
-      developer?: string;
+      developerId?: string;
       minPrice?: number;
       maxPrice?: number;
       limit?: number;
@@ -158,8 +162,8 @@ export const propertyService = {
     if (filters?.status) {
       query = query.eq("status", filters.status);
     }
-    if (filters?.developer) {
-      query = query.eq("developer", filters.developer);
+    if (filters?.developerId) {
+      query = query.eq("developer_id", filters.developerId);
     }
     if (typeof filters?.minPrice === "number") {
       query = query.gte("price", filters.minPrice);
@@ -185,6 +189,12 @@ export const propertyService = {
       title: input.title,
       hasImages: Array.isArray(input.images) && input.images.length > 0,
     });
+    const { data: sessionData } = await getSupabaseClient().auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    logger.info("[API][properties] create auth", { sessionUserId });
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
     const { data, error } = await getSupabaseClient()
       .from("properties")
       .insert(input)
@@ -192,13 +202,13 @@ export const propertyService = {
       .single();
     if (error) {
       if (
-        Object.prototype.hasOwnProperty.call(input, "developer") &&
+        Object.prototype.hasOwnProperty.call(input, "developer_id") &&
         isMissingDeveloperColumn(error)
       ) {
-        const { developer: _developer, ...withoutDeveloper } = input as Omit<
+        const { developer_id: _developerId, ...withoutDeveloper } = input as Omit<
           Property,
           "id" | "created_at"
-        > & { developer?: unknown };
+        > & { developer_id?: unknown };
         logger.warn("[API][properties] create retry without developer column", {
           ...errorToLogPayload(error),
         });
@@ -225,6 +235,12 @@ export const propertyService = {
 
   async update(id: string, updates: Partial<Omit<Property, "id" | "created_at">>): Promise<Property> {
     logger.info("[API][properties] update start", { id, keys: Object.keys(updates ?? {}) });
+    const { data: sessionData } = await getSupabaseClient().auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    logger.info("[API][properties] update auth", { id, sessionUserId });
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
     const { data, error } = await getSupabaseClient()
       .from("properties")
       .update(updates)
@@ -233,12 +249,12 @@ export const propertyService = {
       .single();
     if (error) {
       if (
-        Object.prototype.hasOwnProperty.call(updates, "developer") &&
+        Object.prototype.hasOwnProperty.call(updates, "developer_id") &&
         isMissingDeveloperColumn(error)
       ) {
-        const { developer: _developer, ...withoutDeveloper } = updates as Partial<
+        const { developer_id: _developerId, ...withoutDeveloper } = updates as Partial<
           Omit<Property, "id" | "created_at">
-        > & { developer?: unknown };
+        > & { developer_id?: unknown };
         logger.warn("[API][properties] update retry without developer column", {
           id,
           ...errorToLogPayload(error),
@@ -304,28 +320,30 @@ export const propertyService = {
     return count ?? 0;
   },
 
-  async countByDeveloper(developer: string): Promise<number> {
-    logger.info("[API][properties] countByDeveloper start", { developer });
+  async countByDeveloperId(developerId: string): Promise<number> {
+    logger.info("[API][properties] countByDeveloperId start", { developerId });
     const { count, error } = await getSupabaseClient()
       .from("properties")
       .select("*", { count: "exact", head: true })
-      .eq("developer", developer);
+      .eq("developer_id", developerId);
     if (error) {
       const payload = errorToLogPayload(error);
       const message = String(payload.message ?? "");
       if (
         payload.code === "42703" ||
-        message.toLowerCase().includes("properties.developer") ||
+        payload.code === "PGRST204" ||
+        message.toLowerCase().includes("schema cache") && message.toLowerCase().includes("developer") ||
+        message.toLowerCase().includes("properties.developer_id") ||
         message.toLowerCase().includes("column") && message.toLowerCase().includes("does not exist")
       ) {
-        logger.warn("[API][properties] countByDeveloper missing column, returning 0", {
-          developer,
+        logger.warn("[API][properties] countByDeveloperId missing column, returning 0", {
+          developerId,
           ...payload,
         });
         return 0;
       }
-      logger.error("[API][properties] countByDeveloper failed", {
-        developer,
+      logger.error("[API][properties] countByDeveloperId failed", {
+        developerId,
         ...payload,
       });
       throw error;
@@ -354,6 +372,22 @@ function toDbDeveloperStatus(status: Developer["status"]): "active" | "removed" 
 }
 
 export const developerService = {
+  async getByIds(ids: string[]): Promise<Developer[]> {
+    if (ids.length === 0) return [];
+    logger.info("[API][developers] getByIds start", { count: ids.length });
+    const { data, error } = await getSupabaseClient()
+      .from("developers")
+      .select("*")
+      .in("id", ids);
+    if (error) {
+      logger.error("[API][developers] getByIds failed", { ...errorToLogPayload(error) });
+      throw error;
+    }
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    logger.info("[API][developers] getByIds success", { count: rows.length });
+    return rows.map(adaptDeveloperRow);
+  },
+
   async getAll(params?: { limit?: number; offset?: number }): Promise<Developer[]> {
     logger.info("[API][developers] getAll start", { params: params ?? null });
     let query = getSupabaseClient()
@@ -465,7 +499,10 @@ export const propertyMediaService = {
 
     const supabase = getSupabaseClient();
     const { data: authData } = await supabase.auth.getUser();
-    const ownerFolder = opts?.folder ?? authData.user?.id ?? "admin";
+    if (!authData.user?.id) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
+    const ownerFolder = opts?.folder ?? authData.user.id;
 
     const uploadedPaths: string[] = [];
     for (const file of files) {
@@ -485,8 +522,15 @@ export const propertyMediaService = {
         upsert: opts?.upsert ?? false,
       });
       if (error) {
-        logger.error("[STORAGE][properties] upload failed", { path, ...errorToLogPayload(error) });
-        throw error;
+        const payload = errorToLogPayload(error);
+        const msg = String(payload.message ?? "");
+        logger.error("[STORAGE][properties] upload failed", { path, ...payload });
+        if (msg.toLowerCase().includes("row-level security")) {
+          throw new Error(
+            "Permission denied uploading property media: your Storage RLS policy blocks inserts into `storage.objects` for the `properties` bucket."
+          );
+        }
+        throw new Error(msg || "Failed to upload property media");
       }
       logger.info("[STORAGE][properties] upload success", { path: data.path });
       uploadedPaths.push(data.path);

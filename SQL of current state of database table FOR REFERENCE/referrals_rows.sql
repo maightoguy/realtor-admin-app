@@ -1,0 +1,1 @@
+INSERT INTO "public"."referrals" ("id", "upline_id", "downline_id", "level", "commission_earned", "created_at") VALUES ('5c7da931-86ff-4b6a-9fd6-561af64c1fe8', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', 'bd52d2a3-43cd-4d4e-a7d3-06a5075345cc', '1', '0', '2025-12-23 09:01:47.292995+00');
