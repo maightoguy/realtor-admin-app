@@ -102,9 +102,15 @@ interface Property {
   isSoldOut: boolean;
   category?: string;
   description?: string;
+  commissionPercent?: number;
+  landSizeSqm?: number;
+  security?: string;
+  accessibility?: string;
+  topography?: string;
   developer?: string;
   developerId?: string;
   images?: string[];
+  contractDocs?: string[];
 }
 
 interface AdminDashboardPropertiesProps {
@@ -167,6 +173,7 @@ const AdminDashboardProperties = ({
     const developerName = developerId
       ? developersById.get(developerId)?.name
       : undefined;
+    const contractDocs = Array.isArray(p.contract_docs) ? p.contract_docs : [];
     return {
       id: p.id,
       image,
@@ -176,8 +183,25 @@ const AdminDashboardProperties = ({
       location: p.location,
       isSoldOut: p.status === "sold",
       description: p.description ?? undefined,
+      category: p.category ?? undefined,
+      commissionPercent:
+        typeof p.commission_percent === "number"
+          ? p.commission_percent
+          : p.commission_percent != null
+          ? Number(p.commission_percent)
+          : undefined,
+      landSizeSqm:
+        typeof p.land_size_sqm === "number"
+          ? p.land_size_sqm
+          : p.land_size_sqm != null
+          ? Number(p.land_size_sqm)
+          : undefined,
+      security: p.security ?? undefined,
+      accessibility: p.accessibility ?? undefined,
+      topography: p.topography ?? undefined,
       developerId,
       developer: developerName,
+      contractDocs,
     };
   };
 
@@ -493,8 +517,15 @@ const AdminDashboardProperties = ({
     isSoldOut: boolean;
     category?: string;
     description?: string;
+    commissionPercent?: number;
+    landSizeSqm?: number;
+    security?: string;
+    accessibility?: string;
+    topography?: string;
     developerId?: string;
     mediaFiles: File[];
+    contractDocs: string[];
+    contractFiles: File[];
   }) => {
     try {
       logger.info("[ADMIN][PROPERTIES] Create start", {
@@ -504,6 +535,15 @@ const AdminDashboardProperties = ({
       const uploadedPaths = await propertyMediaService.uploadMany(
         newProperty.mediaFiles
       );
+      const uploadedContractPaths = await propertyMediaService.uploadMany(
+        newProperty.contractFiles
+      );
+      const contractDocs = [
+        ...(newProperty.contractDocs ?? []).filter(
+          (doc) => typeof doc === "string" && doc.trim().length > 0
+        ),
+        ...uploadedContractPaths,
+      ];
 
       const type =
         newProperty.category &&
@@ -523,7 +563,26 @@ const AdminDashboardProperties = ({
         status,
         description: newProperty.description || null,
         images: uploadedPaths,
+        contract_docs: contractDocs.length > 0 ? contractDocs : null,
         developer_id: newProperty.developerId || null,
+        category: newProperty.category || null,
+        commission_percent:
+          typeof newProperty.commissionPercent === "number" &&
+          Number.isFinite(newProperty.commissionPercent)
+            ? newProperty.commissionPercent
+            : null,
+        land_size_sqm:
+          typeof newProperty.landSizeSqm === "number" &&
+          Number.isFinite(newProperty.landSizeSqm)
+            ? newProperty.landSizeSqm
+            : null,
+        security: newProperty.security?.trim() ? newProperty.security : null,
+        accessibility: newProperty.accessibility?.trim()
+          ? newProperty.accessibility
+          : null,
+        topography: newProperty.topography?.trim()
+          ? newProperty.topography
+          : null,
       });
 
       setCurrentPage(1);

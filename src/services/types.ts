@@ -50,6 +50,14 @@ export interface Property {
   status: PropertyStatus;
   images?: string[] | null;
   developer_id?: string | null;
+  payment_plan?: Record<string, unknown> | null;
+  contract_docs?: string[] | null;
+  category?: string | null;
+  commission_percent?: number | null;
+  land_size_sqm?: number | null;
+  security?: string | null;
+  accessibility?: string | null;
+  topography?: string | null;
   created_at: string;
 }
 

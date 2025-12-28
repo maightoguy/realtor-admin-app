@@ -28,7 +28,12 @@ const AdminPropertyCard = ({
       : `₦${price}`;
 
   return (
-    <div className="rounded-2xl overflow-hidden bg-white shadow-sm transition hover:shadow-md">
+    <button
+      type="button"
+      onClick={onViewDetails}
+      disabled={!onViewDetails}
+      className="rounded-2xl overflow-hidden bg-white shadow-sm transition hover:shadow-md disabled:hover:shadow-sm text-left w-full"
+    >
       {/* Image Section */}
       <div className="relative h-52 w-full">
         <img
@@ -63,14 +68,11 @@ const AdminPropertyCard = ({
           {description ||
             "Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempus aliquet duis integer porta. Volutpat integer ultricies diam consequat eget."}
         </p>
-        <button
-          onClick={onViewDetails}
-          className="text-[#6500AC] font-semibold text-sm hover:underline"
-        >
+        <span className="text-[#6500AC] font-semibold text-sm hover:underline">
           View details →
-        </button>
+        </span>
       </div>
-    </div>
+    </button>
   );
 };
 

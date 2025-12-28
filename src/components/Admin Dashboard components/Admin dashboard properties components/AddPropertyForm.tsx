@@ -18,8 +18,15 @@ interface AddPropertyFormProps {
     isSoldOut: boolean;
     category?: string;
     description?: string;
+    commissionPercent?: number;
+    landSizeSqm?: number;
+    security?: string;
+    accessibility?: string;
+    topography?: string;
     developerId?: string;
     mediaFiles: File[];
+    contractDocs: string[];
+    contractFiles: File[];
   }) => Promise<void> | void;
 }
 
@@ -60,7 +67,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
   });
   const [images, setImages] = useState<ImageFile[]>([]);
   const [uploadedForms, setUploadedForms] = useState<
-    Array<{ name: string; size: string; date: string }>
+    Array<{ file: File; name: string; size: string; date: string }>
   >([]);
   const [isDragging, setIsDragging] = useState(false);
   const [locationCoordinates, setLocationCoordinates] = useState<
@@ -231,6 +238,7 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
     const file = e.target.files?.[0];
     if (file) {
       const newForm = {
+        file,
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(0)}MB`,
         date: new Date().toLocaleDateString("en-GB", {
@@ -343,8 +351,19 @@ const AddPropertyForm = ({ onClose, onSave }: AddPropertyFormProps) => {
       isSoldOut: formData.isSoldOut,
       category: formData.category,
       description: formData.description,
+      commissionPercent: formData.commission
+        ? parseFloat(formData.commission)
+        : undefined,
+      landSizeSqm: formData.landSize
+        ? parseFloat(formData.landSize)
+        : undefined,
+      security: formData.security || undefined,
+      accessibility: formData.accessibility || undefined,
+      topography: formData.topography || undefined,
       developerId: formData.developerId || undefined,
       mediaFiles: ordered.map((img) => img.file),
+      contractDocs: formData.documentOnProperty,
+      contractFiles: uploadedForms.map((form) => form.file),
     };
     try {
       setIsSaving(true);

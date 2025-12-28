@@ -9,6 +9,7 @@ import {
 } from "./adminDashboardPropertiesData";
 import ReceiptsIcon from "../../icons/ReceiptsIcon";
 import { logger } from "../../../utils/logger";
+import { propertyMediaService } from "../../../services/apiService";
 import type { Developer } from "../../../services/types";
 
 interface Property {
@@ -20,8 +21,15 @@ interface Property {
   isSoldOut: boolean;
   category?: string;
   description?: string;
+  commissionPercent?: number;
+  landSizeSqm?: number;
+  security?: string;
+  accessibility?: string;
+  topography?: string;
   developer?: string;
+  developerId?: string;
   images?: string[];
+  contractDocs?: string[];
 }
 
 interface AdminPropertyDetailsProps {
@@ -133,31 +141,95 @@ const AdminPropertyDetails = ({
     setIsImageViewerOpen(false);
   };
 
-  // Mock property details (in a real app, this would come from the property data)
+  //--------
+  const parseCommission = (text: string): string | null => {
+    const match = text.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (!match) return null;
+    return `${match[1]}%`;
+  };
+
+  const { documentTypeItems, uploadedFileItems } = (() => {
+    const input = Array.isArray(property.contractDocs)
+      ? property.contractDocs
+      : [];
+    const typeUnique = new Map<string, { name: string }>();
+    const fileUnique = new Map<string, { name: string; url: string }>();
+
+    const getLabel = (value: string) => {
+      const trimmed = value.trim();
+      if (!trimmed) return "";
+      if (/^https?:\/\//i.test(trimmed)) {
+        try {
+          const url = new URL(trimmed);
+          const last = url.pathname.split("/").filter(Boolean).pop();
+          return last ? decodeURIComponent(last) : trimmed;
+        } catch {
+          return trimmed;
+        }
+      }
+      if (trimmed.includes("/")) {
+        const last = trimmed.split("/").filter(Boolean).pop();
+        return last || trimmed;
+      }
+      return trimmed;
+    };
+
+    const isLikelyFilePath = (value: string) =>
+      value.includes("/") || /\.[a-z0-9]{2,6}$/i.test(value);
+
+    for (const raw of input) {
+      if (typeof raw !== "string") continue;
+      const trimmed = raw.trim();
+      if (!trimmed) continue;
+      const isUrl = /^https?:\/\//i.test(trimmed);
+      const isFilePath = isLikelyFilePath(trimmed);
+
+      if (isUrl || isFilePath) {
+        const name = getLabel(trimmed);
+        if (!name) continue;
+        const url = isUrl
+          ? trimmed
+          : propertyMediaService.getPublicUrl(trimmed);
+        fileUnique.set(url, { name, url });
+        continue;
+      }
+
+      const name = getLabel(trimmed);
+      if (!name) continue;
+      typeUnique.set(name.toLowerCase(), { name });
+    }
+
+    return {
+      documentTypeItems: Array.from(typeUnique.values()),
+      uploadedFileItems: Array.from(fileUnique.values()),
+    };
+  })();
+
   const propertyDetails = {
     description:
-      property.description ||
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
-    documents: ["Title of Property", "Governor's consent"],
+      property.description || "No description available for this property",
+    documents: documentTypeItems,
     features: {
-      landSize: "1000sqms",
-      security: "Secured",
-      accessibility: "Yes",
-      topography: "Wetland",
+      landSize:
+        typeof property.landSizeSqm === "number" &&
+        Number.isFinite(property.landSizeSqm)
+          ? `${property.landSizeSqm}sqms`
+          : "—",
+      security: property.security || "—",
+      accessibility: property.accessibility || "—",
+      topography: property.topography || "—",
     },
-    commission: "10%",
-    uploadedForms: [
-      {
-        name: "Name of document.pdf",
-        date: "11 Sep, 2023 12:24pm",
-        size: "13MB",
-      },
-      {
-        name: "Name of document.pdf",
-        date: "11 Sep, 2023 12:24pm",
-        size: "13MB",
-      },
-    ],
+    commission:
+      typeof property.commissionPercent === "number" &&
+      Number.isFinite(property.commissionPercent)
+        ? `${property.commissionPercent}%`
+        : parseCommission(property.description ?? ""),
+    uploadedForms: uploadedFileItems.map((doc) => ({
+      name: doc.name,
+      url: doc.url,
+      date: "",
+      size: "",
+    })),
   };
 
   const formattedPrice =
@@ -275,27 +347,28 @@ const AdminPropertyDetails = ({
               </div>
 
               {/* Developer Info */}
-              {property.developer &&
-                (() => {
-                  const developer = developers?.find(
-                    (d) => d.name === property.developer
-                  );
-                  return (
-                    <div className="mb-4">
-                      <p className="text-sm font-semibold text-gray-900 mb-1">
-                        Developer:
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {property.developer}
-                      </p>
-                      {developer && (
-                        <p className="text-sm text-gray-600">
-                          {developer.email}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })()}
+              {(() => {
+                const developer =
+                  (property.developerId
+                    ? developers?.find((d) => d.id === property.developerId)
+                    : undefined) ??
+                  (property.developer
+                    ? developers?.find((d) => d.name === property.developer)
+                    : undefined);
+                const name = developer?.name ?? property.developer;
+                if (!name) return null;
+                return (
+                  <div className="mb-4">
+                    <p className="text-sm font-semibold text-gray-900 mb-1">
+                      Developer:
+                    </p>
+                    <p className="text-sm text-gray-600">{name}</p>
+                    {developer?.email && (
+                      <p className="text-sm text-gray-600">{developer.email}</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* About Section */}
@@ -320,7 +393,7 @@ const AdminPropertyDetails = ({
                       <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shrink-0">
                         <Check className="w-3 h-3 text-white" />
                       </div>
-                      <span className="text-gray-700">{doc}</span>
+                      <span className="text-gray-700">{doc.name}</span>
                     </div>
                   ))}
                 </div>
@@ -460,12 +533,29 @@ const AdminPropertyDetails = ({
                           />
                         </svg>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {form.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {form.date} • {form.size}
-                          </p>
+                          {form.url ? (
+                            <a
+                              href={form.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-medium text-gray-900 truncate hover:underline block"
+                            >
+                              {form.name}
+                            </a>
+                          ) : (
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {form.name}
+                            </p>
+                          )}
+                          {(() => {
+                            const meta = [form.date, form.size]
+                              .filter(Boolean)
+                              .join(" • ");
+                            if (!meta) return null;
+                            return (
+                              <p className="text-xs text-gray-500">{meta}</p>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -620,13 +710,14 @@ const AdminPropertyDetails = ({
           // Find the developer associated with this property
           let developer = null;
           if (property.developer) {
-            developer = developers?.find((d) => d.name === property.developer) ?? null;
+            developer =
+              developers?.find((d) => d.name === property.developer) ?? null;
           }
 
           // Get sales statistics from developer or use defaults
-          const salesStats: SalesStatistics =
-            (developer as unknown as { salesStatistics?: SalesStatistics })?.salesStatistics ||
-            {
+          const salesStats: SalesStatistics = (
+            developer as unknown as { salesStatistics?: SalesStatistics }
+          )?.salesStatistics || {
             jan: 0,
             feb: 0,
             mar: 0,
