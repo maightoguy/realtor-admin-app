@@ -81,6 +81,7 @@ export interface Commission {
   realtor_id: string;
   receipt_id?: string | null;
   created_at: string;
+  paid_on?: string | null;
 }
 
 export interface Payout {

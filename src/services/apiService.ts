@@ -823,6 +823,74 @@ export const commissionService = {
     if (error) throw error;
     return (data ?? []) as Commission[];
   },
+
+  async updateStatus(params: {
+    id: string;
+    status: Commission["status"];
+  }): Promise<Commission> {
+    const { data: sessionData } = await getSupabaseClient().auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    const accessToken = sessionData.session?.access_token ?? null;
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
+
+    const updates: Partial<Commission> = {
+      status: params.status,
+      paid_on: params.status === "paid" ? new Date().toISOString() : null,
+    };
+
+    const adminFallback = async (): Promise<Commission> => {
+      if (!accessToken) {
+        throw new Error("Update failed. Please log in again.");
+      }
+
+      const res = await fetch(`/api/admin/commissions/${params.id}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ status: params.status }),
+      });
+
+      const json = (await res.json().catch(() => null)) as
+        | { data?: unknown; error?: string }
+        | null;
+      if (!res.ok) {
+        throw new Error(json?.error || "Update failed. Permission denied.");
+      }
+      if (!json?.data) {
+        throw new Error("Update failed. Record not found or permission denied.");
+      }
+      return json.data as Commission;
+    };
+
+    try {
+      const { data, error } = await getSupabaseClient()
+        .from("commissions")
+        .update(updates)
+        .eq("id", params.id)
+        .select("*");
+
+      if (error) throw error;
+      const updated = (data ?? [])[0] as Commission | undefined;
+      if (updated) return updated;
+      return await adminFallback();
+    } catch (err) {
+      try {
+        return await adminFallback();
+      } catch (fallbackErr) {
+        const message =
+          fallbackErr instanceof Error
+            ? fallbackErr.message
+            : err instanceof Error
+            ? err.message
+            : "Update failed.";
+        throw new Error(message);
+      }
+    }
+  },
 };
 
 export const payoutService = {
@@ -858,6 +926,94 @@ export const payoutService = {
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as Payout[];
+  },
+
+  async updateStatus(params: {
+    id: string;
+    status: Payout["status"];
+  }): Promise<Payout> {
+    const { data: sessionData } = await getSupabaseClient().auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    const accessToken = sessionData.session?.access_token ?? null;
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
+
+    const updates: Partial<Payout> = {
+      status: params.status,
+      paid_at: params.status === "paid" ? new Date().toISOString() : null,
+    };
+
+    const adminFallback = async (): Promise<Payout> => {
+      if (!accessToken) {
+        throw new Error("Update failed. Please log in again.");
+      }
+
+      const res = await fetch(`/api/admin/payouts/${params.id}/status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ status: params.status }),
+      });
+
+      const json = (await res.json().catch(() => null)) as
+        | { data?: unknown; error?: string }
+        | null;
+      if (!res.ok) {
+        throw new Error(json?.error || "Update failed. Permission denied.");
+      }
+      if (!json?.data) {
+        throw new Error("Update failed. Record not found or permission denied.");
+      }
+      return json.data as Payout;
+    };
+
+    try {
+      const { data, error } = await getSupabaseClient()
+        .from("payouts")
+        .update(updates)
+        .eq("id", params.id)
+        .select("*");
+
+      if (error) throw error;
+      const updated = (data ?? [])[0] as Payout | undefined;
+      if (updated) return updated;
+      return await adminFallback();
+    } catch (err) {
+      try {
+        return await adminFallback();
+      } catch (fallbackErr) {
+        const message =
+          fallbackErr instanceof Error
+            ? fallbackErr.message
+            : err instanceof Error
+            ? err.message
+            : "Update failed.";
+        throw new Error(message);
+      }
+    }
+  },
+};
+
+export const notificationService = {
+  async create(params: {
+    userId: string;
+    type: string;
+    title: string;
+    message: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    const { error } = await getSupabaseClient().from("notifications").insert({
+      user_id: params.userId,
+      type: params.type,
+      title: params.title,
+      message: params.message,
+      seen: false,
+      metadata: params.metadata ?? {},
+    });
+    if (error) throw error;
   },
 };
 

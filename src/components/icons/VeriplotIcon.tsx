@@ -8,7 +8,7 @@ const VeriplotSvg = () => {
       xmlns="http://www.w3.org/2000/svg"
       className="mx-auto"
     >
-      <g clip-path="url(#clip0_19361_2627)">
+      <g clipPath="url(#clip0_19361_2627)">
         <path
           d="M51.2219 23.7788L55.9156 10.2715H59.5559L53.2378 26.8472H49.1458L42.8574 10.2715H46.5281L51.2219 23.7788Z"
           fill="white"
