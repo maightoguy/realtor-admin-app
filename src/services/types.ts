@@ -6,6 +6,7 @@ export type PropertyStatus = "available" | "sold" | "pending";
 export type ReceiptStatus = "pending" | "approved" | "rejected" | "under_review";
 export type CommissionStatus = "pending" | "approved" | "paid" | "rejected";
 export type DeveloperStatus = "Active" | "Removed" | "active" | "removed";
+export type PayoutStatus = "pending" | "approved" | "paid" | "rejected";
 
 export interface BankAccount {
   bankName: string;
@@ -79,5 +80,24 @@ export interface Commission {
   status: CommissionStatus;
   realtor_id: string;
   receipt_id?: string | null;
+  created_at: string;
+}
+
+export interface Payout {
+  id: string;
+  amount: number;
+  status: PayoutStatus;
+  realtor_id: string;
+  bank_details?: Record<string, unknown> | null;
+  created_at: string;
+  paid_at?: string | null;
+}
+
+export interface Referral {
+  id: string;
+  upline_id: string;
+  downline_id: string;
+  level: number;
+  commission_earned: number;
   created_at: string;
 }

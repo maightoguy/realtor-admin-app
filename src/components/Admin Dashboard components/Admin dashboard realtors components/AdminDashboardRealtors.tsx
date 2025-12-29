@@ -1,10 +1,12 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
 import RealtorsIcon from "../../icons/RealtorsIcon";
-import { mockRealtors, type Realtor } from "./AdminRealtorsData";
 import RealtorDetailsSection from "./RealtorDetailsSection";
-import { sampleProperties } from "../Admin dashboard properties components/adminDashboardPropertiesData";
+import Loader from "../../Loader";
+import type { User } from "../../../services/types";
+import { receiptService, userService } from "../../../services/apiService";
+import DefaultProfilePic from "../../../assets/Default Profile pic.png";
 
 // MetricCard component (matching AdminDashboardReceipts pattern)
 interface MetricCardProps {
@@ -75,8 +77,25 @@ const MetricCard = ({
   </div>
 );
 
-// Status badge component
-const StatusBadge = ({ status }: { status: Realtor["status"] }) => {
+type AdminRealtorRow = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  propertySold: number;
+  amountSold: string;
+  dateJoined: string;
+  status: "Active" | "Inactive";
+  user: User;
+  receiptCounts: {
+    approved: number;
+    rejected: number;
+    pending: number;
+    under_review: number;
+  };
+};
+
+const StatusBadge = ({ status }: { status: AdminRealtorRow["status"] }) => {
   const statusConfig = {
     Active: { color: "#22C55E", bgColor: "#D1FAE5", label: "Active" },
     Inactive: { color: "#EF4444", bgColor: "#FEE2E2", label: "Inactive" },
@@ -107,56 +126,131 @@ const AdminDashboardRealtors = () => {
   >("All Realtors");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [realtors] = useState<Realtor[]>(mockRealtors);
-  const [selectedRealtor, setSelectedRealtor] = useState<Realtor | null>(null);
+  const [realtors, setRealtors] = useState<AdminRealtorRow[]>([]);
+  const [selectedRealtor, setSelectedRealtor] = useState<User | null>(null);
+  const [totalRealtorsCount, setTotalRealtorsCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [expandedRealtorId, setExpandedRealtorId] = useState<string | null>(
+    null
+  );
   const itemsPerPage = 8;
 
-  // Helper function to get properties sold by a specific realtor
-  // Uses the realtor's ID as a seed to deterministically assign properties
-  const getPropertiesForRealtor = (realtor: Realtor) => {
-    // Extract numeric part from realtor ID (e.g., "#1234" -> 1234)
-    const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
-    const seed = realtorIdNum;
+  const formatNaira = (amount: number) =>
+    `₦${Math.round(amount).toLocaleString()}`;
 
-    // Get a subset of properties based on the realtor's propertySold count
-    // Use the seed to deterministically select properties
-    const numProperties = Math.min(
-      realtor.propertySold,
-      sampleProperties.length
-    );
-    const realtorProperties = [];
-
-    for (let i = 0; i < numProperties; i++) {
-      const propertyIndex = (seed + i * 7) % sampleProperties.length; // Use prime number for better distribution
-      const property = sampleProperties[propertyIndex];
-      realtorProperties.push({
-        id: property.id,
-        image: property.image,
-        title: property.title,
-        price: property.price,
-        location: property.location,
-        isSoldOut: property.isSoldOut,
-        description:
-          "Lorem ipsum dolor sit amet consectetur. Tempus aliquet duis integer porta. Volutpat integer ultricies diam consequat eget.",
-      });
-    }
-
-    return realtorProperties;
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "-";
+    const day = d.getDate();
+    const suffix =
+      day % 10 === 1 && day % 100 !== 11
+        ? "st"
+        : day % 10 === 2 && day % 100 !== 12
+        ? "nd"
+        : day % 10 === 3 && day % 100 !== 13
+        ? "rd"
+        : "th";
+    const monthName = d.toLocaleDateString("en-US", { month: "long" });
+    const year = d.getFullYear();
+    return `${monthName} ${day}${suffix}, ${year}`;
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+
+    Promise.all([
+      userService.getAll({ role: "realtor", limit: 500 }),
+      receiptService.getAll({ limit: 500 }),
+      userService.countByRole("realtor"),
+    ])
+      .then(([users, receipts, total]) => {
+        if (cancelled) return;
+        setTotalRealtorsCount(total);
+
+        const receiptCountsByRealtor = new Map<
+          string,
+          AdminRealtorRow["receiptCounts"]
+        >();
+        const approvedAmountByRealtor = new Map<string, number>();
+
+        for (const r of receipts) {
+          const realtorId = r.realtor_id ?? null;
+          if (!realtorId) continue;
+          const current = receiptCountsByRealtor.get(realtorId) ?? {
+            approved: 0,
+            rejected: 0,
+            pending: 0,
+            under_review: 0,
+          };
+          current[r.status] += 1;
+          receiptCountsByRealtor.set(realtorId, current);
+
+          if (r.status === "approved") {
+            const prev = approvedAmountByRealtor.get(realtorId) ?? 0;
+            approvedAmountByRealtor.set(
+              realtorId,
+              prev +
+                (Number.isFinite(Number(r.amount_paid))
+                  ? Number(r.amount_paid)
+                  : 0)
+            );
+          }
+        }
+
+        const rows: AdminRealtorRow[] = users.map((u) => {
+          const counts = receiptCountsByRealtor.get(u.id) ?? {
+            approved: 0,
+            rejected: 0,
+            pending: 0,
+            under_review: 0,
+          };
+          const approvedAmount = approvedAmountByRealtor.get(u.id) ?? 0;
+          const name =
+            `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || "-";
+          const avatar = u.avatar_url || DefaultProfilePic;
+          const status: AdminRealtorRow["status"] =
+            u.kyc_status === "approved" ? "Active" : "Inactive";
+
+          return {
+            id: u.id,
+            name,
+            email: u.email ?? "-",
+            avatar,
+            propertySold: counts.approved,
+            amountSold: formatNaira(approvedAmount),
+            dateJoined: formatDate(u.created_at),
+            status,
+            user: u,
+            receiptCounts: counts,
+          };
+        });
+
+        setRealtors(rows);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRealtors([]);
+          setTotalRealtorsCount(0);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Calculate metrics from all realtors
   const metrics = useMemo(() => {
-    const activeRealtors = realtors.filter((r) => r.status === "Active").length;
-    const inactiveRealtors = realtors.filter(
-      (r) => r.status === "Inactive"
-    ).length;
-
     return {
-      totalRealtors: "100,000", // As per design
-      activeRealtors: activeRealtors || 100, // As per design
-      inactiveRealtors: inactiveRealtors || 50, // As per design
+      totalRealtors: (totalRealtorsCount || realtors.length).toLocaleString(),
+      activeRealtors: realtors.filter((r) => r.status === "Active").length,
+      inactiveRealtors: realtors.filter((r) => r.status === "Inactive").length,
     };
-  }, [realtors]);
+  }, [realtors, totalRealtorsCount]);
 
   // Filter realtors based on active filter and search query
   const filteredRealtors = useMemo(() => {
@@ -169,11 +263,9 @@ const AdminDashboardRealtors = () => {
         .sort((a, b) => b.propertySold - a.propertySold)
         .slice(0, 50); // Top 50 realtors
     } else if (activeFilter === "Approved receipts") {
-      // For now, show active realtors (this might need adjustment based on business logic)
-      filtered = filtered.filter((r) => r.status === "Active");
+      filtered = filtered.filter((r) => r.receiptCounts.approved > 0);
     } else if (activeFilter === "Rejected receipts") {
-      // For now, show inactive realtors (this might need adjustment based on business logic)
-      filtered = filtered.filter((r) => r.status === "Inactive");
+      filtered = filtered.filter((r) => r.receiptCounts.rejected > 0);
     }
 
     // Apply search query
@@ -220,8 +312,12 @@ const AdminDashboardRealtors = () => {
   const handleViewDetails = (realtorId: string) => {
     const realtor = realtors.find((r) => r.id === realtorId);
     if (realtor) {
-      setSelectedRealtor(realtor);
+      setSelectedRealtor(realtor.user);
     }
+  };
+
+  const handleToggleRealtorId = (realtorId: string) => {
+    setExpandedRealtorId((prev) => (prev === realtorId ? null : realtorId));
   };
 
   const handleBackFromDetails = () => {
@@ -229,20 +325,20 @@ const AdminDashboardRealtors = () => {
   };
 
   const handleViewBankDetails = () => {
-    // TODO: Implement view bank details
-    console.log("View bank details for realtor:", selectedRealtor?.id);
+    const bankDetails = selectedRealtor?.bank_details ?? null;
+    if (!bankDetails || bankDetails.length === 0) {
+      window.alert("No bank details found for this realtor.");
+      return;
+    }
+    window.alert(JSON.stringify(bankDetails, null, 2));
   };
 
   const handleRemoveRealtor = () => {
-    // TODO: Implement remove realtor
     console.log("Remove realtor:", selectedRealtor?.id);
-    // Optionally remove from list and reset selection
-    // setRealtors((prev) => prev.filter((r) => r.id !== selectedRealtor?.id));
     setSelectedRealtor(null);
   };
 
-  const handleViewPropertyDetails = (propertyId: number) => {
-    // TODO: Implement view property details
+  const handleViewPropertyDetails = (propertyId: string) => {
     console.log("View property details:", propertyId);
   };
 
@@ -251,19 +347,40 @@ const AdminDashboardRealtors = () => {
     console.log("View receipt details:", receiptId);
   };
 
-  // If a realtor is selected, show the details view
+  const handleRealtorUpdated = (updated: User) => {
+    setSelectedRealtor(updated);
+    setRealtors((prev) =>
+      prev.map((row) => {
+        if (row.id !== updated.id) return row;
+        const name =
+          `${updated.first_name ?? ""} ${updated.last_name ?? ""}`.trim() ||
+          "-";
+        const status: AdminRealtorRow["status"] =
+          updated.kyc_status === "approved" ? "Active" : "Inactive";
+        return {
+          ...row,
+          name,
+          email: updated.email ?? "-",
+          avatar: updated.avatar_url || row.avatar,
+          dateJoined: formatDate(updated.created_at),
+          status,
+          user: updated,
+        };
+      })
+    );
+  };
+
   if (selectedRealtor) {
-    const realtorProperties = getPropertiesForRealtor(selectedRealtor);
     return (
       <div className="p-6 bg-[#FCFCFC]">
         <RealtorDetailsSection
           realtor={selectedRealtor}
-          properties={realtorProperties}
           onBack={handleBackFromDetails}
           onViewBankDetails={handleViewBankDetails}
           onRemoveRealtor={handleRemoveRealtor}
           onViewPropertyDetails={handleViewPropertyDetails}
           onViewReceiptDetails={handleViewReceiptDetails}
+          onRealtorUpdated={handleRealtorUpdated}
         />
       </div>
     );
@@ -356,98 +473,119 @@ const AdminDashboardRealtors = () => {
         </div>
       </div>
 
-      {/* Realtors Table */}
-      <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-[#F0F1F2]">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  ID
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Realtor
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Property sold
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Amount sold
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Date Joined
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F0F1F2]">
-              {currentRealtors.length > 0 ? (
-                currentRealtors.map((realtor) => (
-                  <tr
-                    key={realtor.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {realtor.id}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={realtor.avatar}
-                          alt={realtor.name}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">
-                            {realtor.name}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {realtor.email}
-                          </span>
+      {isLoading ? (
+        <Loader text="Loading realtors..." />
+      ) : (
+        <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed">
+              <thead className="bg-gray-50 border-b border-[#F0F1F2]">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-56">
+                    ID
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-80">
+                    Realtor
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                    Property sold
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-40">
+                    Amount sold
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-44">
+                    Date Joined
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F0F1F2]">
+                {currentRealtors.length > 0 ? (
+                  currentRealtors.map((realtor) => (
+                    <tr
+                      key={realtor.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 w-56">
+                        <p
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleToggleRealtorId(realtor.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              handleToggleRealtorId(realtor.id);
+                            }
+                          }}
+                          className={`block w-full cursor-pointer select-text ${
+                            expandedRealtorId === realtor.id
+                              ? "break-all whitespace-normal"
+                              : "truncate whitespace-nowrap"
+                          }`}
+                          title={realtor.id}
+                        >
+                          {realtor.id}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img
+                            src={realtor.avatar}
+                            alt={realtor.name}
+                            className="w-10 h-10 rounded-full object-cover shrink-0"
+                          />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-medium text-gray-900">
+                              {realtor.name}
+                            </span>
+                            <span className="text-sm text-gray-500 break-words">
+                              {realtor.email}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {realtor.propertySold}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {realtor.amountSold}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">
-                      {realtor.dateJoined}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <StatusBadge status={realtor.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleViewDetails(realtor.id)}
-                        className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
-                      >
-                        View details
-                      </button>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {realtor.propertySold}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {realtor.amountSold}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">
+                        {realtor.dateJoined}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <StatusBadge status={realtor.status} />
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleViewDetails(realtor.id)}
+                          className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
+                        >
+                          View details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-6 py-12 text-center text-sm text-gray-500"
+                    >
+                      No realtors found
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-12 text-center text-sm text-gray-500"
-                  >
-                    No realtors found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Pagination */}
       <AdminPagination

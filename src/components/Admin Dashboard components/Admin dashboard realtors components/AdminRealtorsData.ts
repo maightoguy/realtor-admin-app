@@ -1,8 +1,4 @@
-import ProfilePic1 from "../../../assets/Profile 1.jpg";
-import ProfilePic2 from "../../../assets/Profile 2.jpg";
-import ProfilePic3 from "../../../assets/Profile 3.jpg";
-import ProfilePic4 from "../../../assets/Profile 4.jpg";
-import ProfilePic5 from "../../../assets/Profile 5.jpg";
+import DefaultProfilePic from "../../../assets/Default Profile pic.png";
 import type { SalesStatistics } from "../Admin dashboard properties components/adminDashboardPropertiesData";
 
 export interface Realtor {
@@ -48,7 +44,7 @@ const realtorNames = [
     "Damilola Akinwale",
 ];
 
-const avatars = [ProfilePic1, ProfilePic2, ProfilePic3, ProfilePic4, ProfilePic5];
+const avatars = [DefaultProfilePic];
 
 const dates = [
     "May 13th, 2025",
@@ -113,7 +109,7 @@ export const mockRealtors: Realtor[] = [
         id: "#1234",
         name: "Ummi Idris",
         email: "Veriplot@mail.com",
-        avatar: ProfilePic1,
+        avatar: DefaultProfilePic,
         propertySold: 4,
         amountSold: "₦400,000,000",
         dateJoined: "May 13th, 2025",
@@ -143,7 +139,7 @@ export const mockRealtors: Realtor[] = [
         id: "#1235",
         name: "Izuokumo Aganaba",
         email: "izuokumo@untitledui.com",
-        avatar: ProfilePic2,
+        avatar: DefaultProfilePic,
         propertySold: 100,
         amountSold: "₦100,000,000",
         dateJoined: "May 13th, 2025",
@@ -160,7 +156,7 @@ export const mockRealtors: Realtor[] = [
         id: "#1236",
         name: "Seyi Olabode",
         email: "seyi@untitledui.com",
-        avatar: ProfilePic3,
+        avatar: DefaultProfilePic,
         propertySold: 100,
         amountSold: "₦100,000,000",
         dateJoined: "May 13th, 2025",
@@ -177,7 +173,7 @@ export const mockRealtors: Realtor[] = [
         id: "#1237",
         name: "Kuroebi Timipre",
         email: "kuroebi@untitledui.com",
-        avatar: ProfilePic4,
+        avatar: DefaultProfilePic,
         propertySold: 100,
         amountSold: "₦100,000,000",
         dateJoined: "May 13th, 2025",
@@ -194,7 +190,7 @@ export const mockRealtors: Realtor[] = [
         id: "#1238",
         name: "Tonbara Ziworitin",
         email: "tonbara@untitledui.com",
-        avatar: ProfilePic5,
+        avatar: DefaultProfilePic,
         propertySold: 100,
         amountSold: "₦100,000,000",
         dateJoined: "May 13th, 2025",
@@ -241,4 +237,3 @@ export const mockRealtors: Realtor[] = [
         };
     }),
 ];
-

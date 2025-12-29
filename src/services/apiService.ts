@@ -3,10 +3,12 @@ import { logger } from "../utils/logger";
 import type {
   Commission,
   Developer,
+  Payout,
   Property,
   PropertyStatus,
   PropertyType,
   Receipt,
+  Referral,
   User,
 } from "./types";
 
@@ -79,6 +81,74 @@ export const userService = {
     }
     logger.info("[API][users] countByRole success", { role, count: count ?? 0 });
     return count ?? 0;
+  },
+
+  async getAll(filters?: {
+    role?: User["role"];
+    kycStatus?: User["kyc_status"];
+    searchText?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<User[]> {
+    const q = filters?.searchText?.trim() ?? "";
+    logger.info("[API][users] getAll start", { hasQuery: Boolean(q), filters: filters ?? null });
+
+    let query = getSupabaseClient()
+      .from("users")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (filters?.role) {
+      query = query.eq("role", filters.role);
+    }
+    if (filters?.kycStatus) {
+      query = query.eq("kyc_status", filters.kycStatus);
+    }
+    if (q) {
+      query = query.or(
+        `first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%,phone_number.ilike.%${q}%`
+      );
+    }
+
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    if (typeof filters?.offset === "number") {
+      const limit = filters.limit ?? 10;
+      query = query.range(filters.offset, filters.offset + limit - 1);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      logger.error("[API][users] getAll failed", { filters: filters ?? null, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][users] getAll success", { count: (data ?? []).length });
+    return (data ?? []) as User[];
+  },
+
+  async update(id: string, updates: Partial<Omit<User, "id" | "created_at">>): Promise<User> {
+    logger.info("[API][users] update start", { id, keys: Object.keys(updates ?? {}) });
+    const { data: sessionData } = await getSupabaseClient().auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    logger.info("[API][users] update auth", { id, sessionUserId });
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
+
+    const { data, error } = await getSupabaseClient()
+      .from("users")
+      .update(updates)
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) {
+      logger.error("[API][users] update failed", { id, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][users] update success", { id });
+    return data as User;
   },
 };
 
@@ -609,6 +679,8 @@ export const receiptService = {
     limit?: number;
     offset?: number;
     status?: Receipt["status"] | Array<Receipt["status"]>;
+    realtorId?: string;
+    propertyId?: string;
   }): Promise<Receipt[]> {
     let query = getSupabaseClient()
       .from("receipts")
@@ -621,6 +693,12 @@ export const receiptService = {
       } else {
         query = query.eq("status", params.status);
       }
+    }
+    if (params?.realtorId) {
+      query = query.eq("realtor_id", params.realtorId);
+    }
+    if (params?.propertyId) {
+      query = query.eq("property_id", params.propertyId);
     }
 
     if (params?.limit) {
@@ -700,6 +778,107 @@ export const commissionService = {
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as Array<Pick<Commission, "realtor_id" | "amount" | "created_at">>;
+  },
+
+  async getAll(params?: {
+    realtorId?: string;
+    statuses?: Commission["status"] | Array<Commission["status"]>;
+    limit?: number;
+    offset?: number;
+  }): Promise<Commission[]> {
+    let query = getSupabaseClient()
+      .from("commissions")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (params?.realtorId) {
+      query = query.eq("realtor_id", params.realtorId);
+    }
+    if (params?.statuses) {
+      if (Array.isArray(params.statuses)) {
+        query = query.in("status", params.statuses);
+      } else {
+        query = query.eq("status", params.statuses);
+      }
+    }
+    if (params?.limit) {
+      query = query.limit(params.limit);
+    }
+    if (typeof params?.offset === "number") {
+      const limit = params.limit ?? 10;
+      query = query.range(params.offset, params.offset + limit - 1);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as Commission[];
+  },
+};
+
+export const payoutService = {
+  async getAll(params?: {
+    realtorId?: string;
+    statuses?: Payout["status"] | Array<Payout["status"]>;
+    limit?: number;
+    offset?: number;
+  }): Promise<Payout[]> {
+    let query = getSupabaseClient()
+      .from("payouts")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (params?.realtorId) {
+      query = query.eq("realtor_id", params.realtorId);
+    }
+    if (params?.statuses) {
+      if (Array.isArray(params.statuses)) {
+        query = query.in("status", params.statuses);
+      } else {
+        query = query.eq("status", params.statuses);
+      }
+    }
+    if (params?.limit) {
+      query = query.limit(params.limit);
+    }
+    if (typeof params?.offset === "number") {
+      const limit = params.limit ?? 10;
+      query = query.range(params.offset, params.offset + limit - 1);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as Payout[];
+  },
+};
+
+export const referralService = {
+  async getAll(filters?: {
+    upline_id?: string;
+    downline_id?: string;
+    level?: number;
+    limit?: number;
+  }): Promise<Referral[]> {
+    let query = getSupabaseClient()
+      .from("referrals")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (filters?.upline_id) {
+      query = query.eq("upline_id", filters.upline_id);
+    }
+    if (filters?.downline_id) {
+      query = query.eq("downline_id", filters.downline_id);
+    }
+    if (typeof filters?.level === "number") {
+      query = query.eq("level", filters.level);
+    }
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as Referral[];
   },
 };
 

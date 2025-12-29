@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
 import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
-import ProfilePic from "../assets/Profile 1.jpg";
+import DefaultProfilePic from "../assets/Default Profile pic.png";
 import AdminDashboardHeader from "../components/AdminDashboardHearder.tsx";
 import { authManager } from "../services/authManager";
 import { authService } from "../services/authService";
@@ -176,7 +176,9 @@ const AdminDashboardPage = () => {
             <div className="rounded-full overflow-hidden border border-gray-200 w-10 h-10">
               <img
                 src={
-                  currentUser?.avatar_url ? currentUser.avatar_url : ProfilePic
+                  currentUser?.avatar_url
+                    ? currentUser.avatar_url
+                    : DefaultProfilePic
                 }
                 alt="Profile"
                 className="w-full h-full object-cover"

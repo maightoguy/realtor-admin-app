@@ -1,8 +1,4 @@
-import ProfilePic1 from "../../../assets/Profile 1.jpg";
-import ProfilePic2 from "../../../assets/Profile 2.jpg";
-import ProfilePic3 from "../../../assets/Profile 3.jpg";
-import ProfilePic4 from "../../../assets/Profile 4.jpg";
-import ProfilePic5 from "../../../assets/Profile 5.jpg";
+import DefaultProfilePic from "../../../assets/Default Profile pic.png";
 
 // Metrics data
 export const metricsData = {
@@ -15,11 +11,11 @@ export const metricsData = {
 
 // Top realtors data
 export const topRealtorsData = [
-    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: ProfilePic1 },
-    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: ProfilePic2 },
-    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: ProfilePic3 },
-    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: ProfilePic4 },
-    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: ProfilePic5 },
+    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: DefaultProfilePic },
+    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: DefaultProfilePic },
+    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: DefaultProfilePic },
+    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: DefaultProfilePic },
+    { name: "Kemi Durojaiye", value: "₦ 1,850,350", avatar: DefaultProfilePic },
 ];
 
 // Commission data matching Figma: Jan~₦4M, Feb~₦9M, Mar~₦6M, Apr~₦3M, May~₦5M, Jun~₦2M, Jul~₦4M, Aug~₦7M, Sep~₦5M, Oct~₦3M, Nov~₦9M, Dec~₦5M
@@ -35,7 +31,7 @@ export const recentReceiptsData = [
         receiptId: "#12345",
         property: "Parkview estate",
         realtorName: "Iretiola Okunade",
-        realtorAvatar: ProfilePic1,
+        realtorAvatar: DefaultProfilePic,
         clientName: "Simisola Okunade",
         dateUploaded: "May 13th, 2025",
         status: "Pending" as const,
@@ -44,7 +40,7 @@ export const recentReceiptsData = [
         receiptId: "#12345",
         property: "City of David Estate",
         realtorName: "Izuokumo Aganaba",
-        realtorAvatar: ProfilePic2,
+        realtorAvatar: DefaultProfilePic,
         clientName: "Binaebi Oyintare",
         dateUploaded: "May 13th, 2025",
         status: "Pending" as const,
@@ -53,7 +49,7 @@ export const recentReceiptsData = [
         receiptId: "#12345",
         property: "Oluwole Estate",
         realtorName: "Seyi Olabode",
-        realtorAvatar: ProfilePic3,
+        realtorAvatar: DefaultProfilePic,
         clientName: "Safiya Usman",
         dateUploaded: "May 13th, 2025",
         status: "Pending" as const,
@@ -62,7 +58,7 @@ export const recentReceiptsData = [
         receiptId: "#12345",
         property: "Lagos Estate",
         realtorName: "Kuroebi Timipre",
-        realtorAvatar: ProfilePic4,
+        realtorAvatar: DefaultProfilePic,
         clientName: "Chinyere Nwankwo",
         dateUploaded: "May 13th, 2025",
         status: "Pending" as const,
@@ -71,7 +67,7 @@ export const recentReceiptsData = [
         receiptId: "#12345",
         property: "Iyana iba Estate",
         realtorName: "Tonbara Ziworitin",
-        realtorAvatar: ProfilePic5,
+        realtorAvatar: DefaultProfilePic,
         clientName: "Rahma Ahmad",
         dateUploaded: "May 13th, 2025",
         status: "Pending" as const,
@@ -95,5 +91,11 @@ export const months = [
 ];
 
 // Export profile pics for empty state
-export { ProfilePic1, ProfilePic2, ProfilePic3, ProfilePic4, ProfilePic5 };
+export {
+  DefaultProfilePic as ProfilePic1,
+  DefaultProfilePic as ProfilePic2,
+  DefaultProfilePic as ProfilePic3,
+  DefaultProfilePic as ProfilePic4,
+  DefaultProfilePic as ProfilePic5,
+};
 

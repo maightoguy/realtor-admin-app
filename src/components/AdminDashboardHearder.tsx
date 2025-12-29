@@ -1,6 +1,6 @@
 import { Menu, Calendar, Bell } from "lucide-react";
 import { useState } from "react";
-import ProfilePic from "../assets/Profile 1.jpg";
+import DefaultProfilePic from "../assets/Default Profile pic.png";
 import NotificationModal from "../components/Admin Dashboard components/NotificationModal";
 import type { User } from "../services/types";
 
@@ -25,7 +25,7 @@ const AdminDashboardHeader = ({
     year: "numeric",
   });
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "Admin";
-  const profileSrc = user?.avatar_url ? user.avatar_url : ProfilePic;
+  const profileSrc = user?.avatar_url ? user.avatar_url : DefaultProfilePic;
 
   return (
     <>

@@ -1,33 +1,52 @@
 import { ArrowLeft, Link2 } from "lucide-react";
-import type { Realtor } from "./AdminRealtorsData";
-import type { SalesStatistics } from "../Admin dashboard properties components/adminDashboardPropertiesData";
 import AdminPropertyCard from "../Admin dashboard properties components/AdminPropertyCard";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { months } from "../Admin dashboard overview components/adminDashboardOverviewData";
-import {
-  mockReceipts,
-  type Receipt,
-} from "../Admin dashboard receipts components/AdminReceiptsData";
 import TransactionsIcon from "../../icons/TransactionsIcon";
-import {
-  mockTransactions,
-  type Transaction,
-} from "../Admin dashboard transactions components/AdminTransactionsData";
-import {
-  mockReferrals,
-  referralCode as defaultReferralCode,
-  referralLink as defaultReferralLink,
-} from "../Admin dashboard referrals components/refferalData";
 import ReferralsIcon from "../../icons/ReferralsIcon";
-
-const parseCurrencyValue = (amount: string) =>
-  parseFloat(amount.replace(/[₦,]/g, "")) || 0;
+import DefaultProfilePic from "../../../assets/Default Profile pic.png";
+import { propertyImages } from "../Admin dashboard properties components/adminDashboardPropertiesData";
+import {
+  commissionService,
+  payoutService,
+  propertyMediaService,
+  propertyService,
+  receiptService,
+  referralService,
+  userService,
+} from "../../../services/apiService";
+import type {
+  Commission,
+  Payout,
+  Property,
+  Receipt,
+  ReceiptStatus,
+  Referral,
+  User,
+} from "../../../services/types";
 
 const formatCurrencyValue = (value: number) =>
   `₦${Math.max(value, 0).toLocaleString("en-NG")}`;
+
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  const day = d.getDate();
+  const suffix =
+    day % 10 === 1 && day % 100 !== 11
+      ? "st"
+      : day % 10 === 2 && day % 100 !== 12
+      ? "nd"
+      : day % 10 === 3 && day % 100 !== 13
+      ? "rd"
+      : "th";
+  const monthName = d.toLocaleDateString("en-US", { month: "long" });
+  const year = d.getFullYear();
+  return `${monthName} ${day}${suffix}, ${year}`;
+};
 
 const normalizeReferralLink = (link: string) => {
   if (!link) return "https://referral.veriplot.com";
@@ -125,7 +144,7 @@ const MetricCard = ({
 const TransactionStatusBadge = ({
   status,
 }: {
-  status: Transaction["status"];
+  status: "Paid" | "Pending" | "Rejected";
 }) => {
   const statusConfig = {
     Paid: { color: "#22C55E", bgColor: "#D1FAE5", label: "Paid" },
@@ -153,26 +172,17 @@ const TransactionStatusBadge = ({
 };
 
 interface RealtorDetailsSectionProps {
-  realtor: Realtor;
-  properties: Array<{
-    id: number;
-    image: string;
-    title: string;
-    price: number | string;
-    location: string;
-    isSoldOut: boolean;
-    description?: string;
-  }>;
+  realtor: User;
   onBack: () => void;
   onViewBankDetails?: () => void;
   onRemoveRealtor?: () => void;
-  onViewPropertyDetails?: (propertyId: number) => void;
+  onViewPropertyDetails?: (propertyId: string) => void;
   onViewReceiptDetails?: (receiptId: string) => void;
+  onRealtorUpdated?: (updated: User) => void;
 }
 
 const RealtorDetailsSection = ({
   realtor,
-  properties,
   onBack,
   onViewBankDetails,
   onRemoveRealtor,
@@ -194,37 +204,96 @@ const RealtorDetailsSection = ({
   const referralsPerPage = 8;
   const [copyStatus, setCopyStatus] = useState<"code" | "link" | null>(null);
 
-  // Get sales statistics data
-  const salesStats: SalesStatistics = realtor.salesStatistics || {
-    jan: 0,
-    feb: 0,
-    mar: 0,
-    apr: 0,
-    may: 0,
-    jun: 0,
-    jul: 0,
-    aug: 0,
-    sep: 0,
-    oct: 0,
-    nov: 0,
-    dec: 0,
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [downlines, setDownlines] = useState<User[]>([]);
 
-  // Convert sales statistics to array for chart
-  const chartData = [
-    salesStats.jan,
-    salesStats.feb,
-    salesStats.mar,
-    salesStats.apr,
-    salesStats.may,
-    salesStats.jun,
-    salesStats.jul,
-    salesStats.aug,
-    salesStats.sep,
-    salesStats.oct,
-    salesStats.nov,
-    salesStats.dec,
-  ];
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+
+    Promise.resolve()
+      .then(async () => {
+        const [receiptsRes, commissionsRes, payoutsRes, referralsRes] =
+          await Promise.all([
+            receiptService.getAll({ realtorId: realtor.id, limit: 1000 }),
+            commissionService.getAll({ realtorId: realtor.id, limit: 1000 }),
+            payoutService.getAll({ realtorId: realtor.id, limit: 1000 }),
+            referralService.getAll({ upline_id: realtor.id, limit: 1000 }),
+          ]);
+
+        const propertyIds = Array.from(
+          new Set(
+            receiptsRes
+              .map((r) => r.property_id)
+              .filter((id): id is string => Boolean(id))
+          )
+        );
+
+        const downlineIds = Array.from(
+          new Set(referralsRes.map((r) => r.downline_id))
+        );
+
+        const [propertiesRes, downlinesRes] = await Promise.all([
+          propertyService.getByIds(propertyIds),
+          userService.getByIds(downlineIds),
+        ]);
+
+        if (cancelled) return;
+        setReceipts(receiptsRes);
+        setCommissions(commissionsRes);
+        setPayouts(payoutsRes);
+        setReferrals(referralsRes);
+        setProperties(propertiesRes);
+        setDownlines(downlinesRes);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setReceipts([]);
+        setCommissions([]);
+        setPayouts([]);
+        setReferrals([]);
+        setProperties([]);
+        setDownlines([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [realtor.id]);
+
+  const realtorName =
+    `${realtor.first_name ?? ""} ${realtor.last_name ?? ""}`.trim() ||
+    realtor.email ||
+    "-";
+  const realtorAvatar = realtor.avatar_url || DefaultProfilePic;
+  const realtorStatus =
+    realtor.kyc_status === "approved" ? "Active" : "Inactive";
+
+  const propertyMap = useMemo(
+    () => new Map(properties.map((p) => [p.id, p])),
+    [properties]
+  );
+
+  const chartData = useMemo(() => {
+    const totals = Array.from({ length: 12 }, () => 0);
+    for (const receipt of receipts) {
+      if (receipt.status !== "approved") continue;
+      const d = new Date(receipt.created_at);
+      if (Number.isNaN(d.getTime())) continue;
+      totals[d.getUTCMonth()] += Number.isFinite(receipt.amount_paid)
+        ? receipt.amount_paid
+        : 0;
+    }
+    return totals;
+  }, [receipts]);
 
   const maxValue = Math.max(...chartData, 1);
 
@@ -281,32 +350,68 @@ const RealtorDetailsSection = ({
 
   // Filter properties based on search query
   const filteredProperties = useMemo(() => {
-    if (!searchQuery.trim()) return properties;
+    const uniqueSold = Array.from(
+      new Set(
+        receipts
+          .filter((r) => r.status === "approved")
+          .map((r) => r.property_id)
+          .filter((id): id is string => Boolean(id))
+      )
+    )
+      .map((propertyId, index) => {
+        const p = propertyMap.get(propertyId);
+        if (!p) return null;
+        const img = Array.isArray(p.images) ? p.images[0] ?? "" : "";
+        const fallbackImage =
+          propertyImages[index % propertyImages.length] ?? DefaultProfilePic;
+        return {
+          id: p.id,
+          image: img ? propertyMediaService.getPublicUrl(img) : fallbackImage,
+          title: p.title,
+          price: p.price,
+          location: p.location,
+          isSoldOut: p.status === "sold",
+          description: p.description ?? undefined,
+        };
+      })
+      .filter(Boolean) as Array<{
+      id: string;
+      image: string;
+      title: string;
+      price: number | string;
+      location: string;
+      isSoldOut: boolean;
+      description?: string;
+    }>;
+
+    if (!searchQuery.trim()) return uniqueSold;
 
     const query = searchQuery.toLowerCase();
-    return properties.filter(
+    return uniqueSold.filter(
       (p) =>
         p.title.toLowerCase().includes(query) ||
         p.location.toLowerCase().includes(query)
     );
-  }, [properties, searchQuery]);
+  }, [propertyMap, receipts, searchQuery]);
 
   // Get receipts for this realtor
   const realtorReceipts = useMemo(() => {
-    // Filter receipts by realtorId or realtorName
-    return mockReceipts.filter(
-      (receipt) =>
-        receipt.realtorId === realtor.id ||
-        receipt.realtorName === realtor.name ||
-        // Fallback: use a deterministic assignment based on realtor ID
-        (() => {
-          const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
-          const receiptIdNum = parseInt(receipt.id.replace("#", "")) || 0;
-          // Assign receipts to realtors deterministically
-          return receiptIdNum % 100 === realtorIdNum % 100;
-        })()
-    );
-  }, [realtor]);
+    return receipts.map((receipt) => {
+      const propertyName = receipt.property_id
+        ? propertyMap.get(receipt.property_id)?.title ?? receipt.property_id
+        : "-";
+      return {
+        id: receipt.id,
+        clientName: receipt.client_name ?? "-",
+        propertyName,
+        amount: formatCurrencyValue(
+          Number.isFinite(receipt.amount_paid) ? receipt.amount_paid : 0
+        ),
+        date: formatDate(receipt.created_at),
+        status: receipt.status,
+      };
+    });
+  }, [propertyMap, receipts]);
 
   // Filter receipts based on search query
   const filteredReceipts = useMemo(() => {
@@ -333,48 +438,55 @@ const RealtorDetailsSection = ({
 
   // Get transactions for this realtor
   const realtorTransactions = useMemo(() => {
-    return mockTransactions.filter(
-      (transaction) =>
-        transaction.realtorId === realtor.id ||
-        transaction.realtorName === realtor.name ||
-        (() => {
-          const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
-          const transactionIdNum =
-            parseInt(transaction.id.replace("#", "")) || 0;
-          return transactionIdNum % 100 === realtorIdNum % 100;
-        })()
-    );
-  }, [realtor]);
+    const statusLabel = (
+      status: Commission["status"] | Payout["status"]
+    ): "Paid" | "Pending" | "Rejected" => {
+      if (status === "paid") return "Paid";
+      if (status === "rejected") return "Rejected";
+      return "Pending";
+    };
+
+    const mappedCommissions = commissions.map((c) => ({
+      id: c.id,
+      type: "Commission" as const,
+      amount: formatCurrencyValue(Number.isFinite(c.amount) ? c.amount : 0),
+      date: formatDate(c.created_at),
+      status: statusLabel(c.status),
+      created_at: c.created_at,
+    }));
+
+    const mappedPayouts = payouts.map((p) => ({
+      id: p.id,
+      type: "Withdrawal" as const,
+      amount: formatCurrencyValue(Number.isFinite(p.amount) ? p.amount : 0),
+      date: formatDate(p.created_at),
+      status: statusLabel(p.status),
+      created_at: p.created_at,
+    }));
+
+    return [...mappedCommissions, ...mappedPayouts].sort((a, b) => {
+      const ad = new Date(a.created_at).getTime();
+      const bd = new Date(b.created_at).getTime();
+      return bd - ad;
+    });
+  }, [commissions, payouts]);
 
   const transactionMetrics = useMemo(() => {
-    if (!realtorTransactions.length) {
-      return {
-        availableBalance: "₦0",
-        totalEarnings: "₦0",
-        totalWithdrawals: "₦0",
-        totalPending: "₦0",
-      };
-    }
+    const commissionTotal = commissions
+      .filter((c) => c.status === "approved" || c.status === "paid")
+      .reduce((sum, c) => sum + (Number.isFinite(c.amount) ? c.amount : 0), 0);
 
-    let commissionTotal = 0;
-    let withdrawalTotal = 0;
-    let pendingTotal = 0;
-    let paidWithdrawalTotal = 0;
+    const withdrawalTotal = payouts
+      .filter((p) => p.status !== "rejected")
+      .reduce((sum, p) => sum + (Number.isFinite(p.amount) ? p.amount : 0), 0);
 
-    realtorTransactions.forEach((transaction) => {
-      const amountValue = parseCurrencyValue(transaction.amount);
-      if (transaction.type === "Commission") {
-        commissionTotal += amountValue;
-      } else {
-        withdrawalTotal += amountValue;
-        if (transaction.status === "Pending") {
-          pendingTotal += amountValue;
-        }
-        if (transaction.status === "Paid") {
-          paidWithdrawalTotal += amountValue;
-        }
-      }
-    });
+    const pendingTotal = payouts
+      .filter((p) => p.status !== "paid" && p.status !== "rejected")
+      .reduce((sum, p) => sum + (Number.isFinite(p.amount) ? p.amount : 0), 0);
+
+    const paidWithdrawalTotal = payouts
+      .filter((p) => p.status === "paid")
+      .reduce((sum, p) => sum + (Number.isFinite(p.amount) ? p.amount : 0), 0);
 
     const availableBalance = commissionTotal - paidWithdrawalTotal;
 
@@ -384,7 +496,7 @@ const RealtorDetailsSection = ({
       totalWithdrawals: formatCurrencyValue(withdrawalTotal),
       totalPending: formatCurrencyValue(pendingTotal),
     };
-  }, [realtorTransactions]);
+  }, [commissions, payouts]);
 
   const filteredTransactions = useMemo(() => {
     let filtered = [...realtorTransactions];
@@ -426,24 +538,50 @@ const RealtorDetailsSection = ({
   }, [transactionFilter, searchQuery, realtor.id]);
 
   const realtorReferrals = useMemo(() => {
-    const primaryMatches = mockReferrals.filter(
-      (referral) =>
-        referral.referredBy === realtor.name ||
-        referral.id === realtor.id ||
-        (realtor.firstName &&
-          referral.name.toLowerCase().includes(realtor.firstName.toLowerCase()))
-    );
+    const downlineMap = new Map(downlines.map((u) => [u.id, u]));
+    const grouped = new Map<
+      string,
+      { downline_id: string; commission: number; created_at: string }
+    >();
 
-    if (primaryMatches.length) {
-      return primaryMatches;
+    for (const r of referrals) {
+      const current = grouped.get(r.downline_id) ?? {
+        downline_id: r.downline_id,
+        commission: 0,
+        created_at: r.created_at,
+      };
+      current.commission += Number.isFinite(r.commission_earned)
+        ? r.commission_earned
+        : 0;
+      const cd = new Date(current.created_at).getTime();
+      const rd = new Date(r.created_at).getTime();
+      if (Number.isFinite(rd) && (!Number.isFinite(cd) || rd > cd)) {
+        current.created_at = r.created_at;
+      }
+      grouped.set(r.downline_id, current);
     }
 
-    const realtorIdNum = parseInt(realtor.id.replace("#", "")) || 0;
-    return mockReferrals.filter((referral, index) => {
-      const referralIdNum = parseInt(referral.id.replace("#", "")) || index + 1;
-      return referralIdNum % 5 === realtorIdNum % 5;
-    });
-  }, [realtor]);
+    return [...grouped.values()]
+      .map((row) => {
+        const downline = downlineMap.get(row.downline_id) ?? null;
+        const name = downline
+          ? `${downline.first_name ?? ""} ${downline.last_name ?? ""}`.trim() ||
+            downline.email ||
+            row.downline_id
+          : row.downline_id;
+
+        return {
+          id: row.downline_id,
+          name,
+          dateJoined: downline?.created_at
+            ? formatDate(downline.created_at)
+            : "-",
+          totalCommissionEarned: formatCurrencyValue(row.commission),
+          totalReferralCommission: formatCurrencyValue(row.commission),
+        };
+      })
+      .sort((a, b) => b.id.localeCompare(a.id));
+  }, [downlines, referrals]);
 
   const filteredReferrals = useMemo(() => {
     if (!searchQuery.trim()) return realtorReferrals;
@@ -471,34 +609,32 @@ const RealtorDetailsSection = ({
   }, [searchQuery, realtor.id, activeTab]);
 
   const referralMetrics = useMemo(() => {
-    const totalCommissionValue = realtorReferrals.reduce((sum, referral) => {
-      return sum + parseCurrencyValue(referral.totalReferralCommission);
-    }, 0);
+    const totalCommissionValue = referrals.reduce(
+      (sum, r) =>
+        sum + (Number.isFinite(r.commission_earned) ? r.commission_earned : 0),
+      0
+    );
 
     return {
       count: realtorReferrals.length,
       totalCommission: formatCurrencyValue(totalCommissionValue),
     };
-  }, [realtorReferrals]);
+  }, [realtorReferrals, referrals]);
 
   const realtorReferralCode = useMemo(() => {
-    const idSuffix = realtor.id.replace("#", "") || "0000";
-    const baseCode = defaultReferralCode || "AGTREF";
-    return `${baseCode}-${idSuffix}`;
-  }, [realtor]);
+    return realtor.referral_code || "-";
+  }, [realtor.referral_code]);
 
   const realtorReferralLink = useMemo(() => {
-    const normalizedBase = normalizeReferralLink(defaultReferralLink);
-    const slug = realtor.name
-      ? realtor.name.toLowerCase().replace(/\s+/g, "-")
-      : `agent-${realtor.id.replace("#", "")}`;
+    const normalizedBase = normalizeReferralLink(
+      "https://referral.veriplot.com"
+    );
+    const slug = realtorReferralCode || `agent-${realtor.id}`;
     const separator = normalizedBase.includes("?") ? "&" : "?";
-    return `${normalizedBase}${separator}agent=${slug}`;
-  }, [realtor]);
+    return `${normalizedBase}${separator}code=${encodeURIComponent(slug)}`;
+  }, [realtor.id, realtorReferralCode]);
 
-  const referralLinkDisplay =
-    defaultReferralLink?.replace(/^htt:\/\//, "http://") ||
-    "http://referral/code.com";
+  const referralLinkDisplay = realtorReferralLink;
 
   const handleCopyValue = (value: string, type: "code" | "link") => {
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
@@ -517,23 +653,22 @@ const RealtorDetailsSection = ({
     return () => clearTimeout(timer);
   }, [copyStatus]);
 
-  // Status badge component for receipts
-  const StatusBadge = ({ status }: { status: Receipt["status"] }) => {
+  const StatusBadge = ({ status }: { status: ReceiptStatus }) => {
     const statusConfig: Record<
-      Receipt["status"],
+      ReceiptStatus,
       { color: string; bgColor: string; label: string }
     > = {
-      Approved: { color: "#22C55E", bgColor: "#D1FAE5", label: "Approved" },
-      Pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
-      Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
-      "Under review": {
+      approved: { color: "#22C55E", bgColor: "#D1FAE5", label: "Approved" },
+      pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
+      rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
+      under_review: {
         color: "#6500AC",
         bgColor: "#F0E6F7",
         label: "Under review",
       },
     };
 
-    const config = statusConfig[status];
+    const config = statusConfig[status] ?? statusConfig.pending;
 
     return (
       <span
@@ -578,11 +713,11 @@ const RealtorDetailsSection = ({
             <div className="flex items-center gap-2">
               <div
                 className={`w-2 h-2 rounded-full ${
-                  realtor.status === "Active" ? "bg-[#22C55E]" : "bg-[#EF4444]"
+                  realtorStatus === "Active" ? "bg-[#22C55E]" : "bg-[#EF4444]"
                 }`}
               ></div>
               <span className="text-sm font-medium text-gray-900">
-                {realtor.status}
+                {realtorStatus}
               </span>
             </div>
           </div>
@@ -590,36 +725,36 @@ const RealtorDetailsSection = ({
           {/* Realtor Name and Avatar */}
           <div className="flex items-center gap-4">
             <img
-              src={realtor.avatar}
-              alt={realtor.name}
+              src={realtorAvatar}
+              alt={realtorName}
               className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200 ring-offset-2 ring-offset-white"
             />
             <div>
               <p className="text-lg font-semibold text-gray-900">
-                {realtor.name}
+                {realtorName}
               </p>
-              <p className="text-sm text-gray-600">{realtor.email}</p>
+              <p className="text-sm text-gray-600">{realtor.email || "-"}</p>
             </div>
           </div>
 
           {/* Detailed Info Section */}
           <div className="space-y-3">
-            {realtor.firstName && (
+            {realtor.first_name && (
               <div>
                 <p className="text-xs text-gray-500 mb-1">First name</p>
-                <p className="text-sm text-gray-900">{realtor.firstName}</p>
+                <p className="text-sm text-gray-900">{realtor.first_name}</p>
               </div>
             )}
-            {realtor.lastName && (
+            {realtor.last_name && (
               <div>
                 <p className="text-xs text-gray-500 mb-1">Last name</p>
-                <p className="text-sm text-gray-900">{realtor.lastName}</p>
+                <p className="text-sm text-gray-900">{realtor.last_name}</p>
               </div>
             )}
-            {realtor.phone && (
+            {realtor.phone_number && (
               <div>
                 <p className="text-xs text-gray-500 mb-1">Phone number</p>
-                <p className="text-sm text-gray-900">{realtor.phone}</p>
+                <p className="text-sm text-gray-900">{realtor.phone_number}</p>
               </div>
             )}
             {realtor.gender && (
@@ -631,32 +766,42 @@ const RealtorDetailsSection = ({
           </div>
 
           {/* KYC Verification Section */}
-          {realtor.kycStatus && (
-            <div>
-              <p className="text-xs text-gray-500 mb-1">
-                Document uploaded: {realtor.kycDocument || "NIN"}
-              </p>
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    realtor.kycStatus === "Uploaded"
-                      ? "bg-[#22C55E]"
-                      : realtor.kycStatus === "Pending"
-                      ? "bg-[#F59E0B]"
-                      : "bg-[#EF4444]"
-                  }`}
-                ></div>
-                <span className="text-sm font-medium text-gray-900">
-                  {realtor.kycStatus}
-                </span>
-                {realtor.kycStatus === "Uploaded" && (
-                  <button className="text-sm text-[#6500AC] font-semibold hover:underline ml-2">
-                    View
-                  </button>
-                )}
-              </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-1">KYC status</p>
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  realtor.kyc_status === "approved"
+                    ? "bg-[#22C55E]"
+                    : realtor.kyc_status === "pending"
+                    ? "bg-[#F59E0B]"
+                    : "bg-[#EF4444]"
+                }`}
+              ></div>
+              <span className="text-sm font-medium text-gray-900">
+                {realtor.kyc_status === "approved"
+                  ? "Approved"
+                  : realtor.kyc_status === "pending"
+                  ? "Pending"
+                  : "Rejected"}
+              </span>
+              {realtor.id_document_url ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.open(
+                      realtor.id_document_url ?? "",
+                      "_blank",
+                      "noopener,noreferrer"
+                    )
+                  }
+                  className="text-sm text-[#6500AC] font-semibold hover:underline ml-2"
+                >
+                  View
+                </button>
+              ) : null}
             </div>
-          )}
+          </div>
 
           {/* Action Buttons */}
           <div className="flex gap-3">
@@ -811,7 +956,11 @@ const RealtorDetailsSection = ({
         {/* Properties Grid */}
         {activeTab === "Properties sold" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredProperties.length > 0 ? (
+            {isLoading ? (
+              <div className="col-span-full text-center py-12 text-gray-500">
+                Loading properties...
+              </div>
+            ) : filteredProperties.length > 0 ? (
               filteredProperties.map((property) => (
                 <AdminPropertyCard
                   key={property.id}
@@ -866,7 +1015,16 @@ const RealtorDetailsSection = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0F1F2]">
-                    {currentReceipts.length > 0 ? (
+                    {isLoading ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-6 py-12 text-center text-sm text-gray-500"
+                        >
+                          Loading receipts...
+                        </td>
+                      </tr>
+                    ) : currentReceipts.length > 0 ? (
                       currentReceipts.map((receipt) => (
                         <tr
                           key={receipt.id}
@@ -1065,7 +1223,16 @@ const RealtorDetailsSection = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0F1F2]">
-                    {currentTransactions.length > 0 ? (
+                    {isLoading ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-12 text-center text-sm text-gray-500"
+                        >
+                          Loading transactions...
+                        </td>
+                      </tr>
+                    ) : currentTransactions.length > 0 ? (
                       currentTransactions.map((transaction) => (
                         <tr
                           key={transaction.id}
@@ -1244,7 +1411,16 @@ const RealtorDetailsSection = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0F1F2]">
-                    {currentReferrals.length > 0 ? (
+                    {isLoading ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-6 py-12 text-center text-sm text-gray-500"
+                        >
+                          Loading referrals...
+                        </td>
+                      </tr>
+                    ) : currentReferrals.length > 0 ? (
                       currentReferrals.map((referral) => (
                         <tr
                           key={referral.id}

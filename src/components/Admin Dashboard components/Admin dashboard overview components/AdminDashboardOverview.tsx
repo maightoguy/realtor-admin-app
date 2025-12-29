@@ -5,7 +5,8 @@ import RealtorsIcon from "../../icons/RealtorsIcon.tsx";
 import IslandIcon from "../../icons/IslandIcon.tsx";
 import ReceiptsIcon from "../../icons/ReceiptsIcon.tsx";
 import TransactionsIcon from "../../icons/TransactionsIcon.tsx";
-import { months, ProfilePic1 } from "./adminDashboardOverviewData";
+import { months } from "./adminDashboardOverviewData";
+import DefaultProfilePic from "../../../assets/Default Profile pic.png";
 import { overviewService } from "../../../services/apiService";
 import Loader from "../../Loader";
 
@@ -248,7 +249,7 @@ const AdminDashboardOverview = () => {
     return snapshot.topRealtors.map((row) => ({
       name: `${row.user.first_name} ${row.user.last_name}`.trim() || "---",
       value: formatNaira(row.total),
-      avatar: row.user.avatar_url || ProfilePic1,
+      avatar: row.user.avatar_url || DefaultProfilePic,
     }));
   }, [snapshot]);
 
@@ -267,7 +268,7 @@ const AdminDashboardOverview = () => {
       realtorName: realtor
         ? `${realtor.first_name} ${realtor.last_name}`.trim() || "---"
         : "---",
-      realtorAvatar: realtor?.avatar_url || ProfilePic1,
+      realtorAvatar: realtor?.avatar_url || DefaultProfilePic,
       clientName: receipt.client_name ?? "-",
       dateUploaded: formatDate(receipt.created_at),
       status: mapStatus(receipt.status),
@@ -486,7 +487,7 @@ const AdminDashboardOverview = () => {
                       key={i}
                       name="---"
                       value="₦0"
-                      avatar={ProfilePic1}
+                      avatar={DefaultProfilePic}
                       isEmpty={true}
                     />
                   ))}
@@ -500,7 +501,7 @@ const AdminDashboardOverview = () => {
                   key={i}
                   name="---"
                   value="₦0"
-                  avatar={ProfilePic1}
+                  avatar={DefaultProfilePic}
                   isEmpty={true}
                 />
               ))}
