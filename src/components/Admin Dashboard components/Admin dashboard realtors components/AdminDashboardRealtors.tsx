@@ -112,7 +112,7 @@ const StatusBadge = ({ status }: { status: AdminRealtorRow["status"] }) => {
       }}
     >
       <span
-        className="w-2 h-2 rounded-full"
+        className="inline-block w-2 h-2 rounded-full shrink-0"
         style={{ backgroundColor: config.color }}
       ></span>
       {config.label}

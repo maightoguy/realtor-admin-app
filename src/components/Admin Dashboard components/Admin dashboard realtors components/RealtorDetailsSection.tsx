@@ -1,4 +1,4 @@
-import { ArrowLeft, Link2 } from "lucide-react";
+import { ArrowLeft, Link2, X } from "lucide-react";
 import AdminPropertyCard from "../Admin dashboard properties components/AdminPropertyCard";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
@@ -181,13 +181,314 @@ interface RealtorDetailsSectionProps {
   onRealtorUpdated?: (updated: User) => void;
 }
 
+interface KycReviewModalProps {
+  isOpen: boolean;
+  realtor: User;
+  onClose: () => void;
+  onUpdated?: (updated: User) => void;
+}
+
+const KycReviewModal = ({
+  isOpen,
+  realtor,
+  onClose,
+  onUpdated,
+}: KycReviewModalProps) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+      setIsSaving(false);
+      setError(null);
+    }
+
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const docUrl = realtor.id_document_url ?? null;
+  const canReview = Boolean(docUrl);
+  const normalized = (docUrl ?? "").split("?")[0].toLowerCase();
+  const isImage =
+    normalized.endsWith(".png") ||
+    normalized.endsWith(".jpg") ||
+    normalized.endsWith(".jpeg") ||
+    normalized.endsWith(".webp") ||
+    normalized.endsWith(".gif");
+
+  const handleUpdate = async (nextStatus: User["kyc_status"]) => {
+    if (!canReview) return;
+    if (isSaving) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const updated = await userService.update(realtor.id, {
+        kyc_status: nextStatus,
+      });
+      onUpdated?.(updated);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update KYC status.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const statusLabel =
+    realtor.kyc_status === "approved"
+      ? "Approved"
+      : realtor.kyc_status === "pending"
+      ? "Pending"
+      : "Rejected";
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={onClose}
+            className="absolute right-6 top-6 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors z-10"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+
+          <div className="p-6 border-b border-[#F0F1F2]">
+            <h2 className="text-xl font-semibold text-gray-900 mb-1">
+              KYC documents
+            </h2>
+            <p className="text-sm text-gray-600">
+              Review submitted documents and update KYC status.
+            </p>
+          </div>
+
+          <div className="p-6 space-y-6">
+            <div className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between text-sm gap-4">
+                <span className="text-gray-600">Realtor</span>
+                <span className="text-gray-900 font-medium text-right break-words">
+                  {`${realtor.first_name ?? ""} ${
+                    realtor.last_name ?? ""
+                  }`.trim() ||
+                    realtor.email ||
+                    "-"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm gap-4">
+                <span className="text-gray-600">Current status</span>
+                <span className="text-gray-900 font-medium">{statusLabel}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-gray-700">ID document</p>
+                {docUrl ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.open(docUrl, "_blank", "noopener,noreferrer")
+                    }
+                    className="text-sm text-[#6500AC] font-semibold hover:underline"
+                  >
+                    Open in new tab
+                  </button>
+                ) : null}
+              </div>
+
+              {docUrl ? (
+                <div className="border border-[#F0F1F2] rounded-xl overflow-hidden bg-white">
+                  {isImage ? (
+                    <img
+                      src={docUrl}
+                      alt="KYC document"
+                      className="w-full max-h-[520px] object-contain bg-[#FAFAFA]"
+                    />
+                  ) : (
+                    <iframe
+                      src={docUrl}
+                      title="KYC document"
+                      className="w-full h-[520px]"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-xl p-4 text-sm text-gray-600">
+                  No document uploaded for this realtor.
+                </div>
+              )}
+            </div>
+
+            {error ? (
+              <div className="border border-[#FEE2E2] bg-[#FEF2F2] text-[#991B1B] rounded-xl p-4 text-sm">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={
+                  !canReview || isSaving || realtor.kyc_status === "rejected"
+                }
+                onClick={() => handleUpdate("rejected")}
+                className="px-4 py-2 bg-[#EF4444] text-white rounded-lg text-sm font-medium hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                disabled={
+                  !canReview || isSaving || realtor.kyc_status === "approved"
+                }
+                onClick={() => handleUpdate("approved")}
+                className="px-4 py-2 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+interface BankDetailsModalProps {
+  isOpen: boolean;
+  realtor: User;
+  onClose: () => void;
+}
+
+const BankDetailsModal = ({
+  isOpen,
+  realtor,
+  onClose,
+}: BankDetailsModalProps) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const accounts = realtor.bank_details ?? [];
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/30 z-40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={onClose}
+            className="absolute right-6 top-6 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors z-10"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+
+          <div className="p-6 border-b border-[#F0F1F2]">
+            <h2 className="text-xl font-semibold text-gray-900 mb-1">
+              Bank details
+            </h2>
+            <p className="text-sm text-gray-600">
+              All bank accounts saved for this realtor.
+            </p>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {accounts.length === 0 ? (
+              <div className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-xl p-4 text-sm text-gray-600">
+                No bank details found for this realtor.
+              </div>
+            ) : (
+              accounts.map((a, idx) => (
+                <div
+                  key={`${a.bankName}-${a.accountNo}-${idx}`}
+                  className="border border-[#F0F1F2] bg-white rounded-xl p-4"
+                >
+                  <div className="flex items-center justify-between mb-3 gap-4">
+                    <p className="text-sm font-semibold text-gray-900">
+                      Account {idx + 1}
+                    </p>
+                    <span className="text-xs px-2 py-1 rounded-full bg-[#F0E6F7] text-[#6500AC] font-medium">
+                      {a.bankName || "Bank"}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm gap-4">
+                      <span className="text-gray-600">Account name</span>
+                      <span className="text-gray-900 font-medium text-right break-words">
+                        {a.accountName || "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm gap-4">
+                      <span className="text-gray-600">Account number</span>
+                      <span className="text-gray-900 font-medium text-right">
+                        {a.accountNo || "-"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 const RealtorDetailsSection = ({
   realtor,
   onBack,
-  onViewBankDetails,
   onRemoveRealtor,
   onViewPropertyDetails,
   onViewReceiptDetails,
+  onRealtorUpdated,
 }: RealtorDetailsSectionProps) => {
   const [activeTab, setActiveTab] = useState<
     "Properties sold" | "Receipts" | "Transactions" | "Referrals"
@@ -211,6 +512,8 @@ const RealtorDetailsSection = ({
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [downlines, setDownlines] = useState<User[]>([]);
+  const [isKycModalOpen, setIsKycModalOpen] = useState(false);
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -785,28 +1088,22 @@ const RealtorDetailsSection = ({
                   ? "Pending"
                   : "Rejected"}
               </span>
-              {realtor.id_document_url ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    window.open(
-                      realtor.id_document_url ?? "",
-                      "_blank",
-                      "noopener,noreferrer"
-                    )
-                  }
-                  className="text-sm text-[#6500AC] font-semibold hover:underline ml-2"
-                >
-                  View
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => setIsKycModalOpen(true)}
+                className="text-sm text-[#6500AC] font-semibold hover:underline ml-2"
+              >
+                View
+              </button>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={onViewBankDetails}
+              onClick={() => {
+                setIsBankModalOpen(true);
+              }}
               className="flex-1 px-4 py-2 border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               View Bank details
@@ -1482,6 +1779,17 @@ const RealtorDetailsSection = ({
           </div>
         )}
       </div>
+      <KycReviewModal
+        isOpen={isKycModalOpen}
+        realtor={realtor}
+        onClose={() => setIsKycModalOpen(false)}
+        onUpdated={onRealtorUpdated}
+      />
+      <BankDetailsModal
+        isOpen={isBankModalOpen}
+        realtor={realtor}
+        onClose={() => setIsBankModalOpen(false)}
+      />
     </div>
   );
 };
