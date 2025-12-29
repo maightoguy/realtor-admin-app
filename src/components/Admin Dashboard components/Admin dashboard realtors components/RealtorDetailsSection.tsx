@@ -1,4 +1,4 @@
-import { ArrowLeft, Link2, X } from "lucide-react";
+import { ArrowLeft, Link2, Trash2, X } from "lucide-react";
 import AdminPropertyCard from "../Admin dashboard properties components/AdminPropertyCard";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
@@ -175,11 +175,107 @@ interface RealtorDetailsSectionProps {
   realtor: User;
   onBack: () => void;
   onViewBankDetails?: () => void;
-  onRemoveRealtor?: () => void;
+  onRemoveRealtor?: (realtorId: string) => Promise<void>;
   onViewPropertyDetails?: (propertyId: string) => void;
   onViewReceiptDetails?: (receiptId: string) => void;
   onRealtorUpdated?: (updated: User) => void;
 }
+
+interface RemoveRealtorModalProps {
+  isOpen: boolean;
+  realtorName: string;
+  isRemoving: boolean;
+  error: string | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+const RemoveRealtorModal = ({
+  isOpen,
+  realtorName,
+  isRemoving,
+  error,
+  onClose,
+  onConfirm,
+}: RemoveRealtorModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="flex items-center justify-between p-6 border-b border-[#EAECF0]">
+          <div className="flex flex-col items-start gap-3">
+            <div className="w-8 h-8 bg-[#FEE2E2] rounded-lg flex items-center justify-center">
+              <Trash2 className="w-4 h-4 text-[#DC2626]" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#0A1B39]">
+              Remove realtor
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#9CA1AA] hover:text-[#667085] transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-[#667085] text-sm leading-relaxed">
+            You are about to remove{" "}
+            <span className="text-[#0A1B39] font-medium">{realtorName}</span>{" "}
+            from the Veriplot database. This action may revoke access and affect
+            related records.
+          </p>
+
+          <ul className="space-y-2 text-[#667085] text-sm">
+            <li className="flex items-start gap-2">
+              <span className="text-[#DC2626] mt-1">•</span>
+              <span>They will lose access to the realtor platform.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#DC2626] mt-1">•</span>
+              <span>
+                They may no longer be eligible for payouts/commissions.
+              </span>
+            </li>
+          </ul>
+
+          <p className="text-[#667085] text-sm leading-relaxed">
+            Note that this action cannot be reversed. By clicking Proceed you
+            agree to this.
+          </p>
+
+          {error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-[#EAECF0]">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isRemoving}
+            className="sm:w-full sm:flex-1 px-4 py-2 border border-[#E6E7EC] text-[#667085] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isRemoving}
+            className="sm:w-full sm:flex-1 px-4 py-2 bg-[#DC2626] text-white rounded-lg hover:bg-[#B91C1C] transition-colors disabled:opacity-60"
+          >
+            {isRemoving ? "Removing..." : "Proceed to remove"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface KycReviewModalProps {
   isOpen: boolean;
@@ -279,7 +375,7 @@ const KycReviewModal = ({
             <div className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between text-sm gap-4">
                 <span className="text-gray-600">Realtor</span>
-                <span className="text-gray-900 font-medium text-right break-words">
+                <span className="text-gray-900 font-medium text-right wrap-break-words">
                   {`${realtor.first_name ?? ""} ${
                     realtor.last_name ?? ""
                   }`.trim() ||
@@ -451,7 +547,7 @@ const BankDetailsModal = ({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm gap-4">
                       <span className="text-gray-600">Account name</span>
-                      <span className="text-gray-900 font-medium text-right break-words">
+                      <span className="text-gray-900 font-medium text-right wrap-break-words">
                         {a.accountName || "-"}
                       </span>
                     </div>
@@ -514,6 +610,41 @@ const RealtorDetailsSection = ({
   const [downlines, setDownlines] = useState<User[]>([]);
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  const handleOpenRemoveModal = () => {
+    setRemoveError(null);
+    setIsRemoveModalOpen(true);
+  };
+
+  const handleCloseRemoveModal = () => {
+    if (isRemoving) return;
+    setIsRemoveModalOpen(false);
+    setRemoveError(null);
+  };
+
+  const handleConfirmRemove = async () => {
+    if (isRemoving) return;
+    setIsRemoving(true);
+    setRemoveError(null);
+    try {
+      if (onRemoveRealtor) {
+        await onRemoveRealtor(realtor.id);
+      } else {
+        await userService.delete(realtor.id);
+      }
+      setIsRemoveModalOpen(false);
+      onBack();
+    } catch (err) {
+      setRemoveError(
+        err instanceof Error ? err.message : "Failed to remove realtor."
+      );
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -1109,7 +1240,7 @@ const RealtorDetailsSection = ({
               View Bank details
             </button>
             <button
-              onClick={onRemoveRealtor}
+              onClick={handleOpenRemoveModal}
               className="flex-1 px-4 py-2 bg-[#EF4444] text-white rounded-lg text-sm font-medium hover:bg-[#DC2626] transition-colors"
             >
               Remove Realtor
@@ -1789,6 +1920,14 @@ const RealtorDetailsSection = ({
         isOpen={isBankModalOpen}
         realtor={realtor}
         onClose={() => setIsBankModalOpen(false)}
+      />
+      <RemoveRealtorModal
+        isOpen={isRemoveModalOpen}
+        realtorName={realtorName}
+        isRemoving={isRemoving}
+        error={removeError}
+        onClose={handleCloseRemoveModal}
+        onConfirm={handleConfirmRemove}
       />
     </div>
   );

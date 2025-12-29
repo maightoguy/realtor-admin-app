@@ -150,6 +150,16 @@ export const userService = {
     logger.info("[API][users] update success", { id });
     return data as User;
   },
+
+  async delete(id: string): Promise<void> {
+    logger.info("[API][users] delete start", { id });
+    const { error } = await getSupabaseClient().from("users").delete().eq("id", id);
+    if (error) {
+      logger.error("[API][users] delete failed", { id, ...errorToLogPayload(error) });
+      throw error;
+    }
+    logger.info("[API][users] delete success", { id });
+  },
 };
 
 export const propertyService = {

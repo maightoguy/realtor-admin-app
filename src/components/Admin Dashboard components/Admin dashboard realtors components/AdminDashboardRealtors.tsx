@@ -333,8 +333,10 @@ const AdminDashboardRealtors = () => {
     window.alert(JSON.stringify(bankDetails, null, 2));
   };
 
-  const handleRemoveRealtor = () => {
-    console.log("Remove realtor:", selectedRealtor?.id);
+  const handleRemoveRealtor = async (realtorId: string) => {
+    await userService.delete(realtorId);
+    setRealtors((prev) => prev.filter((r) => r.id !== realtorId));
+    setTotalRealtorsCount((prev) => Math.max(0, prev - 1));
     setSelectedRealtor(null);
   };
 
@@ -543,7 +545,7 @@ const AdminDashboardRealtors = () => {
                             <span className="text-sm font-medium text-gray-900">
                               {realtor.name}
                             </span>
-                            <span className="text-sm text-gray-500 break-words">
+                            <span className="text-sm text-gray-500 wrap-break-words">
                               {realtor.email}
                             </span>
                           </div>
