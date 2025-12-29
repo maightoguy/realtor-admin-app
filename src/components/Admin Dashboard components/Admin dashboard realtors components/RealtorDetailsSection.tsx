@@ -48,6 +48,12 @@ const formatDate = (iso: string) => {
   return `${monthName} ${day}${suffix}, ${year}`;
 };
 
+const formatIdMiddle = (value: string, start = 6, end = 4) => {
+  if (!value) return value;
+  if (value.length <= start + end + 1) return value;
+  return `${value.slice(0, start)}…${value.slice(-end)}`;
+};
+
 const normalizeReferralLink = (link: string) => {
   if (!link) return "https://referral.veriplot.com";
   if (link.startsWith("https://") || link.startsWith("http://")) return link;
@@ -1058,13 +1064,10 @@ const RealtorDetailsSection = ({
   }, [searchQuery, realtor.id, activeTab]);
 
   const referralMetrics = useMemo(() => {
-    const totalCommissionValue = referrals.reduce(
-      (sum, r) => {
-        const earned = Number(r.commission_earned);
-        return sum + (Number.isFinite(earned) ? earned : 0);
-      },
-      0
-    );
+    const totalCommissionValue = referrals.reduce((sum, r) => {
+      const earned = Number(r.commission_earned);
+      return sum + (Number.isFinite(earned) ? earned : 0);
+    }, 0);
 
     return {
       count: realtorReferrals.length,
@@ -1499,7 +1502,9 @@ const RealtorDetailsSection = ({
                               }`}
                               title={receipt.id}
                             >
-                              {receipt.id}
+                              {expandedReceiptId === receipt.id
+                                ? receipt.id
+                                : formatIdMiddle(receipt.id)}
                             </p>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-700">
@@ -1713,14 +1718,18 @@ const RealtorDetailsSection = ({
                               tabIndex={0}
                               onClick={() =>
                                 setExpandedTransactionId((prev) =>
-                                  prev === transaction.id ? null : transaction.id
+                                  prev === transaction.id
+                                    ? null
+                                    : transaction.id
                                 )
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
                                   setExpandedTransactionId((prev) =>
-                                    prev === transaction.id ? null : transaction.id
+                                    prev === transaction.id
+                                      ? null
+                                      : transaction.id
                                   );
                                 }
                               }}
@@ -1731,7 +1740,9 @@ const RealtorDetailsSection = ({
                               }`}
                               title={transaction.id}
                             >
-                              {transaction.id}
+                              {expandedTransactionId === transaction.id
+                                ? transaction.id
+                                : formatIdMiddle(transaction.id)}
                             </p>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-700">
@@ -1943,7 +1954,9 @@ const RealtorDetailsSection = ({
                               }`}
                               title={referral.id}
                             >
-                              {referral.id}
+                              {expandedReferralId === referral.id
+                                ? referral.id
+                                : formatIdMiddle(referral.id)}
                             </p>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-700">

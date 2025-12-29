@@ -114,7 +114,7 @@ const AdminPropertyDeveloper = ({
         <AddDeveloperPopupModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
-          onAddDeveloper={handleAddDeveloper}
+          onSubmitDeveloper={handleAddDeveloper}
         />
       </div>
     );
@@ -229,7 +229,7 @@ const AdminPropertyDeveloper = ({
       <AddDeveloperPopupModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onAddDeveloper={handleAddDeveloper}
+        onSubmitDeveloper={handleAddDeveloper}
       />
     </div>
   );

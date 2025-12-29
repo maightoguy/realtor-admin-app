@@ -8,6 +8,12 @@ import type { User } from "../../../services/types";
 import { receiptService, userService } from "../../../services/apiService";
 import DefaultProfilePic from "../../../assets/Default Profile pic.png";
 
+const formatIdMiddle = (value: string, start = 6, end = 4) => {
+  if (!value) return value;
+  if (value.length <= start + end + 1) return value;
+  return `${value.slice(0, start)}…${value.slice(-end)}`;
+};
+
 // MetricCard component (matching AdminDashboardReceipts pattern)
 interface MetricCardProps {
   title: string;
@@ -531,7 +537,9 @@ const AdminDashboardRealtors = () => {
                           }`}
                           title={realtor.id}
                         >
-                          {realtor.id}
+                          {expandedRealtorId === realtor.id
+                            ? realtor.id
+                            : formatIdMiddle(realtor.id)}
                         </p>
                       </td>
                       <td className="px-6 py-4">

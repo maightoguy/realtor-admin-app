@@ -154,7 +154,7 @@ const AddPropertyForm = ({
   }, []);
 
   const activeDevelopers = developers.filter(
-    (d) => String(d.status).toLowerCase() !== "removed"
+    (d) => String(d.status).toLowerCase() !== "inactive"
   );
 
   useEffect(() => {
@@ -1700,9 +1700,9 @@ const AddPropertyForm = ({
       <AddDeveloperPopupModal
         isOpen={isAddDeveloperModalOpen}
         onClose={() => setIsAddDeveloperModalOpen(false)}
-        onAddDeveloper={(developerData) => {
-          void handleAddDeveloperFromModal(developerData);
-        }}
+        onSubmitDeveloper={(developerData) =>
+          void handleAddDeveloperFromModal(developerData)
+        }
       />
     </>
   );

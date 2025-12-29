@@ -30,6 +30,8 @@ const DeveloperDetailsSection = ({
     "Dec",
   ];
 
+  const currentMonthIndex = new Date().getMonth();
+
   // Get sales statistics data
   const salesStats: SalesStatistics = developer.salesStatistics || {
     jan: 0,
@@ -229,7 +231,7 @@ const DeveloperDetailsSection = ({
                 <div className="relative h-48 flex items-end justify-between gap-1.5 mb-2">
                   {chartData.map((value, index) => {
                     const height = (value / chartMaxValue) * 100;
-                    const isCurrentMonth = months[index] === "Aug";
+                    const isCurrentMonth = index === currentMonthIndex;
                     return (
                       <div
                         key={`bar-${index}`}

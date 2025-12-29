@@ -84,13 +84,22 @@ const NotificationDetailsModal = ({
   };
 
   const userDisplayText = getUserDisplayText();
+  const formatIdMiddle = (value: string, start = 6, end = 4) => {
+    if (!value) return value;
+    if (value.length <= start + end + 1) return value;
+    return `${value.slice(0, start)}…${value.slice(-end)}`;
+  };
   const isLikelyUserId = (() => {
     const text = userDisplayText.trim();
     if (text.length < 20) return false;
     if (text.includes("users selected")) return false;
     if (text.includes("All ")) return false;
     if (text.includes(",") || text.includes(" ")) return false;
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text))
+    if (
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        text
+      )
+    )
       return true;
     if (/^[a-z0-9_-]{20,}$/i.test(text)) return true;
     return false;
@@ -183,9 +192,7 @@ const NotificationDetailsModal = ({
                     <span
                       role="button"
                       tabIndex={0}
-                      onClick={() =>
-                        setIsUserDisplayExpanded((prev) => !prev)
-                      }
+                      onClick={() => setIsUserDisplayExpanded((prev) => !prev)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
@@ -199,7 +206,9 @@ const NotificationDetailsModal = ({
                       }`}
                       title={userDisplayText}
                     >
-                      {userDisplayText}
+                      {isUserDisplayExpanded
+                        ? userDisplayText
+                        : formatIdMiddle(userDisplayText)}
                     </span>
                   ) : (
                     <span>{userDisplayText}</span>

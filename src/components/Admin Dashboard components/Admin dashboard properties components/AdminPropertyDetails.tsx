@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import MapViewer from "../../MapViewer";
 import ImageViewerModal from "./ImageViewerModal";
@@ -9,7 +9,10 @@ import {
 } from "./adminDashboardPropertiesData";
 import ReceiptsIcon from "../../icons/ReceiptsIcon";
 import { logger } from "../../../utils/logger";
-import { propertyMediaService } from "../../../services/apiService";
+import {
+  propertyMediaService,
+  receiptService,
+} from "../../../services/apiService";
 import type { Developer } from "../../../services/types";
 
 interface Property {
@@ -57,6 +60,16 @@ const AdminPropertyDetails = ({
     [number, number]
   >([6.5244, 3.3792]);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [receiptStats, setReceiptStats] = useState<{
+    totalUploaded: number;
+    totalApproved: number;
+    totalRejected: number;
+  }>({ totalUploaded: 0, totalApproved: 0, totalRejected: 0 });
+  const [salesChartData, setSalesChartData] = useState<number[]>(
+    Array.from({ length: 12 }, () => 0)
+  );
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   const idSeed = Array.from(property.id).reduce(
     (acc, ch) => acc + ch.charCodeAt(0),
@@ -131,6 +144,128 @@ const AdminPropertyDetails = ({
       });
     }
   }, [property.location]);
+
+  const getFallbackSalesChartData = useCallback((): number[] => {
+    const developer =
+      (property.developerId
+        ? developers?.find((d) => d.id === property.developerId)
+        : undefined) ??
+      (property.developer
+        ? developers?.find((d) => d.name === property.developer)
+        : undefined);
+
+    const salesStats: SalesStatistics = (
+      developer as unknown as { salesStatistics?: SalesStatistics }
+    )?.salesStatistics || {
+      jan: 0,
+      feb: 0,
+      mar: 0,
+      apr: 0,
+      may: 0,
+      jun: 0,
+      jul: 0,
+      aug: 0,
+      sep: 0,
+      oct: 0,
+      nov: 0,
+      dec: 0,
+    };
+
+    return [
+      salesStats.jan,
+      salesStats.feb,
+      salesStats.mar,
+      salesStats.apr,
+      salesStats.may,
+      salesStats.jun,
+      salesStats.jul,
+      salesStats.aug,
+      salesStats.sep,
+      salesStats.oct,
+      salesStats.nov,
+      salesStats.dec,
+    ];
+  }, [developers, property.developer, property.developerId]);
+
+  useEffect(() => {
+    if (activeTab !== "Statistics") return;
+
+    let cancelled = false;
+
+    const load = async () => {
+      setIsStatsLoading(true);
+      setStatsError(null);
+
+      try {
+        const receipts = await receiptService.getAll({
+          propertyId: property.id,
+          limit: 5000,
+        });
+
+        if (cancelled) return;
+
+        const totalUploaded = receipts.length;
+        const totalApproved = receipts.filter(
+          (receipt) => receipt.status === "approved"
+        ).length;
+        const totalRejected = receipts.filter(
+          (receipt) => receipt.status === "rejected"
+        ).length;
+
+        setReceiptStats({
+          totalUploaded,
+          totalApproved,
+          totalRejected,
+        });
+
+        const currentYear = new Date().getFullYear();
+        const monthlyTotals = Array.from({ length: 12 }, () => 0);
+
+        for (const receipt of receipts) {
+          if (receipt.status !== "approved") continue;
+          if (!receipt.created_at) continue;
+          const createdAt = new Date(receipt.created_at);
+          if (Number.isNaN(createdAt.getTime())) continue;
+          if (createdAt.getFullYear() !== currentYear) continue;
+          const monthIndex = createdAt.getMonth();
+          const amount = Number(receipt.amount_paid);
+          if (!Number.isFinite(amount)) continue;
+          monthlyTotals[monthIndex] += amount;
+        }
+
+        const hasAnySales = monthlyTotals.some((value) => value > 0);
+        setSalesChartData(
+          hasAnySales ? monthlyTotals : getFallbackSalesChartData()
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load statistics";
+        logger.error("[ADMIN][PROPERTY DETAILS] Failed to load statistics", {
+          propertyId: property.id,
+          error: message,
+        });
+        if (!cancelled) {
+          setReceiptStats({
+            totalUploaded: 0,
+            totalApproved: 0,
+            totalRejected: 0,
+          });
+          setSalesChartData(getFallbackSalesChartData());
+          setStatsError(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsStatsLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, developers, getFallbackSalesChartData, property.id]);
 
   const handleImageClick = (index: number) => {
     setViewerImageIndex(index);
@@ -711,32 +846,6 @@ const AdminPropertyDetails = ({
             </div>
           );
 
-          // Find the developer associated with this property
-          let developer = null;
-          if (property.developer) {
-            developer =
-              developers?.find((d) => d.name === property.developer) ?? null;
-          }
-
-          // Get sales statistics from developer or use defaults
-          const salesStats: SalesStatistics = (
-            developer as unknown as { salesStatistics?: SalesStatistics }
-          )?.salesStatistics || {
-            jan: 0,
-            feb: 0,
-            mar: 0,
-            apr: 0,
-            may: 0,
-            jun: 0,
-            jul: 0,
-            aug: 0,
-            sep: 0,
-            oct: 0,
-            nov: 0,
-            dec: 0,
-          };
-
-          // Convert sales statistics to array for chart
           const months = [
             "Jan",
             "Feb",
@@ -751,22 +860,9 @@ const AdminPropertyDetails = ({
             "Nov",
             "Dec",
           ];
-          const chartData = [
-            salesStats.jan,
-            salesStats.feb,
-            salesStats.mar,
-            salesStats.apr,
-            salesStats.may,
-            salesStats.jun,
-            salesStats.jul,
-            salesStats.aug,
-            salesStats.sep,
-            salesStats.oct,
-            salesStats.nov,
-            salesStats.dec,
-          ];
+          const chartData = salesChartData;
 
-          const maxValue = Math.max(...chartData, 1);
+          const maxValue = Math.max(...chartData);
 
           // Calculate Y-axis labels based on max value
           const getYAxisLabels = () => {
@@ -809,26 +905,23 @@ const AdminPropertyDetails = ({
               ? Math.ceil(maxValue / 1000) * 1000
               : Math.ceil(maxValue / 1000000) * 1000000;
 
-          // Mock receipt statistics (in a real app, this would come from API)
-          // Using property ID as seed for consistent mock data
-          const receiptStats = {
-            totalUploaded: 100 + (idSeed % 50),
-            totalApproved: 500 + (idSeed % 200),
-            totalRejected: 10 + (idSeed % 20),
-          };
-
           // Get current month index (0-based, where 0 = Jan)
           const currentDate = new Date();
           const currentMonthIndex = currentDate.getMonth();
 
           return (
             <div className="space-y-6">
+              {statsError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+                  {statsError}
+                </div>
+              )}
               {/* Receipt Metric Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Total Receipt Uploaded */}
                 <MetricCard
                   title="Total Receipt uploaded"
-                  value={receiptStats.totalUploaded}
+                  value={isStatsLoading ? "—" : receiptStats.totalUploaded}
                   icon={<ReceiptsIcon color="#6500AC" />}
                   iconBgColor="#F0E6F7"
                   iconStrokeColor="#F0E6F7"
@@ -838,7 +931,7 @@ const AdminPropertyDetails = ({
                 {/* Total Receipt Approved */}
                 <MetricCard
                   title="Total Receipt Approved"
-                  value={receiptStats.totalApproved}
+                  value={isStatsLoading ? "—" : receiptStats.totalApproved}
                   icon={<ReceiptsIcon color="#22C55E" />}
                   iconBgColor="#D1FAE5"
                   iconStrokeColor="#D1FAE5"
@@ -848,7 +941,7 @@ const AdminPropertyDetails = ({
                 {/* Total Receipt Rejected */}
                 <MetricCard
                   title="Total Receipt Rejected"
-                  value={receiptStats.totalRejected}
+                  value={isStatsLoading ? "—" : receiptStats.totalRejected}
                   icon={<ReceiptsIcon color="#EF4444" />}
                   iconBgColor="#FEE2E2"
                   iconStrokeColor="#FEE2E2"

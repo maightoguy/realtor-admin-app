@@ -8,6 +8,12 @@ import { referralService, userService } from "../../../services/apiService";
 
 type TabType = "all" | "top";
 
+const formatIdMiddle = (value: string, start = 6, end = 4) => {
+  if (!value) return value;
+  if (value.length <= start + end + 1) return value;
+  return `${value.slice(0, start)}…${value.slice(-end)}`;
+};
+
 type ReferralRow = {
   id: string;
   name: string;
@@ -289,7 +295,9 @@ const AdminDashboardReferrals = () => {
                         }`}
                         title={referral.id}
                       >
-                        {referral.id}
+                        {expandedRealtorId === referral.id
+                          ? referral.id
+                          : formatIdMiddle(referral.id)}
                       </p>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">

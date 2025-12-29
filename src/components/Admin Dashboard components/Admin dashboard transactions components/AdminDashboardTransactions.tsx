@@ -14,6 +14,12 @@ import {
 import Loader from "../../Loader";
 import type { Commission, Payout, User } from "../../../services/types";
 
+const formatIdMiddle = (value: string, start = 6, end = 4) => {
+  if (!value) return value;
+  if (value.length <= start + end + 1) return value;
+  return `${value.slice(0, start)}…${value.slice(-end)}`;
+};
+
 class TransactionsErrorBoundary extends Component<
   { children: React.ReactNode; onReset: () => void },
   { error: Error | null }
@@ -626,7 +632,9 @@ const AdminDashboardTransactionsInner = () => {
                             }`}
                             title={transaction.id}
                           >
-                            {transaction.id}
+                            {expandedTransactionId === transaction.id
+                              ? transaction.id
+                              : formatIdMiddle(transaction.id)}
                           </p>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-700">

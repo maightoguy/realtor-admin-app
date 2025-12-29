@@ -1,11 +1,19 @@
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RealtorsIcon from "../../icons/RealtorsIcon";
 
 interface AddDeveloperPopupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddDeveloper: (developerData: {
+  title?: string;
+  description?: string;
+  submitLabel?: string;
+  initialData?: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  onSubmitDeveloper: (developerData: {
     name: string;
     email: string;
     phone: string;
@@ -15,7 +23,11 @@ interface AddDeveloperPopupModalProps {
 const AddDeveloperPopupModal = ({
   isOpen,
   onClose,
-  onAddDeveloper,
+  title,
+  description,
+  submitLabel,
+  initialData,
+  onSubmitDeveloper,
 }: AddDeveloperPopupModalProps) => {
   const [formData, setFormData] = useState({
     name: "",
@@ -35,6 +47,16 @@ const AddDeveloperPopupModal = ({
     setErrors({ name: "", email: "", phone: "" });
     onClose();
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setFormData({
+      name: initialData?.name ?? "",
+      email: initialData?.email ?? "",
+      phone: initialData?.phone ?? "",
+    });
+    setErrors({ name: "", email: "", phone: "" });
+  }, [initialData?.email, initialData?.name, initialData?.phone, isOpen]);
 
   // Validate form
   const validateForm = () => {
@@ -68,7 +90,7 @@ const AddDeveloperPopupModal = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onAddDeveloper(formData);
+      onSubmitDeveloper(formData);
       handleClose();
     }
   };
@@ -114,7 +136,7 @@ const AddDeveloperPopupModal = ({
                   <RealtorsIcon color="#000000" />
                 </div>
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Add developer
+                  {title ?? "Add developer"}
                 </h2>
               </div>
             </div>
@@ -123,7 +145,7 @@ const AddDeveloperPopupModal = ({
           {/* Body */}
           <form onSubmit={handleSubmit} className="p-6">
             <p className="text-sm text-gray-600 mb-6">
-              Kindly enter developer's details below
+              {description ?? "Kindly enter developer's details below"}
             </p>
 
             <div className="space-y-5">
@@ -213,7 +235,7 @@ const AddDeveloperPopupModal = ({
                 type="submit"
                 className="flex-1 px-4 py-3 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
               >
-                Add details
+                {submitLabel ?? "Add details"}
               </button>
             </div>
           </form>

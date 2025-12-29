@@ -223,7 +223,53 @@ const AdminDashboardOverview = () => {
       ? snapshot.monthlyCommission
       : snapshot.monthlyNewRealtors;
   }, [chartView, snapshot]);
-  const maxValue = Math.max(...chartData, 1);
+
+  const chartDataFixed = useMemo(() => {
+    if (chartData.length === 12) return chartData;
+    const fixed = Array.from({ length: 12 }, (_, i) =>
+      Number.isFinite(chartData[i]) ? Number(chartData[i]) : 0
+    );
+    return fixed;
+  }, [chartData]);
+
+  const currentMonthIndex = new Date().getUTCMonth();
+
+  const { yAxisLabels, chartMaxValue } = useMemo(() => {
+    const rawMax = Math.max(...chartDataFixed, 0);
+
+    if (chartView === "Commission") {
+      const scale =
+        rawMax >= 1_000_000 ? 1_000_000 : rawMax >= 1_000 ? 1_000 : 1;
+      const roundedMax = rawMax <= 0 ? 1 : Math.ceil(rawMax / scale) * scale;
+      const format = (value: number) => {
+        if (scale === 1_000_000) return `₦${Math.round(value / 1_000_000)}M`;
+        if (scale === 1_000) return `₦${Math.round(value / 1_000)}K`;
+        return `₦${Math.round(value).toLocaleString()}`;
+      };
+      const labels = [
+        format(roundedMax),
+        format(roundedMax * 0.5),
+        format(roundedMax * 0.25),
+        "₦0",
+      ];
+      return { yAxisLabels: labels, chartMaxValue: roundedMax };
+    }
+
+    const step =
+      rawMax >= 1_000 ? 1_000 : rawMax >= 100 ? 100 : rawMax >= 10 ? 10 : 1;
+    const roundedMax = rawMax <= 0 ? 1 : Math.ceil(rawMax / step) * step;
+    const format = (value: number) => {
+      if (roundedMax >= 1_000) return `${Math.round(value / 1_000)}K`;
+      return `${Math.round(value)}`;
+    };
+    const labels = [
+      format(roundedMax),
+      format(roundedMax * 0.5),
+      format(roundedMax * 0.25),
+      "0",
+    ];
+    return { yAxisLabels: labels, chartMaxValue: roundedMax };
+  }, [chartDataFixed, chartView]);
 
   const metrics = useMemo(() => {
     if (!snapshot) {
@@ -368,29 +414,30 @@ const AdminDashboardOverview = () => {
             <div className="relative h-64">
               {/* Y-axis labels */}
               <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 pr-3 w-12">
-                <span>₦10M</span>
-                <span>₦5M</span>
-                <span>₦1M</span>
-                <span>₦0</span>
+                {yAxisLabels.map((label, index) => (
+                  <span key={`${label}-${index}`}>{label}</span>
+                ))}
               </div>
 
               {/* Chart container with grid lines */}
               <div className="ml-12 pr-4 relative h-full">
                 {/* Grid lines */}
                 <div className="absolute inset-0 flex flex-col justify-between pb-12">
-                  <div className="w-full h-px bg-gray-200"></div>
-                  <div className="w-full h-px bg-gray-200"></div>
-                  <div className="w-full h-px bg-gray-200"></div>
-                  <div className="w-full h-px bg-gray-200"></div>
+                  {yAxisLabels.map((label, index) => (
+                    <div
+                      key={`${label}-${index}`}
+                      className="w-full h-px bg-gray-200"
+                    ></div>
+                  ))}
                 </div>
 
                 {/* Bars and labels container */}
                 <div className="relative">
                   {/* Bars container */}
                   <div className="relative h-48 flex items-end justify-between gap-1.5 mb-2">
-                    {chartData.map((value, index) => {
-                      const height = (value / maxValue) * 100;
-                      const isCurrentMonth = months[index] === "Aug";
+                    {chartDataFixed.map((value, index) => {
+                      const height = (value / chartMaxValue) * 100;
+                      const isCurrentMonth = index === currentMonthIndex;
                       return (
                         <div
                           key={`bar-${index}`}
@@ -428,7 +475,7 @@ const AdminDashboardOverview = () => {
                   {/* Month labels */}
                   <div className="flex items-center justify-between gap-1.5 mt-2">
                     {months.map((month, index) => {
-                      const isCurrentMonth = month === "Aug";
+                      const isCurrentMonth = index === currentMonthIndex;
                       return (
                         <div
                           key={`label-${index}`}

@@ -11,6 +11,7 @@ import RealtorsIcon from "../../icons/RealtorsIcon.tsx";
 import AddPropertyForm from "./AddPropertyForm.tsx";
 import DeveloperDetailsSection from "./DeveloperDetailsSection.tsx";
 import AdminPropertyDetails from "./AdminPropertyDetails.tsx";
+import AddDeveloperPopupModal from "./AddDeveloperPopupModal.tsx";
 import {
   developerService,
   propertyMediaService,
@@ -145,6 +146,9 @@ const AdminDashboardProperties = ({
     null
   );
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [editingDeveloper, setEditingDeveloper] = useState<Developer | null>(
+    null
+  );
   const itemsPerPage = 8;
 
   const developersById = useMemo(() => {
@@ -507,21 +511,27 @@ const AdminDashboardProperties = ({
   };
 
   const handleEditDeveloper = (developerId: string) => {
-    // Handle edit developer
     logger.info("[ADMIN][DEVELOPERS] Edit clicked", { developerId });
+    const developer =
+      developers.find((d) => d.id === developerId) ??
+      (selectedDeveloper?.id === developerId ? selectedDeveloper : null);
+    if (!developer) return;
+    setEditingDeveloper(developer);
   };
 
   const handleRemoveDeveloper = async (developerId: string) => {
     logger.info("[ADMIN][DEVELOPERS] Remove clicked", { developerId });
     try {
-      await developerService.update(developerId, { status: "Removed" });
+      await developerService.update(developerId, { status: "Inactive" });
       setDevelopers((prev) =>
         prev.map((d) =>
-          d.id === developerId ? { ...d, status: "Removed" } : d
+          d.id === developerId ? { ...d, status: "Inactive" } : d
         )
       );
       if (selectedDeveloper?.id === developerId) {
-        setSelectedDeveloper(null);
+        setSelectedDeveloper((prev) =>
+          prev?.id === developerId ? { ...prev, status: "Inactive" } : prev
+        );
       }
     } catch (e: unknown) {
       logger.error("[ADMIN][DEVELOPERS] Remove failed", {
@@ -940,6 +950,55 @@ const AdminDashboardProperties = ({
           }
         />
       )}
+
+      <AddDeveloperPopupModal
+        isOpen={!!editingDeveloper}
+        onClose={() => setEditingDeveloper(null)}
+        title="Edit developer"
+        description="Kindly update developer's details below"
+        submitLabel="Save changes"
+        initialData={
+          editingDeveloper
+            ? {
+                name: editingDeveloper.name,
+                email: editingDeveloper.email,
+                phone: editingDeveloper.phone,
+              }
+            : undefined
+        }
+        onSubmitDeveloper={async (payload) => {
+          if (!editingDeveloper) return;
+          const existing = editingDeveloper;
+          const updated = await developerService.update(existing.id, {
+            name: payload.name,
+            email: payload.email,
+            phone: payload.phone,
+          });
+          setDevelopers((prev) =>
+            prev.map((d) =>
+              d.id === existing.id
+                ? {
+                    ...d,
+                    ...updated,
+                    totalProperties: d.totalProperties,
+                    dateAdded: d.dateAdded,
+                  }
+                : d
+            )
+          );
+          setSelectedDeveloper((prev) =>
+            prev?.id === existing.id
+              ? {
+                  ...prev,
+                  ...updated,
+                  totalProperties: prev.totalProperties,
+                  dateAdded: prev.dateAdded,
+                }
+              : prev
+          );
+          setEditingDeveloper(null);
+        }}
+      />
 
       {/* Content based on active tab */}
       {!showAddForm && !selectedProperty && (

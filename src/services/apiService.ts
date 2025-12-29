@@ -471,14 +471,17 @@ function adaptDeveloperRow(row: Record<string, unknown>): Developer {
     name: String(row.name ?? ""),
     email: String(row.email ?? ""),
     phone: String(row.phone ?? ""),
-    status: (statusNormalized === "removed" ? "Removed" : "Active") as Developer["status"],
+    status: (statusNormalized === "inactive" ? "Inactive" : "Active") as Developer["status"],
     dateAdded: typeof row.created_at === "string" ? row.created_at : new Date().toISOString(),
     totalProperties: 0,
   };
 }
 
-function toDbDeveloperStatus(status: Developer["status"]): "active" | "removed" {
-  if (typeof status === "string" && status.toLowerCase() === "removed") return "removed";
+function toDbDeveloperStatus(status: Developer["status"]): "active" | "inactive" {
+  if (typeof status === "string") {
+    const normalized = status.toLowerCase();
+    if (normalized === "inactive" || normalized === "removed") return "inactive";
+  }
   return "active";
 }
 
