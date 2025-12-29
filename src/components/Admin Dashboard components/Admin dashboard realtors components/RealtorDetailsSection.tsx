@@ -600,6 +600,15 @@ const RealtorDetailsSection = ({
   const [referralsPage, setReferralsPage] = useState(1);
   const referralsPerPage = 8;
   const [copyStatus, setCopyStatus] = useState<"code" | "link" | null>(null);
+  const [expandedReceiptId, setExpandedReceiptId] = useState<string | null>(
+    null
+  );
+  const [expandedTransactionId, setExpandedTransactionId] = useState<
+    string | null
+  >(null);
+  const [expandedReferralId, setExpandedReferralId] = useState<string | null>(
+    null
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -1467,7 +1476,31 @@ const RealtorDetailsSection = ({
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                            {receipt.id}
+                            <p
+                              role="button"
+                              tabIndex={0}
+                              onClick={() =>
+                                setExpandedReceiptId((prev) =>
+                                  prev === receipt.id ? null : receipt.id
+                                )
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setExpandedReceiptId((prev) =>
+                                    prev === receipt.id ? null : receipt.id
+                                  );
+                                }
+                              }}
+                              className={`block w-full cursor-pointer select-text ${
+                                expandedReceiptId === receipt.id
+                                  ? "break-all whitespace-normal"
+                                  : "truncate whitespace-nowrap"
+                              }`}
+                              title={receipt.id}
+                            >
+                              {receipt.id}
+                            </p>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-700">
                             {receipt.clientName}
@@ -1675,7 +1708,31 @@ const RealtorDetailsSection = ({
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                            {transaction.id}
+                            <p
+                              role="button"
+                              tabIndex={0}
+                              onClick={() =>
+                                setExpandedTransactionId((prev) =>
+                                  prev === transaction.id ? null : transaction.id
+                                )
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setExpandedTransactionId((prev) =>
+                                    prev === transaction.id ? null : transaction.id
+                                  );
+                                }
+                              }}
+                              className={`block w-full cursor-pointer select-text ${
+                                expandedTransactionId === transaction.id
+                                  ? "break-all whitespace-normal"
+                                  : "truncate whitespace-nowrap"
+                              }`}
+                              title={transaction.id}
+                            >
+                              {transaction.id}
+                            </p>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-700">
                             {transaction.type === "Commission"
@@ -1863,7 +1920,31 @@ const RealtorDetailsSection = ({
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                            {referral.id}
+                            <p
+                              role="button"
+                              tabIndex={0}
+                              onClick={() =>
+                                setExpandedReferralId((prev) =>
+                                  prev === referral.id ? null : referral.id
+                                )
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setExpandedReferralId((prev) =>
+                                    prev === referral.id ? null : referral.id
+                                  );
+                                }
+                              }}
+                              className={`block w-full cursor-pointer select-text ${
+                                expandedReferralId === referral.id
+                                  ? "break-all whitespace-normal"
+                                  : "truncate whitespace-nowrap"
+                              }`}
+                              title={referral.id}
+                            >
+                              {referral.id}
+                            </p>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-700">
                             {referral.name}

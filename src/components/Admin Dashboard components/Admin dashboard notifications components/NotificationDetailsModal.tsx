@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import NotificationBellIcon from "../../icons/NotificationBellIcon";
 import type { Notification } from "./AdminNotificationsData";
@@ -16,6 +16,8 @@ const NotificationDetailsModal = ({
   notification,
   onResend,
 }: NotificationDetailsModalProps) => {
+  const [isUserDisplayExpanded, setIsUserDisplayExpanded] = useState(false);
+
   // Prevent background scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -28,6 +30,10 @@ const NotificationDetailsModal = ({
       document.body.classList.remove("modal-open");
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) setIsUserDisplayExpanded(false);
+  }, [isOpen, notification?.id]);
 
   if (!isOpen || !notification) return null;
 
@@ -76,6 +82,19 @@ const NotificationDetailsModal = ({
     }
     onClose();
   };
+
+  const userDisplayText = getUserDisplayText();
+  const isLikelyUserId = (() => {
+    const text = userDisplayText.trim();
+    if (text.length < 20) return false;
+    if (text.includes("users selected")) return false;
+    if (text.includes("All ")) return false;
+    if (text.includes(",") || text.includes(" ")) return false;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text))
+      return true;
+    if (/^[a-z0-9_-]{20,}$/i.test(text)) return true;
+    return false;
+  })();
 
   return (
     <>
@@ -160,7 +179,31 @@ const NotificationDetailsModal = ({
               </label>
               <div className="relative">
                 <div className="w-full px-4 py-3 border border-[#F0F1F2] rounded-lg text-sm text-gray-900 bg-white flex items-center justify-between cursor-not-allowed">
-                  <span>{getUserDisplayText()}</span>
+                  {isLikelyUserId ? (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        setIsUserDisplayExpanded((prev) => !prev)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setIsUserDisplayExpanded((prev) => !prev);
+                        }
+                      }}
+                      className={`block w-full cursor-pointer select-text ${
+                        isUserDisplayExpanded
+                          ? "break-all whitespace-normal"
+                          : "truncate whitespace-nowrap"
+                      }`}
+                      title={userDisplayText}
+                    >
+                      {userDisplayText}
+                    </span>
+                  ) : (
+                    <span>{userDisplayText}</span>
+                  )}
                 </div>
               </div>
             </div>

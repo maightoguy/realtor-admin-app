@@ -25,6 +25,9 @@ const AdminDashboardReferrals = () => {
   const [rows, setRows] = useState<ReferralRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRealtor, setSelectedRealtor] = useState<User | null>(null);
+  const [expandedRealtorId, setExpandedRealtorId] = useState<string | null>(
+    null
+  );
   const itemsPerPage = 8;
 
   const formatNaira = (amount: number) =>
@@ -57,8 +60,9 @@ const AdminDashboardReferrals = () => {
         if (cancelled) return;
         const mapped: ReferralRow[] = stats.map((s) => {
           const name =
-            `${s.realtor.first_name ?? ""} ${s.realtor.last_name ?? ""}`.trim() ||
-            "-";
+            `${s.realtor.first_name ?? ""} ${
+              s.realtor.last_name ?? ""
+            }`.trim() || "-";
           return {
             id: s.realtor.id,
             name,
@@ -123,6 +127,10 @@ const AdminDashboardReferrals = () => {
   const handleViewAgent = (referralId: string) => {
     const row = rows.find((r) => r.id === referralId) ?? null;
     if (row) setSelectedRealtor(row.recruiter);
+  };
+
+  const handleToggleRealtorId = (realtorId: string) => {
+    setExpandedRealtorId((prev) => (prev === realtorId ? null : realtorId));
   };
 
   const handleBackFromDetails = () => {
@@ -263,8 +271,26 @@ const AdminDashboardReferrals = () => {
                     key={`${referral.id}-${index}`}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {referral.id}
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 w-56">
+                      <p
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleToggleRealtorId(referral.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            handleToggleRealtorId(referral.id);
+                          }
+                        }}
+                        className={`block w-full cursor-pointer select-text ${
+                          expandedRealtorId === referral.id
+                            ? "break-all whitespace-normal"
+                            : "truncate whitespace-nowrap"
+                        }`}
+                        title={referral.id}
+                      >
+                        {referral.id}
+                      </p>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {referral.name}

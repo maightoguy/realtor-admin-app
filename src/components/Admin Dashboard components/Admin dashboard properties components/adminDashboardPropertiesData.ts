@@ -32,11 +32,3 @@ export interface SalesStatistics {
   nov: number;
   dec: number;
 }
-
-export const sampleDevelopers: { name: string }[] = [
-  { name: "Iretiola Okunade" },
-  { name: "Izuokumo Aganaba" },
-  { name: "Seyi Olabode" },
-  { name: "Kuroebi Timipre" },
-  { name: "Tonbara Ziworitin" },
-];

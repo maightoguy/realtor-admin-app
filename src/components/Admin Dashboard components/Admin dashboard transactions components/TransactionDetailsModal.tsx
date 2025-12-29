@@ -266,7 +266,12 @@ const DetailRow = ({
 }) => (
   <div className="flex items-center justify-between text-sm">
     <span className="text-gray-600">{label}</span>
-    <span className="text-gray-900 font-medium">{value}</span>
+    <span
+      className="text-gray-900 font-medium max-w-[240px] truncate"
+      title={String(value)}
+    >
+      {value}
+    </span>
   </div>
 );
 

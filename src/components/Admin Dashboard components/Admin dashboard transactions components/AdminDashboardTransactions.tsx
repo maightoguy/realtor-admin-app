@@ -170,6 +170,9 @@ const AdminDashboardTransactionsInner = () => {
     useState<Transaction | null>(null);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [expandedTransactionId, setExpandedTransactionId] = useState<
+    string | null
+  >(null);
   const itemsPerPage = 8;
 
   const formatNaira = (amount: number) =>
@@ -369,6 +372,12 @@ const AdminDashboardTransactionsInner = () => {
     } else {
       setIsTransactionModalOpen(true);
     }
+  };
+
+  const handleToggleTransactionId = (transactionId: string) => {
+    setExpandedTransactionId((prev) =>
+      prev === transactionId ? null : transactionId
+    );
   };
 
   const handleCloseModals = () => {
@@ -597,8 +606,28 @@ const AdminDashboardTransactionsInner = () => {
                         key={transaction.id}
                         className="hover:bg-gray-50 transition-colors"
                       >
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                          {transaction.id}
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900 w-56">
+                          <p
+                            role="button"
+                            tabIndex={0}
+                            onClick={() =>
+                              handleToggleTransactionId(transaction.id)
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleToggleTransactionId(transaction.id);
+                              }
+                            }}
+                            className={`block w-full cursor-pointer select-text ${
+                              expandedTransactionId === transaction.id
+                                ? "break-all whitespace-normal"
+                                : "truncate whitespace-nowrap"
+                            }`}
+                            title={transaction.id}
+                          >
+                            {transaction.id}
+                          </p>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-700">
                           {transaction.realtorName}
