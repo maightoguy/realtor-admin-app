@@ -1,28 +1,95 @@
 import { useState, useMemo, useEffect } from "react";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
-import { mockReferrals } from "./refferalData";
+import RealtorDetailsSection from "../Admin dashboard realtors components/RealtorDetailsSection";
+import Loader from "../../Loader";
+import type { User } from "../../../services/types";
+import { referralService, userService } from "../../../services/apiService";
 
 type TabType = "all" | "top";
+
+type ReferralRow = {
+  id: string;
+  name: string;
+  referralCode: string;
+  dateJoined: string;
+  recruitsCount: number;
+  totalReferralCommission: string;
+  recruiter: User;
+};
 
 const AdminDashboardReferrals = () => {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [rows, setRows] = useState<ReferralRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedRealtor, setSelectedRealtor] = useState<User | null>(null);
   const itemsPerPage = 8;
 
-  // Filter referrals based on active tab
+  const formatNaira = (amount: number) =>
+    `₦${Math.round(amount).toLocaleString()}`;
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "-";
+    const day = d.getDate();
+    const suffix =
+      day % 10 === 1 && day % 100 !== 11
+        ? "st"
+        : day % 10 === 2 && day % 100 !== 12
+        ? "nd"
+        : day % 10 === 3 && day % 100 !== 13
+        ? "rd"
+        : "th";
+    const monthName = d.toLocaleDateString("en-US", { month: "long" });
+    const year = d.getFullYear();
+    return `${monthName} ${day}${suffix}, ${year}`;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+
+    referralService
+      .getReferralStats()
+      .then((stats) => {
+        if (cancelled) return;
+        const mapped: ReferralRow[] = stats.map((s) => {
+          const name =
+            `${s.realtor.first_name ?? ""} ${s.realtor.last_name ?? ""}`.trim() ||
+            "-";
+          return {
+            id: s.realtor.id,
+            name,
+            referralCode: s.realtor.referral_code || "-",
+            dateJoined: formatDate(s.realtor.created_at),
+            recruitsCount: s.recruitsCount,
+            totalReferralCommission: formatNaira(s.recruitsCommissionTotal),
+            recruiter: s.realtor,
+          };
+        });
+        setRows(mapped);
+      })
+      .catch(() => {
+        if (!cancelled) setRows([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filteredByTab = useMemo(() => {
     if (activeTab === "top") {
-      // For Top Referrals, sort by amountReferred in descending order
-      return [...mockReferrals]
-        .filter((r) => r.amountReferred !== undefined)
-        .sort((a, b) => (b.amountReferred || 0) - (a.amountReferred || 0));
+      return [...rows].sort((a, b) => b.recruitsCount - a.recruitsCount);
     }
-    return mockReferrals;
-  }, [activeTab]);
+    return rows;
+  }, [activeTab, rows]);
 
-  // Filter referrals based on search query
   const filteredReferrals = useMemo(() => {
     if (!searchQuery.trim()) return filteredByTab;
 
@@ -30,19 +97,16 @@ const AdminDashboardReferrals = () => {
     return filteredByTab.filter(
       (r) =>
         r.name.toLowerCase().includes(query) ||
-        r.referredBy.toLowerCase().includes(query) ||
-        r.id.toLowerCase().includes(query) ||
-        r.dateJoined.toLowerCase().includes(query)
+        r.referralCode.toLowerCase().includes(query) ||
+        r.id.toLowerCase().includes(query)
     );
   }, [searchQuery, filteredByTab]);
 
-  // Pagination
   const totalItems = filteredReferrals.length;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentReferrals = filteredReferrals.slice(startIndex, endIndex);
 
-  // Reset to page 1 when search or tab changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, activeTab]);
@@ -57,9 +121,41 @@ const AdminDashboardReferrals = () => {
   };
 
   const handleViewAgent = (referralId: string) => {
-    console.log("View agent:", referralId);
-    // Handle view agent action
+    const row = rows.find((r) => r.id === referralId) ?? null;
+    if (row) setSelectedRealtor(row.recruiter);
   };
+
+  const handleBackFromDetails = () => {
+    setSelectedRealtor(null);
+  };
+
+  const handleViewBankDetails = () => {
+    const bankDetails = selectedRealtor?.bank_details ?? null;
+    if (!bankDetails || bankDetails.length === 0) {
+      window.alert("No bank details found for this realtor.");
+      return;
+    }
+    window.alert(JSON.stringify(bankDetails, null, 2));
+  };
+
+  const handleRemoveRealtor = async (realtorId: string) => {
+    await userService.delete(realtorId);
+    setRows((prev) => prev.filter((r) => r.id !== realtorId));
+    setSelectedRealtor(null);
+  };
+
+  if (selectedRealtor) {
+    return (
+      <div className="p-6 bg-[#FCFCFC]">
+        <RealtorDetailsSection
+          realtor={selectedRealtor}
+          onBack={handleBackFromDetails}
+          onViewBankDetails={handleViewBankDetails}
+          onRemoveRealtor={handleRemoveRealtor}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
@@ -119,13 +215,16 @@ const AdminDashboardReferrals = () => {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Name
                 </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Referral code
+                </th>
                 {activeTab === "all" ? (
                   <>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Referred by
+                      Date Joined
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Date Joined
+                      Amount Referred
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Total referral commission
@@ -147,7 +246,18 @@ const AdminDashboardReferrals = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F0F1F2]">
-              {currentReferrals.length > 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={activeTab === "all" ? 7 : 6}
+                    className="px-6 py-12"
+                  >
+                    <div className="flex justify-center">
+                      <Loader />
+                    </div>
+                  </td>
+                </tr>
+              ) : currentReferrals.length > 0 ? (
                 currentReferrals.map((referral, index) => (
                   <tr
                     key={`${referral.id}-${index}`}
@@ -159,26 +269,28 @@ const AdminDashboardReferrals = () => {
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {referral.name}
                     </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {referral.referralCode}
+                    </td>
                     {activeTab === "all" ? (
                       <>
                         <td className="px-6 py-4 text-sm text-gray-700">
-                          {referral.referredBy}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">
                           {referral.dateJoined}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
+                        <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">
+                          {referral.recruitsCount}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700 whitespace-nowrap">
                           {referral.totalReferralCommission}
                         </td>
                       </>
                     ) : (
                       <>
                         <td className="px-6 py-4 text-sm text-gray-700">
-                          {referral.amountReferred || 0}
+                          {referral.recruitsCount}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-700">
-                          {referral.totalCommissionEarned ||
-                            referral.totalReferralCommission}
+                          {referral.totalReferralCommission}
                         </td>
                       </>
                     )}
@@ -195,7 +307,7 @@ const AdminDashboardReferrals = () => {
               ) : (
                 <tr>
                   <td
-                    colSpan={activeTab === "all" ? 6 : 5}
+                    colSpan={activeTab === "all" ? 7 : 6}
                     className="px-6 py-12 text-center text-sm text-gray-500"
                   >
                     No referrals found

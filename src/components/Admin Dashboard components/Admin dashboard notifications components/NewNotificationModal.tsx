@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { X, ChevronDown, Search } from "lucide-react";
 import NotificationBellIcon from "../../icons/NotificationBellIcon";
-import { mockRealtors } from "../Admin dashboard realtors components/AdminRealtorsData";
-import { sampleDevelopers } from "../Admin dashboard properties components/adminDashboardPropertiesData";
+import { getSupabaseClient } from "../../../services/supabaseClient";
+import { notificationService } from "../../../services/apiService";
 
 interface NewNotificationModalProps {
   isOpen: boolean;
@@ -15,6 +15,8 @@ interface NewNotificationModalProps {
   }) => void;
 }
 
+type SelectableUser = { id: string; name: string };
+
 const NewNotificationModal = ({
   isOpen,
   onClose,
@@ -26,6 +28,10 @@ const NewNotificationModal = ({
   const [body, setBody] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [users, setUsers] = useState<SelectableUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const userTypes = [
@@ -36,39 +42,32 @@ const NewNotificationModal = ({
     "Admins",
   ];
 
-  // Get users based on selected user type
+  const roleForUserType = (type: string): string | null => {
+    switch (type) {
+      case "Realtors":
+        return "realtor";
+      case "Admins":
+        return "admin";
+      case "Developers":
+        return "developer";
+      case "Clients":
+        return "client";
+      default:
+        return null;
+    }
+  };
+
   const availableUsers = useMemo(() => {
     if (!selectedUserType) return [];
-
-    switch (selectedUserType) {
-      case "Realtors":
-        return mockRealtors.map((r) => r.name);
-      case "Developers":
-        return sampleDevelopers.map((d) => d.name);
-      case "Clients":
-        // Mock client names
-        return [
-          "Musa Aliyu",
-          "Chijioke Orji",
-          "Monye Idamiebi",
-          "Goinbo Ekisagha",
-          "Adebayo Salami",
-          "Simisola Okunade",
-          "Binaebi Oyintare",
-          "Safiya Usman",
-        ];
-      case "Admins":
-        return ["Olivia Rhye", "Admin User 1", "Admin User 2"];
-      default:
-        return [];
-    }
-  }, [selectedUserType]);
+    if (selectedUserType === "All Users") return [];
+    return users;
+  }, [selectedUserType, users]);
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
     if (!userSearchQuery.trim()) return availableUsers;
     const query = userSearchQuery.toLowerCase();
-    return availableUsers.filter((name) => name.toLowerCase().includes(query));
+    return availableUsers.filter((u) => u.name.toLowerCase().includes(query));
   }, [availableUsers, userSearchQuery]);
 
   // Get display text for selected users
@@ -79,8 +78,12 @@ const NewNotificationModal = ({
         ? "All Users"
         : `All ${selectedUserType.toLowerCase()}`;
     }
-    if (selectedUsers.length === 1) return selectedUsers[0];
-    if (selectedUsers.length <= 3) return selectedUsers.join(", ");
+    const nameById = new Map(users.map((u) => [u.id, u.name]));
+    const selectedNames = selectedUsers
+      .map((id) => nameById.get(id))
+      .filter((n): n is string => Boolean(n));
+    if (selectedNames.length === 1) return selectedNames[0];
+    if (selectedNames.length <= 3) return selectedNames.join(", ");
     return `${selectedUsers.length} users selected`;
   };
 
@@ -126,43 +129,147 @@ const NewNotificationModal = ({
       setBody("");
       setShowUserDropdown(false);
       setUserSearchQuery("");
+      setUsers([]);
+      setIsLoadingUsers(false);
+      setIsSubmitting(false);
+      setSubmitError(null);
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadUsers = async () => {
+      if (!isOpen) return;
+      if (!selectedUserType || selectedUserType === "All Users") {
+        setUsers([]);
+        return;
+      }
+
+      const role = roleForUserType(selectedUserType);
+      if (!role) {
+        setUsers([]);
+        return;
+      }
+
+      setIsLoadingUsers(true);
+      try {
+        const { data, error } = await getSupabaseClient()
+          .from("users")
+          .select("id,first_name,last_name,email")
+          .eq("role", role)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (error) throw error;
+
+        const mapped = (data ?? []).map((u) => {
+          const anyU = u as {
+            id: string;
+            first_name?: string | null;
+            last_name?: string | null;
+            email?: string | null;
+          };
+          const fullName = `${anyU.first_name ?? ""} ${
+            anyU.last_name ?? ""
+          }`.trim();
+          return {
+            id: anyU.id,
+            name: fullName || anyU.email || anyU.id,
+          };
+        });
+
+        if (!cancelled) setUsers(mapped);
+      } catch {
+        if (!cancelled) setUsers([]);
+      } finally {
+        if (!cancelled) setIsLoadingUsers(false);
+      }
+    };
+
+    loadUsers();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, selectedUserType]);
+
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !selectedUserType || !body.trim()) {
       return; // Don't submit if required fields are empty
     }
-    onSubmit?.({ title, userType: selectedUserType, selectedUsers, body });
-    onClose();
+    if (isSubmitting) return;
+    setSubmitError(null);
+    setIsSubmitting(true);
+    const role = roleForUserType(selectedUserType);
+    const target =
+      selectedUserType === "All Users"
+        ? ({ kind: "all" } as const)
+        : selectedUsers.length > 0
+        ? ({ kind: "userIds", userIds: selectedUsers } as const)
+        : role
+        ? ({ kind: "role", role } as const)
+        : ({ kind: "userIds", userIds: [] as string[] } as const);
+
+    try {
+      await notificationService.sendBroadcast({
+        title,
+        message: body,
+        target,
+        metadata: {
+          ui_user_type: selectedUserType,
+        },
+      });
+      onSubmit?.({ title, userType: selectedUserType, selectedUsers, body });
+      onClose();
+    } catch (err) {
+      const anyErr = err as any;
+      const message =
+        typeof anyErr?.message === "string"
+          ? anyErr.message
+          : err instanceof Error
+          ? err.message
+          : "Send failed.";
+      const details = typeof anyErr?.details === "string" ? anyErr.details : "";
+      const hint = typeof anyErr?.hint === "string" ? anyErr.hint : "";
+      const code = typeof anyErr?.code === "string" ? anyErr.code : "";
+      const parts = [
+        message,
+        details,
+        hint,
+        code ? `code: ${code}` : "",
+      ].filter((p) => p && String(p).trim());
+      setSubmitError(parts.join(" "));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleUserTypeSelect = (type: string) => {
     setSelectedUserType(type);
     setSelectedUsers([]); // Reset selected users when changing type
     setUserSearchQuery(""); // Reset search
+    setUsers([]);
     if (type === "All Users") {
       setShowUserDropdown(false);
     }
   };
 
-  const handleUserSelect = (userName: string) => {
-    if (userName.startsWith("All ")) {
+  const handleUserSelect = (userIdOrAll: string) => {
+    if (userIdOrAll.startsWith("All ")) {
       // Select/deselect all
       if (selectedUsers.length === availableUsers.length) {
         setSelectedUsers([]);
       } else {
-        setSelectedUsers([...availableUsers]);
+        setSelectedUsers(availableUsers.map((u) => u.id));
       }
     } else {
       // Toggle individual user
-      if (selectedUsers.includes(userName)) {
-        setSelectedUsers(selectedUsers.filter((u) => u !== userName));
+      if (selectedUsers.includes(userIdOrAll)) {
+        setSelectedUsers(selectedUsers.filter((u) => u !== userIdOrAll));
       } else {
-        setSelectedUsers([...selectedUsers, userName]);
+        setSelectedUsers([...selectedUsers, userIdOrAll]);
       }
     }
   };
@@ -336,22 +443,28 @@ const NewNotificationModal = ({
                           </button>
 
                           {/* Individual Users */}
-                          {filteredUsers.map((userName) => (
-                            <button
-                              key={userName}
-                              type="button"
-                              onClick={() => handleUserSelect(userName)}
-                              className={`w-full px-4 py-3 text-left text-sm transition-colors border-b border-[#F0F1F2] last:border-b-0 ${
-                                selectedUsers.includes(userName)
-                                  ? "bg-[#F0E6F7] text-[#6500AC] font-medium"
-                                  : "hover:bg-gray-50 text-gray-900"
-                              }`}
-                            >
-                              {userName}
-                            </button>
-                          ))}
+                          {isLoadingUsers ? (
+                            <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                              Loading...
+                            </div>
+                          ) : (
+                            filteredUsers.map((u) => (
+                              <button
+                                key={u.id}
+                                type="button"
+                                onClick={() => handleUserSelect(u.id)}
+                                className={`w-full px-4 py-3 text-left text-sm transition-colors border-b border-[#F0F1F2] last:border-b-0 ${
+                                  selectedUsers.includes(u.id)
+                                    ? "bg-[#F0E6F7] text-[#6500AC] font-medium"
+                                    : "hover:bg-gray-50 text-gray-900"
+                                }`}
+                              >
+                                {u.name}
+                              </button>
+                            ))
+                          )}
 
-                          {filteredUsers.length === 0 && (
+                          {!isLoadingUsers && filteredUsers.length === 0 && (
                             <div className="px-4 py-3 text-sm text-gray-500 text-center">
                               No users found
                             </div>
@@ -390,11 +503,15 @@ const NewNotificationModal = ({
               </button>
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="flex-1 px-4 py-3 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors"
               >
-                Send notification
+                {isSubmitting ? "Sending..." : "Send notification"}
               </button>
             </div>
+            {submitError ? (
+              <div className="text-sm text-red-600">{submitError}</div>
+            ) : null}
           </form>
         </div>
       </div>

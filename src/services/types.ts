@@ -96,9 +96,15 @@ export interface Payout {
 
 export interface Referral {
   id: string;
-  upline_id: string;
-  downline_id: string;
+  upline_id?: string | null;
+  downline_id?: string | null;
   level: number;
-  commission_earned: number;
+  commission_earned?: number | null;
   created_at: string;
+}
+
+export interface ReferralStat {
+  realtor: User;
+  recruitsCount: number;
+  recruitsCommissionTotal: number;
 }

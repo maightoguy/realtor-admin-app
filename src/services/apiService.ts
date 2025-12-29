@@ -1005,7 +1005,19 @@ export const notificationService = {
     message: string;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
-    const { error } = await getSupabaseClient().from("notifications").insert({
+    const supabase = getSupabaseClient();
+    const { error: rpcError } = await supabase.rpc("create_notification", {
+      p_user_id: params.userId,
+      p_type: params.type,
+      p_title: params.title ?? null,
+      p_message: params.message ?? null,
+      p_seen: false,
+      p_metadata: params.metadata ?? {},
+    });
+
+    if (!rpcError) return;
+
+    const { error: insertError } = await supabase.from("notifications").insert({
       user_id: params.userId,
       type: params.type,
       title: params.title,
@@ -1013,11 +1025,311 @@ export const notificationService = {
       seen: false,
       metadata: params.metadata ?? {},
     });
-    if (error) throw error;
+    if (insertError) throw insertError;
+  },
+
+  async sendBroadcast(params: {
+    title: string;
+    message: string;
+    type?: string;
+    target:
+      | { kind: "all" }
+      | { kind: "role"; role: string }
+      | { kind: "userIds"; userIds: string[] };
+    metadata?: Record<string, unknown>;
+  }): Promise<{ broadcastId: string; recipientCount: number }> {
+    const supabase = getSupabaseClient();
+    const broadcastId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    const resolveRecipients = async (): Promise<string[]> => {
+      if (params.target.kind === "userIds") return params.target.userIds;
+
+      let query = supabase.from("users").select("id").limit(5000);
+      if (params.target.kind === "role") {
+        query = query.eq("role", params.target.role);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data ?? [])
+        .map((r) => (r as { id?: string }).id)
+        .filter((id): id is string => Boolean(id));
+    };
+
+    const userIds = await resolveRecipients();
+    if (userIds.length === 0) {
+      return { broadcastId, recipientCount: 0 };
+    }
+
+    const baseMetadata = {
+      ...(params.metadata ?? {}),
+      source: "admin",
+      broadcast_id: broadcastId,
+      broadcast_target: {
+        kind: params.target.kind,
+        role: params.target.kind === "role" ? params.target.role : undefined,
+        recipient_count: userIds.length,
+      },
+    };
+
+    const rows = userIds.map((userId) => ({
+      user_id: userId,
+      type: params.type ?? "broadcast",
+      title: params.title,
+      message: params.message,
+      seen: false,
+      metadata: baseMetadata,
+    }));
+
+    const insertInChunks = async () => {
+      const chunkSize = 500;
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize);
+        const { error } = await supabase.from("notifications").insert(chunk);
+        if (error) throw error;
+      }
+    };
+
+    const insertViaRpcLoop = async () => {
+      const concurrency = 10;
+      const ids = [...userIds];
+      const workers = Array.from({ length: concurrency }, async () => {
+        while (ids.length > 0) {
+          const id = ids.shift();
+          if (!id) return;
+          await this.create({
+            userId: id,
+            type: params.type ?? "broadcast",
+            title: params.title,
+            message: params.message,
+            metadata: baseMetadata,
+          });
+        }
+      });
+      await Promise.all(workers);
+    };
+
+    try {
+      await insertInChunks();
+    } catch (err) {
+      const payload = errorToLogPayload(err);
+      const msg = `${String(payload.message ?? "")} ${String(payload.details ?? "")}`.toLowerCase();
+      const looksLikeRls =
+        payload.code === "42501" ||
+        payload.code === "PGRST301" ||
+        msg.includes("row-level security") ||
+        msg.includes("rls");
+      if (!looksLikeRls) throw err;
+      await insertViaRpcLoop();
+    }
+
+    return { broadcastId, recipientCount: userIds.length };
+  },
+
+  async getAdminLogs(params?: {
+    limit?: number;
+  }): Promise<
+    Array<{
+      id: string;
+      title: string;
+      message: string;
+      created_at: string;
+      status: "Sent";
+      userType?: string;
+      selectedUsers?: string[];
+    }>
+  > {
+    const supabase = getSupabaseClient();
+    const limit = params?.limit ?? 200;
+
+    const queryBase = supabase
+      .from("notifications")
+      .select("id,user_id,type,message,seen,created_at,title,metadata")
+      .order("created_at", { ascending: false })
+      .limit(limit * 10);
+
+    const tryAdminOnly = async () => {
+      const { data, error } = await queryBase.contains("metadata", {
+        source: "admin",
+      });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string;
+        user_id: string;
+        type: string;
+        message: string;
+        seen: boolean | null;
+        created_at: string | null;
+        title: string | null;
+        metadata: Record<string, unknown> | null;
+      }>;
+    };
+
+    const rows = await (async () => {
+      try {
+        return await tryAdminOnly();
+      } catch {
+        const { data, error } = await queryBase;
+        if (error) throw error;
+        return (data ?? []) as Array<{
+          id: string;
+          user_id: string;
+          type: string;
+          message: string;
+          seen: boolean | null;
+          created_at: string | null;
+          title: string | null;
+          metadata: Record<string, unknown> | null;
+        }>;
+      }
+    })();
+
+    const grouped = new Map<
+      string,
+      {
+        id: string;
+        title: string;
+        message: string;
+        created_at: string;
+        status: "Sent";
+        userType?: string;
+        selectedUsers?: string[];
+      }
+    >();
+
+    for (const r of rows) {
+      const metadata = (r.metadata ?? {}) as Record<string, unknown>;
+      const broadcastId =
+        typeof metadata.broadcast_id === "string" ? metadata.broadcast_id : r.id;
+      const createdAt = r.created_at ?? new Date().toISOString();
+
+      if (!grouped.has(broadcastId)) {
+        const broadcastTarget = (metadata.broadcast_target ??
+          {}) as Record<string, unknown>;
+        const kind =
+          typeof broadcastTarget.kind === "string"
+            ? broadcastTarget.kind
+            : undefined;
+        const role =
+          typeof broadcastTarget.role === "string"
+            ? broadcastTarget.role
+            : undefined;
+
+        let userType: string | undefined;
+        if (kind === "all") userType = "All Users";
+        else if (kind === "role" && role)
+          userType =
+            role === "realtor"
+              ? "Realtors"
+              : role === "admin"
+              ? "Admins"
+              : role;
+        else if (kind === "userIds") userType = "Selected users";
+
+        grouped.set(broadcastId, {
+          id: broadcastId,
+          title: r.title ?? "-",
+          message: r.message ?? "-",
+          created_at: createdAt,
+          status: "Sent",
+          userType,
+          selectedUsers: kind === "userIds" ? [] : undefined,
+        });
+      }
+
+      const entry = grouped.get(broadcastId);
+      if (!entry) continue;
+
+      if (entry.userType === "Selected users") {
+        entry.selectedUsers = entry.selectedUsers ?? [];
+        if (entry.selectedUsers.length < 20) entry.selectedUsers.push(r.user_id);
+      }
+    }
+
+    return [...grouped.values()]
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .slice(0, limit);
   },
 };
 
 export const referralService = {
+  async getReferralStats(params?: {
+    limit?: number;
+    commissionStatuses?: Commission["status"][];
+  }): Promise<
+    Array<{
+      realtor: User;
+      recruitsCount: number;
+      recruitsCommissionTotal: number;
+    }>
+  > {
+    const supabase = getSupabaseClient();
+    const limit = params?.limit ?? 5000;
+    const commissionStatuses = params?.commissionStatuses ?? ["approved", "paid"];
+
+    const realtors = await userService.getAll({ role: "realtor", limit });
+    const realtorIds = realtors.map((r) => r.id);
+    if (realtorIds.length === 0) return [];
+
+    const { data: recruitRows, error: recruitErr } = await supabase
+      .from("users")
+      .select("id,referred_by")
+      .in("referred_by", realtorIds)
+      .limit(10000);
+    if (recruitErr) throw recruitErr;
+
+    const recruitToUpline = new Map<string, string>();
+    const recruitsByUpline = new Map<string, string[]>();
+    for (const row of (recruitRows ?? []) as Array<{
+      id: string;
+      referred_by: string | null;
+    }>) {
+      if (!row.referred_by) continue;
+      recruitToUpline.set(row.id, row.referred_by);
+      const list = recruitsByUpline.get(row.referred_by) ?? [];
+      list.push(row.id);
+      recruitsByUpline.set(row.referred_by, list);
+    }
+
+    const recruitIdsUnique = Array.from(recruitToUpline.keys());
+    const commissionsByUpline = new Map<string, number>();
+
+    if (recruitIdsUnique.length > 0) {
+      const { data: commissionRows, error: commissionErr } = await supabase
+        .from("commissions")
+        .select("realtor_id,amount,status")
+        .in("realtor_id", recruitIdsUnique)
+        .in("status", commissionStatuses)
+        .limit(50000);
+      if (commissionErr) throw commissionErr;
+
+      for (const row of (commissionRows ?? []) as Array<{
+        realtor_id: string | null;
+        amount: number | string;
+      }>) {
+        const recruitId = row.realtor_id ?? null;
+        if (!recruitId) continue;
+        const uplineId = recruitToUpline.get(recruitId) ?? null;
+        if (!uplineId) continue;
+        const amount = Number(row.amount);
+        const safeAmount = Number.isFinite(amount) ? amount : 0;
+        commissionsByUpline.set(
+          uplineId,
+          (commissionsByUpline.get(uplineId) ?? 0) + safeAmount
+        );
+      }
+    }
+
+    return realtors.map((realtor) => ({
+      realtor,
+      recruitsCount: (recruitsByUpline.get(realtor.id) ?? []).length,
+      recruitsCommissionTotal: commissionsByUpline.get(realtor.id) ?? 0,
+    }));
+  },
+
   async getAll(filters?: {
     upline_id?: string;
     downline_id?: string;

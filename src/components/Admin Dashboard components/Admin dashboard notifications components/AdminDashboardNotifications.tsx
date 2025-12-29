@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
-import { mockNotifications, type Notification } from "./AdminNotificationsData";
+import type { Notification } from "./AdminNotificationsData";
 import NewNotificationModal from "./NewNotificationModal";
 import NotificationDetailsModal from "./NotificationDetailsModal";
+import { notificationService } from "../../../services/apiService";
 
 // Status badge component
 const StatusBadge = ({ status }: { status: Notification["status"] }) => {
@@ -34,14 +35,60 @@ const StatusBadge = ({ status }: { status: Notification["status"] }) => {
 const AdminDashboardNotifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [notifications, setNotifications] =
-    useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isNewNotificationModalOpen, setIsNewNotificationModalOpen] =
     useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const itemsPerPage = 8;
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "-";
+    const day = d.getDate();
+    const suffix =
+      day % 10 === 1 && day % 100 !== 11
+        ? "st"
+        : day % 10 === 2 && day % 100 !== 12
+        ? "nd"
+        : day % 10 === 3 && day % 100 !== 13
+        ? "rd"
+        : "th";
+    const monthName = d.toLocaleDateString("en-US", { month: "long" });
+    const year = d.getFullYear();
+    return `${monthName} ${day}${suffix}, ${year}`;
+  };
+
+  const refreshLogs = async () => {
+    setLoadError(null);
+    try {
+      const logs = await notificationService.getAdminLogs({ limit: 200 });
+      setNotifications(
+        logs.map((l) => ({
+          id: l.id,
+          title: l.title,
+          message: l.message,
+          date: formatDate(l.created_at),
+          status: l.status,
+          userType: l.userType,
+          selectedUsers: l.selectedUsers,
+        }))
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Load failed.";
+      setLoadError(message);
+      setNotifications([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshLogs();
+  }, []);
 
   // Filter notifications based on search query
   const filteredNotifications = useMemo(() => {
@@ -88,95 +135,53 @@ const AdminDashboardNotifications = () => {
   };
 
   const handleResendNotification = (notificationId: string) => {
-    // Update notification status to "Sent" and update the date
-    const now = new Date();
-    const day = now.getDate();
-    const daySuffix =
-      day === 1 || day === 21 || day === 31
-        ? "st"
-        : day === 2 || day === 22
-        ? "nd"
-        : day === 3 || day === 23
-        ? "rd"
-        : "th";
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const formattedDate = `${
-      monthNames[now.getMonth()]
-    } ${day}${daySuffix}, ${now.getFullYear()}`;
+    const n = notifications.find((x) => x.id === notificationId);
+    if (!n) return;
 
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === notificationId
-          ? { ...n, status: "Sent" as const, date: formattedDate }
-          : n
-      )
-    );
-    console.log("Notification resent:", notificationId);
+    const roleForUserType = (type?: string) => {
+      if (!type) return null;
+      if (type === "Realtors") return "realtor";
+      if (type === "Admins") return "admin";
+      if (type === "Developers") return "developer";
+      if (type === "Clients") return "client";
+      return null;
+    };
+
+    const target =
+      n.userType === "All Users"
+        ? ({ kind: "all" } as const)
+        : n.userType === "Selected users"
+        ? ({
+            kind: "userIds",
+            userIds: (n.selectedUsers ?? []) as string[],
+          } as const)
+        : roleForUserType(n.userType)
+        ? ({ kind: "role", role: roleForUserType(n.userType) ?? "" } as const)
+        : ({ kind: "userIds", userIds: [] as string[] } as const);
+
+    setIsLoading(true);
+    notificationService
+      .sendBroadcast({
+        title: n.title,
+        message: n.message,
+        target,
+        metadata: { resend_of: n.id },
+      })
+      .then(() => refreshLogs())
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : "Resend failed.";
+        setLoadError(message);
+        setIsLoading(false);
+      });
   };
 
   const handleNewNotification = () => {
     setIsNewNotificationModalOpen(true);
   };
 
-  const handleNotificationSubmit = (data: {
-    title: string;
-    userType: string;
-    selectedUsers: string[];
-    body: string;
-  }) => {
-    // Create new notification
-    const now = new Date();
-    const day = now.getDate();
-    const daySuffix =
-      day === 1 || day === 21 || day === 31
-        ? "st"
-        : day === 2 || day === 22
-        ? "nd"
-        : day === 3 || day === 23
-        ? "rd"
-        : "th";
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const formattedDate = `${
-      monthNames[now.getMonth()]
-    } ${day}${daySuffix}, ${now.getFullYear()}`;
-
-    const newNotification: Notification = {
-      id: `#${notifications.length + 1}`,
-      title: data.title,
-      message: data.body,
-      date: formattedDate,
-      status: "Sent", // Default to Sent, could be randomized or based on logic
-      userType: data.userType,
-      selectedUsers: data.selectedUsers,
-    };
-    setNotifications((prev) => [newNotification, ...prev]);
-    console.log("New notification created:", newNotification);
+  const handleNotificationSubmit = () => {
+    setIsLoading(true);
+    refreshLogs();
   };
 
   return (
@@ -236,7 +241,25 @@ const AdminDashboardNotifications = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F0F1F2]">
-              {currentNotifications.length > 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-sm text-gray-500"
+                  >
+                    Loading...
+                  </td>
+                </tr>
+              ) : loadError ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-sm text-gray-500"
+                  >
+                    {loadError}
+                  </td>
+                </tr>
+              ) : currentNotifications.length > 0 ? (
                 currentNotifications.map((notification) => (
                   <tr
                     key={notification.id}

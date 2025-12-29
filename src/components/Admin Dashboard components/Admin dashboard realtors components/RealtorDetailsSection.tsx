@@ -669,7 +669,11 @@ const RealtorDetailsSection = ({
         );
 
         const downlineIds = Array.from(
-          new Set(referralsRes.map((r) => r.downline_id))
+          new Set(
+            referralsRes
+              .map((r) => r.downline_id)
+              .filter((id): id is string => Boolean(id))
+          )
         );
 
         const [propertiesRes, downlinesRes] = await Promise.all([
@@ -979,20 +983,22 @@ const RealtorDetailsSection = ({
     >();
 
     for (const r of referrals) {
-      const current = grouped.get(r.downline_id) ?? {
-        downline_id: r.downline_id,
+      const downlineId = r.downline_id ?? null;
+      if (!downlineId) continue;
+
+      const current = grouped.get(downlineId) ?? {
+        downline_id: downlineId,
         commission: 0,
         created_at: r.created_at,
       };
-      current.commission += Number.isFinite(r.commission_earned)
-        ? r.commission_earned
-        : 0;
+      const earned = Number(r.commission_earned);
+      current.commission += Number.isFinite(earned) ? earned : 0;
       const cd = new Date(current.created_at).getTime();
       const rd = new Date(r.created_at).getTime();
       if (Number.isFinite(rd) && (!Number.isFinite(cd) || rd > cd)) {
         current.created_at = r.created_at;
       }
-      grouped.set(r.downline_id, current);
+      grouped.set(downlineId, current);
     }
 
     return [...grouped.values()]
@@ -1044,8 +1050,10 @@ const RealtorDetailsSection = ({
 
   const referralMetrics = useMemo(() => {
     const totalCommissionValue = referrals.reduce(
-      (sum, r) =>
-        sum + (Number.isFinite(r.commission_earned) ? r.commission_earned : 0),
+      (sum, r) => {
+        const earned = Number(r.commission_earned);
+        return sum + (Number.isFinite(earned) ? earned : 0);
+      },
       0
     );
 
