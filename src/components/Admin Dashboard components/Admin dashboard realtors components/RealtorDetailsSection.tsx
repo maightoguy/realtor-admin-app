@@ -519,7 +519,10 @@ const RealtorDetailsSection = ({
 
   // Status badge component for receipts
   const StatusBadge = ({ status }: { status: Receipt["status"] }) => {
-    const statusConfig = {
+    const statusConfig: Record<
+      Receipt["status"],
+      { color: string; bgColor: string; label: string }
+    > = {
       Approved: { color: "#22C55E", bgColor: "#D1FAE5", label: "Approved" },
       Pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
       Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
@@ -530,7 +533,7 @@ const RealtorDetailsSection = ({
       },
     };
 
-    const config = statusConfig[status] || statusConfig.Pending;
+    const config = statusConfig[status];
 
     return (
       <span

@@ -3,12 +3,15 @@ interface LoaderProps {
   isOpen?: boolean;
 }
 
-export default function Loader({ text = "Loading...", isOpen = true }: LoaderProps) {
+export default function Loader({
+  text = "Loading...",
+  isOpen = true,
+}: LoaderProps) {
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 w-full h-full bg-black/10 backdrop-blur-md flex items-center justify-center z-[9999]"
+      className="fixed inset-0 w-full h-full bg-black/10 backdrop-blur-md flex items-center justify-center z-9999"
       role="status"
       aria-live="polite"
       aria-label={text}
@@ -40,4 +43,3 @@ export default function Loader({ text = "Loading...", isOpen = true }: LoaderPro
     </div>
   );
 }
-

@@ -584,12 +584,13 @@ export const receiptService = {
   async sumAmountByStatus(status: Receipt["status"]): Promise<number> {
     const { data, error } = await getSupabaseClient()
       .from("receipts")
-      .select("amount")
+      .select("amount_paid")
       .eq("status", status)
       .limit(5000);
     if (error) throw error;
-    return ((data ?? []) as Array<{ amount: number }>).reduce(
-      (acc, row) => acc + (Number.isFinite(row.amount) ? row.amount : 0),
+    return ((data ?? []) as Array<{ amount_paid: number }>).reduce(
+      (acc, row) =>
+        acc + (Number.isFinite(row.amount_paid) ? row.amount_paid : 0),
       0
     );
   },
@@ -602,6 +603,63 @@ export const receiptService = {
       .limit(limit);
     if (error) throw error;
     return (data ?? []) as Receipt[];
+  },
+
+  async getAll(params?: {
+    limit?: number;
+    offset?: number;
+    status?: Receipt["status"] | Array<Receipt["status"]>;
+  }): Promise<Receipt[]> {
+    let query = getSupabaseClient()
+      .from("receipts")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (params?.status) {
+      if (Array.isArray(params.status)) {
+        query = query.in("status", params.status);
+      } else {
+        query = query.eq("status", params.status);
+      }
+    }
+
+    if (params?.limit) {
+      query = query.limit(params.limit);
+    }
+
+    if (typeof params?.offset === "number") {
+      const limit = params.limit ?? 10;
+      query = query.range(params.offset, params.offset + limit - 1);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as Receipt[];
+  },
+
+  async updateStatus(params: {
+    id: string;
+    status: Receipt["status"];
+    rejectionReason?: string | null;
+  }): Promise<Receipt> {
+    const { data: sessionData } = await getSupabaseClient().auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
+
+    const { data, error } = await getSupabaseClient()
+      .from("receipts")
+      .update({
+        status: params.status,
+        rejection_reason: params.rejectionReason ?? null,
+      })
+      .eq("id", params.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return data as Receipt;
   },
 };
 

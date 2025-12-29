@@ -1,9 +1,15 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
 import ReceiptsIcon from "../../icons/ReceiptsIcon";
-import { mockReceipts, type Receipt } from "./AdminReceiptsData";
 import AdminReceiptsDetailsModal from "./AdminReceiptsDetailsModal";
+import {
+  propertyService,
+  receiptService,
+  userService,
+} from "../../../services/apiService";
+import type { ReceiptStatus } from "../../../services/types";
+import Loader from "../../Loader";
 
 // MetricCard component (matching AdminDashboardProperties pattern)
 interface MetricCardProps {
@@ -75,19 +81,22 @@ const MetricCard = ({
 );
 
 // Status badge component
-const StatusBadge = ({ status }: { status: Receipt["status"] }) => {
-  const statusConfig = {
-    Approved: { color: "#22C55E", bgColor: "#D1FAE5", label: "Approved" },
-    Pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
-    Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
-    "Under review": {
+const StatusBadge = ({ status }: { status: ReceiptStatus }) => {
+  const statusConfig: Record<
+    ReceiptStatus,
+    { color: string; bgColor: string; label: string }
+  > = {
+    approved: { color: "#22C55E", bgColor: "#D1FAE5", label: "Approved" },
+    pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
+    rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
+    under_review: {
       color: "#6500AC",
       bgColor: "#F0E6F7",
       label: "Under review",
     },
   };
 
-  const config = statusConfig[status] || statusConfig.Pending;
+  const config = statusConfig[status];
 
   return (
     <span
@@ -106,6 +115,20 @@ const StatusBadge = ({ status }: { status: Receipt["status"] }) => {
   );
 };
 
+type AdminReceipt = {
+  id: string;
+  realtorId: string | null;
+  realtorName: string;
+  clientName: string;
+  propertyId: string | null;
+  propertyName: string;
+  amountPaid: number;
+  receiptUrls: string[];
+  status: ReceiptStatus;
+  createdAt: string;
+  rejectionReason: string | null;
+};
+
 const AdminDashboardReceipts = () => {
   const [activeFilter, setActiveFilter] = useState<
     | "All receipts"
@@ -115,22 +138,117 @@ const AdminDashboardReceipts = () => {
   >("All receipts");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<AdminReceipt | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [receipts, setReceipts] = useState<Receipt[]>(mockReceipts);
+  const [receipts, setReceipts] = useState<AdminReceipt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const itemsPerPage = 8;
+
+  const formatNaira = (amount: number) =>
+    `₦${Math.round(amount).toLocaleString()}`;
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "-";
+    const day = d.getDate();
+    const suffix =
+      day % 10 === 1 && day % 100 !== 11
+        ? "st"
+        : day % 10 === 2 && day % 100 !== 12
+        ? "nd"
+        : day % 10 === 3 && day % 100 !== 13
+        ? "rd"
+        : "th";
+    const monthName = d.toLocaleDateString("en-US", { month: "long" });
+    const year = d.getFullYear();
+    return `${monthName} ${day}${suffix}, ${year}`;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+
+    receiptService
+      .getAll({ limit: 500 })
+      .then(async (rows) => {
+        if (cancelled) return;
+
+        const realtorIds = Array.from(
+          new Set(
+            rows
+              .map((r) => r.realtor_id)
+              .filter((id): id is string => Boolean(id))
+          )
+        );
+        const propertyIds = Array.from(
+          new Set(
+            rows
+              .map((r) => r.property_id)
+              .filter((id): id is string => Boolean(id))
+          )
+        );
+
+        const [realtors, properties] = await Promise.all([
+          userService.getByIds(realtorIds),
+          propertyService.getByIds(propertyIds),
+        ]);
+
+        const realtorMap = new Map(realtors.map((u) => [u.id, u]));
+        const propertyMap = new Map(properties.map((p) => [p.id, p]));
+
+        const mapped: AdminReceipt[] = rows.map((r) => {
+          const realtor = r.realtor_id
+            ? realtorMap.get(r.realtor_id) ?? null
+            : null;
+          const property = r.property_id
+            ? propertyMap.get(r.property_id) ?? null
+            : null;
+          const amountPaid = Number(r.amount_paid);
+
+          return {
+            id: r.id,
+            realtorId: r.realtor_id ?? null,
+            realtorName: realtor
+              ? `${realtor.first_name} ${realtor.last_name}`.trim() || "-"
+              : "-",
+            clientName: r.client_name ?? "-",
+            propertyId: r.property_id ?? null,
+            propertyName: property?.title ?? "-",
+            amountPaid: Number.isFinite(amountPaid) ? amountPaid : 0,
+            receiptUrls: Array.isArray(r.receipt_urls) ? r.receipt_urls : [],
+            status: r.status,
+            createdAt: r.created_at,
+            rejectionReason: r.rejection_reason ?? null,
+          };
+        });
+
+        if (!cancelled) setReceipts(mapped);
+      })
+      .catch(() => {
+        if (!cancelled) setReceipts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Calculate metrics from all receipts
   const metrics = useMemo(() => {
     const totalUploaded = receipts.length;
     const totalApproved = receipts.filter(
-      (r) => r.status === "Approved"
+      (r) => r.status === "approved"
     ).length;
     const totalRejected = receipts.filter(
-      (r) => r.status === "Rejected"
+      (r) => r.status === "rejected"
     ).length;
     const totalPending = receipts.filter(
-      (r) => r.status === "Pending" || r.status === "Under review"
+      (r) => r.status === "pending" || r.status === "under_review"
     ).length;
 
     return {
@@ -148,12 +266,12 @@ const AdminDashboardReceipts = () => {
     // Apply status filter
     if (activeFilter === "Pending receipts") {
       filtered = filtered.filter(
-        (r) => r.status === "Pending" || r.status === "Under review"
+        (r) => r.status === "pending" || r.status === "under_review"
       );
     } else if (activeFilter === "Approved receipts") {
-      filtered = filtered.filter((r) => r.status === "Approved");
+      filtered = filtered.filter((r) => r.status === "approved");
     } else if (activeFilter === "Rejected receipts") {
-      filtered = filtered.filter((r) => r.status === "Rejected");
+      filtered = filtered.filter((r) => r.status === "rejected");
     }
 
     // Apply search query
@@ -163,8 +281,9 @@ const AdminDashboardReceipts = () => {
         (r) =>
           r.id.toLowerCase().includes(query) ||
           r.propertyName.toLowerCase().includes(query) ||
+          r.realtorName.toLowerCase().includes(query) ||
           r.clientName.toLowerCase().includes(query) ||
-          r.amount.toLowerCase().includes(query)
+          formatNaira(r.amountPaid).toLowerCase().includes(query)
       );
     }
 
@@ -213,18 +332,34 @@ const AdminDashboardReceipts = () => {
 
   const handleStatusUpdate = (
     receiptId: string,
-    newStatus: Receipt["status"],
+    newStatus: ReceiptStatus,
     rejectionReason?: string
   ) => {
-    setReceipts((prev) =>
-      prev.map((r) => (r.id === receiptId ? { ...r, status: newStatus } : r))
-    );
-    // In a real app, you would also save the rejection reason
-    console.log("Status updated:", receiptId, newStatus, rejectionReason);
+    receiptService
+      .updateStatus({
+        id: receiptId,
+        status: newStatus,
+        rejectionReason: rejectionReason ?? null,
+      })
+      .then((updated) => {
+        setReceipts((prev) =>
+          prev.map((r) =>
+            r.id === receiptId
+              ? {
+                  ...r,
+                  status: updated.status,
+                  rejectionReason: updated.rejection_reason ?? null,
+                }
+              : r
+          )
+        );
+      })
+      .catch(() => {});
   };
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
+      <Loader isOpen={isLoading} text="Loading receipts..." />
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <MetricCard
@@ -355,19 +490,19 @@ const AdminDashboardReceipts = () => {
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {receipt.id}
+                      {`#${receipt.id.slice(0, 6)}`}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {receipt.clientName}
+                      {receipt.realtorName}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
                       {receipt.propertyName}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {receipt.amount}
+                      {formatNaira(receipt.amountPaid)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {receipt.date}
+                      {formatDate(receipt.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={receipt.status} />

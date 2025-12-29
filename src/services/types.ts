@@ -66,9 +66,10 @@ export interface Receipt {
   realtor_id?: string | null;
   client_name: string;
   property_id?: string | null;
-  amount: number;
-  receipt_file_url?: string | null;
+  amount_paid: number;
+  receipt_urls?: string[] | null;
   status: ReceiptStatus;
+  rejection_reason?: string | null;
   created_at: string;
 }
 

@@ -1,15 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { X, ChevronUp, Download } from "lucide-react";
-import type { Receipt } from "./AdminReceiptsData";
 import ReceiptsIcon from "../../icons/ReceiptsIcon";
+import type { ReceiptStatus } from "../../../services/types";
 
 interface AdminReceiptsDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  receipt: Receipt | null;
+  receipt: {
+    id: string;
+    realtorName: string;
+    clientName: string;
+    propertyName: string;
+    amountPaid: number;
+    receiptUrls: string[];
+    status: ReceiptStatus;
+    createdAt: string;
+    rejectionReason: string | null;
+  } | null;
   onStatusUpdate?: (
     receiptId: string,
-    newStatus: Receipt["status"],
+    newStatus: ReceiptStatus,
     rejectionReason?: string
   ) => void;
 }
@@ -26,6 +36,26 @@ const AdminReceiptsDetailsModal = ({
   >(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const formatNaira = (amount: number) =>
+    `₦${Math.round(amount).toLocaleString()}`;
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "-";
+    const day = d.getDate();
+    const suffix =
+      day % 10 === 1 && day % 100 !== 11
+        ? "st"
+        : day % 10 === 2 && day % 100 !== 12
+        ? "nd"
+        : day % 10 === 3 && day % 100 !== 13
+        ? "rd"
+        : "th";
+    const monthName = d.toLocaleDateString("en-US", { month: "long" });
+    const year = d.getFullYear();
+    return `${monthName} ${day}${suffix}, ${year}`;
+  };
 
   // Reset states when modal opens/closes or receipt changes
   useEffect(() => {
@@ -73,13 +103,13 @@ const AdminReceiptsDetailsModal = ({
       return; // Don't allow rejection without reason
     }
 
-    let newStatus: Receipt["status"];
+    let newStatus: ReceiptStatus;
     if (selectedAction === "approve") {
-      newStatus = "Approved";
+      newStatus = "approved";
     } else if (selectedAction === "reject") {
-      newStatus = "Rejected";
+      newStatus = "rejected";
     } else {
-      newStatus = "Under review";
+      newStatus = "under_review";
     }
 
     onStatusUpdate?.(receipt.id, newStatus, rejectionReason || undefined);
@@ -91,21 +121,17 @@ const AdminReceiptsDetailsModal = ({
       return; // Don't allow rejection without reason
     }
 
-    onStatusUpdate?.(receipt.id, "Rejected", rejectionReason);
+    onStatusUpdate?.(receipt.id, "rejected", rejectionReason);
     onClose();
   };
 
   const canShowUpdateButton =
-    receipt.status === "Pending" || receipt.status === "Under review";
+    receipt.status === "pending" || receipt.status === "under_review";
   const showRejectButton = selectedAction === "reject";
   const showRejectionReasonField =
-    receipt.status === "Rejected" || showRejectButton;
+    receipt.status === "rejected" || showRejectButton;
 
-  // Mock rejection reason for rejected receipts (in real app, this would come from data)
-  const mockRejectionReason =
-    receipt.status === "Rejected"
-      ? "Lorem ipsum dolor sit amet consectetur. Eu senectus ut id egestas. Leo sem feugiat ridiculus quam ultrices. Lorem fermentum sed eget risus id at. Ornare sapien pellentesque fringilla at urna."
-      : "";
+  const rejectionReasonFromReceipt = receipt.rejectionReason ?? "";
 
   return (
     <>
@@ -157,13 +183,13 @@ const AdminReceiptsDetailsModal = ({
                 <div className="flex justify-between items-start">
                   <span className="text-sm text-gray-600">Receipt ID:</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {receipt.id}
+                    {`#${receipt.id.slice(0, 6)}`}
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
                   <span className="text-sm text-gray-600">Realtor's name:</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {receipt.clientName}
+                    {receipt.realtorName}
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
@@ -181,7 +207,7 @@ const AdminReceiptsDetailsModal = ({
                 <div className="flex justify-between items-start">
                   <span className="text-sm text-gray-600">Amount paid:</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {receipt.amount}
+                    {formatNaira(receipt.amountPaid)}
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
@@ -191,7 +217,7 @@ const AdminReceiptsDetailsModal = ({
                 <div className="flex justify-between items-start">
                   <span className="text-sm text-gray-600">Date uploaded:</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {receipt.date}
+                    {formatDate(receipt.createdAt)}
                   </span>
                 </div>
               </div>
@@ -258,10 +284,10 @@ const AdminReceiptsDetailsModal = ({
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Reason for rejection:
                 </label>
-                {receipt.status === "Rejected" ? (
+                {receipt.status === "rejected" ? (
                   <div className="p-4 bg-gray-50 border border-[#F0F1F2] rounded-lg">
                     <p className="text-sm text-gray-700">
-                      {mockRejectionReason}
+                      {rejectionReasonFromReceipt || "-"}
                     </p>
                   </div>
                 ) : (
@@ -282,39 +308,53 @@ const AdminReceiptsDetailsModal = ({
                 Attached Documents
               </h3>
               <div className="space-y-3">
-                {/* Mock documents - in real app, this would come from receipt data */}
-                <div className="flex items-center justify-between p-3 border border-[#F0F1F2] rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#FEE2E2] flex items-center justify-center">
-                      <ReceiptsIcon color="#EF4444" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        Receipt.JPG
-                      </p>
-                      <p className="text-xs text-gray-500">2mb</p>
-                    </div>
+                {receipt.receiptUrls.length > 0 ? (
+                  receipt.receiptUrls.map((url, idx) => {
+                    const filename = (() => {
+                      try {
+                        const u = new URL(url);
+                        const parts = u.pathname.split("/").filter(Boolean);
+                        return parts[parts.length - 1] ?? `Receipt ${idx + 1}`;
+                      } catch {
+                        const parts = url.split("/").filter(Boolean);
+                        return parts[parts.length - 1] ?? `Receipt ${idx + 1}`;
+                      }
+                    })();
+
+                    return (
+                      <div
+                        key={`${url}-${idx}`}
+                        className="flex items-center justify-between p-3 border border-[#F0F1F2] rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-[#FEE2E2] flex items-center justify-center shrink-0">
+                            <ReceiptsIcon color="#EF4444" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {filename}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {url}
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                          <Download className="w-5 h-5 text-gray-600" />
+                        </a>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-4 border border-[#F0F1F2] rounded-lg text-sm text-gray-600">
+                    No receipt files attached
                   </div>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                    <Download className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
-                <div className="flex items-center justify-between p-3 border border-[#F0F1F2] rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#FEE2E2] flex items-center justify-center">
-                      <ReceiptsIcon color="#EF4444" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        Receipt.JPG
-                      </p>
-                      <p className="text-xs text-gray-500">2mb</p>
-                    </div>
-                  </div>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                    <Download className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -399,19 +439,22 @@ const AdminReceiptsDetailsModal = ({
 };
 
 // Status Badge component
-const StatusBadge = ({ status }: { status: Receipt["status"] }) => {
-  const statusConfig = {
-    Approved: { color: "#22C55E", bgColor: "#D1FAE5", label: "Approved" },
-    Pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
-    Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
-    "Under review": {
+const StatusBadge = ({ status }: { status: ReceiptStatus }) => {
+  const statusConfig: Record<
+    ReceiptStatus,
+    { color: string; bgColor: string; label: string }
+  > = {
+    approved: { color: "#22C55E", bgColor: "#D1FAE5", label: "Approved" },
+    pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
+    rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
+    under_review: {
       color: "#6500AC",
       bgColor: "#F0E6F7",
       label: "Under review",
     },
   };
 
-  const config = statusConfig[status] || statusConfig.Pending;
+  const config = statusConfig[status];
 
   return (
     <span
