@@ -1,7 +1,9 @@
 import { Menu, Calendar, Bell } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DefaultProfilePic from "../assets/Default Profile pic.png";
 import NotificationModal from "../components/Admin Dashboard components/NotificationModal";
+import { notificationService } from "../services/apiService";
+import { getSupabaseClient } from "../services/supabaseClient";
 import type { User } from "../services/types";
 
 interface HeaderProps {
@@ -19,13 +21,41 @@ const AdminDashboardHeader = ({
   user,
 }: HeaderProps) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const currentDate = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "Admin";
+  const displayName = user
+    ? `${user.first_name} ${user.last_name}`.trim()
+    : "Admin";
   const profileSrc = user?.avatar_url ? user.avatar_url : DefaultProfilePic;
+
+  const resolveUserId = async () => {
+    if (user?.id) return user.id;
+    const { data } = await getSupabaseClient().auth.getSession();
+    return data.session?.user?.id ?? null;
+  };
+
+  const refreshUnreadCount = async () => {
+    const id = await resolveUserId();
+    if (!id) return;
+    const count = await notificationService.getAdminActionUnreadCount({
+      userId: id,
+    });
+    setUnreadCount(count);
+  };
+
+  useEffect(() => {
+    refreshUnreadCount().catch(() => {});
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!isNotificationOpen) {
+      refreshUnreadCount().catch(() => {});
+    }
+  }, [isNotificationOpen]);
 
   return (
     <>
@@ -64,7 +94,9 @@ const AdminDashboardHeader = ({
             >
               <Bell className="w-5 h-5" />
               {/* Unread notification dot */}
-              <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+              )}
             </button>
             <button
               onClick={onProfileClick}
@@ -91,6 +123,7 @@ const AdminDashboardHeader = ({
       <NotificationModal
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
+        userId={user?.id ?? null}
       />
     </>
   );

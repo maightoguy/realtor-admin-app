@@ -27,11 +27,12 @@ import AdminDashboardNotifications from "../components/Admin Dashboard component
 import AdminDashboardReferrals from "../components/Admin Dashboard components/Admin dashboard referrals components/AdminDashboardReferrals.tsx";
 import AdminDashboardSettings from "../components/Admin Dashboard components/Admin dashboard settings components/AdminDashboardSettings.tsx";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import OverviewIcon from "../components/icons/OverviewIcon.tsx";
 
 const AdminDashboardPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState("Overview");
   const [isAddPropertyFormActive, setIsAddPropertyFormActive] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(() =>
@@ -45,6 +46,38 @@ const AdminDashboardPage = () => {
       navigate("/login");
     }
   }, [currentUser, navigate]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const rawSection = params.get("section") ?? "";
+    const hasReceipt = Boolean(params.get("receiptId"));
+    const hasPayout = Boolean(params.get("payoutId"));
+    const hasRealtor = Boolean(params.get("realtorId"));
+
+    const normalizeSection = (value: string) => {
+      const v = value.trim().toLowerCase();
+      if (v === "overview") return "Overview";
+      if (v === "properties") return "Properties";
+      if (v === "receipts") return "Receipts";
+      if (v === "realtors") return "Realtors";
+      if (v === "transactions") return "Transactions";
+      if (v === "notifications") return "Notifications";
+      if (v === "referrals") return "Referrals";
+      if (v === "settings") return "Settings";
+      return null;
+    };
+
+    const next =
+      normalizeSection(rawSection) ??
+      (hasReceipt ? "Receipts" : null) ??
+      (hasPayout ? "Transactions" : null) ??
+      (hasRealtor ? "Realtors" : null);
+
+    if (next && next !== activeSection) {
+      setActiveSection(next);
+      if (next !== "Properties") setIsAddPropertyFormActive(false);
+    }
+  }, [location.search, activeSection]);
 
   const handleProfileClick = () => {
     setActiveSection("Settings");

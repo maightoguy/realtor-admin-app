@@ -31,3 +31,71 @@ create trigger trg_notify_commission_updates
 after
 update OF status on commissions for EACH row
 execute FUNCTION notify_commission_updates ();
+
+
+
+
+
+
+[
+  {
+    "schemaname": "public",
+    "tablename": "commissions",
+    "policyname": "Admins can manage all commissions",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "ALL",
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = auth.uid()) AND (users.role = 'admin'::text))))",
+    "with_check": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = auth.uid()) AND (users.role = 'admin'::text))))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "commissions",
+    "policyname": "Realtors can view own commissions",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() = realtor_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "commissions",
+    "policyname": "Realtors view own commissions",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(realtor_id = auth.uid())",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "commissions",
+    "policyname": "admin_update_commissions_status",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))",
+    "with_check": "((EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text)))) AND (status = ANY (ARRAY['paid'::text, 'rejected'::text])))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "commissions",
+    "policyname": "commissions_select_realtor_or_admin",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "((realtor_id = auth.uid()) OR is_admin())",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "commissions",
+    "policyname": "commissions_update_admin_status_only",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "UPDATE",
+    "qual": "is_admin()",
+    "with_check": "(is_admin() AND (status = ANY (ARRAY['paid'::text, 'rejected'::text])) AND (( SELECT c.status\n   FROM commissions c\n  WHERE (c.id = commissions.id)) = ANY (ARRAY['pending'::text, 'approved'::text])) AND (amount = ( SELECT c.amount\n   FROM commissions c\n  WHERE (c.id = commissions.id))) AND (NOT (realtor_id IS DISTINCT FROM ( SELECT c.realtor_id\n   FROM commissions c\n  WHERE (c.id = commissions.id)))) AND (NOT (receipt_id IS DISTINCT FROM ( SELECT c.receipt_id\n   FROM commissions c\n  WHERE (c.id = commissions.id)))) AND (((status = 'paid'::text) AND (paid_on IS NOT NULL)) OR ((status = 'rejected'::text) AND (paid_on IS NULL))))"
+  }
+]

@@ -1,42 +1,14 @@
-import { X, ArrowLeft, Clock } from "lucide-react";
-import React from "react";
-
-// Mock data based on the provided UI images
-const notifications = [
-  {
-    id: 1,
-    type: "approved",
-    title: "Receipt Approved for Land for Rent at surulere or City of David",
-    message: "10% commission has been added to your wallet",
-    attachment: { name: "Receipt.JPG", size: "2mb" },
-    timestamp: "Today at 9:42 AM",
-    isRead: false,
-  },
-  {
-    id: 2,
-    type: "rejected",
-    title: "Receipt Rejected for Land for sale at Lekki phase 1 Araba",
-    message:
-      "This receipt does not have a valid time and date kindly upload with the original receipt",
-    attachment: { name: "Receipt.JPG", size: "2mb" },
-    timestamp: "Last Wednesday at 9:42 AM",
-    isRead: true,
-  },
-  {
-    id: 3,
-    type: "new_account",
-    title: "New Account created",
-    message: null,
-    attachment: null,
-    timestamp: "Last Wednesday at 9:42 AM",
-    isRead: true,
-  },
-];
+import { X, ArrowLeft } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { notificationService } from "../../services/apiService";
+import { getSupabaseClient } from "../../services/supabaseClient";
 
 // Helper to get the right icon and color for each notification type
 const getNotificationIcon = (type: string) => {
   switch (type) {
     case "approved":
+    case "success":
       return (
         <svg
           width="26"
@@ -46,14 +18,15 @@ const getNotificationIcon = (type: string) => {
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M8.75375 2.74875C9.2812 2.14029 9.93341 1.65245 10.6661 1.31835C11.3988 0.984259 12.1948 0.811737 13 0.812503C14.6963 0.812503 16.2163 1.5625 17.2463 2.74875C18.0496 2.69139 18.8559 2.80761 19.6104 3.08951C20.3649 3.37141 21.0498 3.81239 21.6188 4.3825C22.1886 4.95133 22.6295 5.63609 22.9114 6.39032C23.1933 7.14455 23.3096 7.95059 23.2525 8.75375C23.8607 9.28132 24.3483 9.93358 24.6822 10.6662C25.0161 11.3989 25.1884 12.1948 25.1875 13C25.1883 13.8053 25.0157 14.6012 24.6817 15.3339C24.3476 16.0666 23.8597 16.7188 23.2513 17.2463C23.3084 18.0494 23.192 18.8555 22.9101 19.6097C22.6282 20.3639 22.1874 21.0487 21.6175 21.6175C21.0487 22.1874 20.3639 22.6282 19.6097 22.9101C18.8555 23.192 18.0494 23.3083 17.2463 23.2513C16.7188 23.8597 16.0666 24.3476 15.3339 24.6817C14.6012 25.0157 13.8053 25.1883 13 25.1875C12.1948 25.1883 11.3988 25.0157 10.6661 24.6817C9.93341 24.3476 9.2812 23.8597 8.75375 23.2513C7.95048 23.3088 7.14423 23.1928 6.38976 22.9111C5.63529 22.6294 4.95028 22.1886 4.38125 21.6188C3.81121 21.0498 3.37027 20.3648 3.08838 19.6104C2.80648 18.8559 2.69022 18.0496 2.7475 17.2463C2.13927 16.7187 1.65166 16.0664 1.31778 15.3338C0.983909 14.6011 0.811583 13.8052 0.812504 13C0.812504 11.3038 1.5625 9.78375 2.74875 8.75375C2.69157 7.95059 2.80788 7.14452 3.08978 6.39028C3.37167 5.63604 3.81256 4.95128 4.3825 4.3825C4.95128 3.81256 5.63604 3.37167 6.39028 3.08978C7.14452 2.80788 7.95059 2.69157 8.75375 2.74875ZM17.5125 10.7325C17.5875 10.6326 17.6418 10.5186 17.6721 10.3974C17.7025 10.2762 17.7083 10.1502 17.6892 10.0267C17.6701 9.90321 17.6266 9.78478 17.5611 9.67837C17.4956 9.57197 17.4095 9.47972 17.3078 9.40707C17.2062 9.33441 17.091 9.28281 16.9691 9.25529C16.8473 9.22777 16.7211 9.2249 16.5981 9.24683C16.4751 9.26876 16.3577 9.31507 16.2529 9.38302C16.148 9.45096 16.0578 9.53919 15.9875 9.6425L11.9425 15.305L9.9125 13.275C9.73478 13.1094 9.49973 13.0192 9.25685 13.0235C9.01397 13.0278 8.78224 13.1262 8.61048 13.298C8.43871 13.4697 8.34032 13.7015 8.33603 13.9443C8.33175 14.1872 8.4219 14.4223 8.5875 14.6L11.4 17.4125C11.4962 17.5087 11.6123 17.5827 11.74 17.6296C11.8677 17.6764 12.0041 17.6948 12.1397 17.6837C12.2753 17.6725 12.4068 17.6319 12.5252 17.5648C12.6435 17.4977 12.7458 17.4056 12.825 17.295L17.5125 10.7325Z"
             fill="#22C55E"
           />
         </svg>
       );
     case "rejected":
+    case "error":
       return (
         <svg
           width="26"
@@ -63,14 +36,18 @@ const getNotificationIcon = (type: string) => {
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            fill-rule="evenodd"
-            clip-rule="evenodd"
+            fillRule="evenodd"
+            clipRule="evenodd"
             d="M13 0.8125C6.26875 0.8125 0.8125 6.26875 0.8125 13C0.8125 19.7313 6.26875 25.1875 13 25.1875C19.7313 25.1875 25.1875 19.7313 25.1875 13C25.1875 6.26875 19.7313 0.8125 13 0.8125ZM10.85 9.525C10.7642 9.43289 10.6607 9.35901 10.5457 9.30777C10.4307 9.25653 10.3065 9.22898 10.1807 9.22676C10.0548 9.22454 9.92974 9.24769 9.813 9.29485C9.69627 9.342 9.59023 9.41218 9.5012 9.5012C9.41218 9.59023 9.342 9.69627 9.29485 9.813C9.24769 9.92974 9.22454 10.0548 9.22676 10.1807C9.22898 10.3065 9.25653 10.4307 9.30777 10.5457C9.35901 10.6607 9.43289 10.7642 9.525 10.85L11.675 13L9.525 15.15C9.43289 15.2358 9.35901 15.3393 9.30777 15.4543C9.25653 15.5693 9.22898 15.6935 9.22676 15.8193C9.22454 15.9452 9.24769 16.0703 9.29485 16.187C9.342 16.3037 9.41218 16.4098 9.5012 16.4988C9.59023 16.5878 9.69627 16.658 9.813 16.7052C9.92974 16.7523 10.0548 16.7755 10.1807 16.7732C10.3065 16.771 10.4307 16.7435 10.5457 16.6922C10.6607 16.641 10.7642 16.5671 10.85 16.475L13 14.325L15.15 16.475C15.2358 16.5671 15.3393 16.641 15.4543 16.6922C15.5693 16.7435 15.6935 16.771 15.8193 16.7732C15.9452 16.7755 16.0703 16.7523 16.187 16.7052C16.3037 16.658 16.4098 16.5878 16.4988 16.4988C16.5878 16.4098 16.658 16.3037 16.7052 16.187C16.7523 16.0703 16.7755 15.9452 16.7732 15.8193C16.771 15.6935 16.7435 15.5693 16.6922 15.4543C16.641 15.3393 16.5671 15.2358 16.475 15.15L14.325 13L16.475 10.85C16.5671 10.7642 16.641 10.6607 16.6922 10.5457C16.7435 10.4307 16.771 10.3065 16.7732 10.1807C16.7755 10.0548 16.7523 9.92974 16.7052 9.813C16.658 9.69627 16.5878 9.59023 16.4988 9.5012C16.4098 9.41218 16.3037 9.342 16.187 9.29485C16.0703 9.24769 15.9452 9.22454 15.8193 9.22676C15.6935 9.22898 15.5693 9.25653 15.4543 9.30777C15.3393 9.35901 15.2358 9.43289 15.15 9.525L13 11.675L10.85 9.525Z"
             fill="#EF4444"
           />
         </svg>
       );
     case "new_account":
+    case "auth":
+    case "receipt_pending":
+    case "payout_pending":
+    case "kyc_pending":
       return (
         <svg
           width="32"
@@ -94,12 +71,155 @@ const getNotificationIcon = (type: string) => {
 type NotificationModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  userId?: string | null;
 };
 
 const NotificationModal: React.FC<NotificationModalProps> = ({
   isOpen,
   onClose,
+  userId,
 }) => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [rows, setRows] = useState<
+    Array<{
+      id: string;
+      type: string;
+      title: string | null;
+      message: string;
+      seen: boolean | null;
+      created_at: string | null;
+      metadata: Record<string, unknown> | null;
+    }>
+  >([]);
+
+  const resolveUserId = async (): Promise<string | null> => {
+    if (userId) return userId;
+    const { data } = await getSupabaseClient().auth.getSession();
+    return data.session?.user?.id ?? null;
+  };
+
+  const formatTimestamp = (iso: string | null) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "-";
+    const now = new Date();
+    const isToday =
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
+    const time = d.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    if (isToday) return `Today at ${time}`;
+    const day = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    return `${day} at ${time}`;
+  };
+
+  const buildDeepLink = (metadata: Record<string, unknown> | null) => {
+    const section =
+      typeof metadata?.section === "string" ? metadata.section : undefined;
+    const receiptId =
+      typeof metadata?.receipt_id === "string"
+        ? metadata.receipt_id
+        : undefined;
+    const payoutId =
+      typeof metadata?.payout_id === "string" ? metadata.payout_id : undefined;
+    const realtorId =
+      typeof metadata?.realtor_id === "string"
+        ? metadata.realtor_id
+        : typeof metadata?.user_id === "string"
+        ? metadata.user_id
+        : undefined;
+
+    const params = new URLSearchParams();
+    if (section) params.set("section", section);
+    if (receiptId) params.set("receiptId", receiptId);
+    if (payoutId) params.set("payoutId", payoutId);
+    if (realtorId) params.set("realtorId", realtorId);
+    const qs = params.toString();
+    return qs ? `/dashboard?${qs}` : "/dashboard";
+  };
+
+  const notifications = useMemo(() => {
+    return rows.map((r) => {
+      const metadata = r.metadata ?? {};
+      const title =
+        r.title ??
+        (typeof metadata.title === "string" ? metadata.title : null) ??
+        "Notification";
+      const seen = Boolean(r.seen);
+      return {
+        id: r.id,
+        type: r.type,
+        title,
+        message: r.message,
+        timestamp: formatTimestamp(r.created_at),
+        isRead: seen,
+        metadata: r.metadata,
+      };
+    });
+  }, [rows]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+
+    resolveUserId()
+      .then(async (id) => {
+        if (!id) throw new Error("Not authenticated. Please log in again.");
+        const data = await notificationService.getAdminActionNotifications({
+          userId: id,
+          limit: 50,
+        });
+        if (cancelled) return;
+        setRows(
+          data.map((n) => ({
+            id: n.id,
+            type: n.type,
+            title: n.title ?? null,
+            message: n.message,
+            seen: n.seen,
+            created_at: n.created_at,
+            metadata: n.metadata ?? null,
+          }))
+        );
+        notificationService
+          .markAllAdminActionAsSeen({ userId: id })
+          .then(() => {
+            if (!cancelled) {
+              setRows((prev) =>
+                prev.map((x) => ({
+                  ...x,
+                  seen: true,
+                }))
+              );
+            }
+          })
+          .catch(() => {});
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Load failed.";
+        setLoadError(message);
+        setRows([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -142,44 +262,47 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 
         {/* Notifications List */}
         <div className="flex-1 overflow-y-auto">
-          {notifications.map((item, index) => (
-            <div
-              key={item.id}
-              className={`flex gap-4 p-4 ${
-                index < notifications.length - 1
-                  ? "border-b border-gray-100"
-                  : ""
-              }`}
-            >
-              {!item.isRead && (
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0" />
-              )}
-              <div className={`shrink-0 mt-1 ${item.isRead ? "ml-4" : ""}`}>
-                {getNotificationIcon(item.type)}
-              </div>
-
-              <div className="grow">
-                <p className="text-sm font-semibold text-gray-800 leading-tight">
-                  {item.title}
-                </p>
-                {item.message && (
-                  <p className="text-sm text-gray-500 mt-1">{item.message}</p>
-                )}
-                {item.attachment && (
-                  <div className="mt-2 flex items-center gap-2 p-2 bg-gray-50 rounded-md border border-gray-200 w-fit">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span className="text-xs font-medium text-gray-700">
-                      {item.attachment.name}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {item.attachment.size}
-                    </span>
-                  </div>
-                )}
-                <p className="text-xs text-gray-400 mt-2">{item.timestamp}</p>
-              </div>
+          {isLoading ? (
+            <div className="p-6 text-sm text-gray-500">Loading...</div>
+          ) : loadError ? (
+            <div className="p-6 text-sm text-gray-500">{loadError}</div>
+          ) : notifications.length === 0 ? (
+            <div className="p-6 text-sm text-gray-500">
+              No notifications found
             </div>
-          ))}
+          ) : (
+            notifications.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  const href = buildDeepLink(item.metadata ?? null);
+                  navigate(href);
+                  onClose();
+                }}
+                className={`w-full text-left flex gap-4 p-4 hover:bg-gray-50 active:bg-gray-100 ${
+                  index < notifications.length - 1
+                    ? "border-b border-gray-100"
+                    : ""
+                }`}
+              >
+                {!item.isRead && (
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0" />
+                )}
+                <div className={`shrink-0 mt-1 ${item.isRead ? "ml-4" : ""}`}>
+                  {getNotificationIcon(item.type)}
+                </div>
+
+                <div className="grow">
+                  <p className="text-sm font-semibold text-gray-800 leading-tight">
+                    {item.title}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">{item.message}</p>
+                  <p className="text-xs text-gray-400 mt-2">{item.timestamp}</p>
+                </div>
+              </button>
+            ))
+          )}
         </div>
       </div>
     </>

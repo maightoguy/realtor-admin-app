@@ -1047,6 +1047,45 @@ export const payoutService = {
   },
 };
 
+export const transactionService = {
+  async requestPayout(params: {
+    realtorId?: string;
+    amount: number;
+    bankDetails?: Record<string, unknown> | null;
+  }): Promise<Payout> {
+    const supabase = getSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
+
+    const realtorId = params.realtorId ?? sessionUserId;
+    if (realtorId !== sessionUserId) {
+      throw new Error("Permission denied.");
+    }
+
+    const amount = Number(params.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Invalid amount.");
+    }
+
+    const insertRow = {
+      amount,
+      realtor_id: realtorId,
+      bank_details: params.bankDetails ?? null,
+    };
+
+    const { data, error } = await supabase
+      .from("payouts")
+      .insert(insertRow)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data as Payout;
+  },
+};
+
 export const notificationService = {
   async create(params: {
     userId: string;
@@ -1076,6 +1115,113 @@ export const notificationService = {
       metadata: params.metadata ?? {},
     });
     if (insertError) throw insertError;
+  },
+
+  async getAdminActionNotifications(params: {
+    userId: string;
+    limit?: number;
+  }): Promise<
+    Array<{
+      id: string;
+      user_id: string;
+      type: string;
+      message: string;
+      seen: boolean | null;
+      created_at: string | null;
+      title: string | null;
+      metadata: Record<string, unknown> | null;
+    }>
+  > {
+    const supabase = getSupabaseClient();
+    const limit = params.limit ?? 50;
+
+    const selectColumnsBase = "id,user_id,type,message,seen,created_at,title,metadata";
+    const selectColumnsWithTargetRole = `${selectColumnsBase},target_role`;
+
+    const baseQuery = (selectColumns: string) =>
+      supabase
+        .from("notifications")
+        .select(selectColumns)
+        .eq("user_id", params.userId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+    try {
+      const { data, error } = await baseQuery(selectColumnsWithTargetRole).eq(
+        "target_role",
+        "admin"
+      );
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<{
+        id: string;
+        user_id: string;
+        type: string;
+        message: string;
+        seen: boolean | null;
+        created_at: string | null;
+        title: string | null;
+        metadata: Record<string, unknown> | null;
+      }>;
+    } catch {
+      const { data, error } = await baseQuery(selectColumnsBase).contains("metadata", {
+        target_role: "admin",
+      });
+      if (error) throw error;
+      return (data ?? []) as unknown as Array<{
+        id: string;
+        user_id: string;
+        type: string;
+        message: string;
+        seen: boolean | null;
+        created_at: string | null;
+        title: string | null;
+        metadata: Record<string, unknown> | null;
+      }>;
+    }
+  },
+
+  async markAllAdminActionAsSeen(params: { userId: string }): Promise<void> {
+    const supabase = getSupabaseClient();
+
+    const baseUpdate = () =>
+      supabase
+        .from("notifications")
+        .update({ seen: true })
+        .eq("user_id", params.userId)
+        .eq("seen", false);
+
+    try {
+      const { error } = await baseUpdate().eq("target_role", "admin");
+      if (error) throw error;
+    } catch {
+      const { error } = await baseUpdate().contains("metadata", {
+        target_role: "admin",
+      });
+      if (error) throw error;
+    }
+  },
+
+  async getAdminActionUnreadCount(params: { userId: string }): Promise<number> {
+    const supabase = getSupabaseClient();
+
+    const baseCount = () =>
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", params.userId)
+        .eq("seen", false);
+
+    try {
+      const { count, error } = await baseCount().eq("target_role", "admin");
+      if (error) throw error;
+      return count ?? 0;
+    } catch {
+      const { count, error } = await baseCount().contains("metadata", {
+        target_role: "admin",
+      });
+      if (error) throw error;
+      return count ?? 0;
+    }
   },
 
   async sendBroadcast(params: {

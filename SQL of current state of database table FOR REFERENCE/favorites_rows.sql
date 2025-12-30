@@ -10,3 +10,40 @@ create table public.favorites (
   constraint favorites_property_id_fkey foreign KEY (property_id) references properties (id) on delete CASCADE,
   constraint favorites_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE
 ) TABLESPACE pg_default;
+
+
+
+
+
+[
+  {
+    "schemaname": "public",
+    "tablename": "favorites",
+    "policyname": "Users can add favorites",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "favorites",
+    "policyname": "Users can remove their own favorites",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "favorites",
+    "policyname": "Users can view their own favorites",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() = user_id)",
+    "with_check": null
+  }
+]

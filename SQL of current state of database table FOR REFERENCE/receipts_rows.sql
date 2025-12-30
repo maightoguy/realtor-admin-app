@@ -33,3 +33,20 @@ after INSERT
 or
 update OF status on receipts for EACH row
 execute FUNCTION notify_receipt_updates ();
+
+
+
+
+
+[
+  {
+    "schemaname": "public",
+    "tablename": "receipts",
+    "policyname": "Realtors can view/upload own receipts",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(realtor_id = auth.uid())",
+    "with_check": "(realtor_id = auth.uid())"
+  }
+]

@@ -79,3 +79,68 @@ create table public.properties (
     )
   )
 ) TABLESPACE pg_default;
+
+
+
+[
+  {
+    "schemaname": "public",
+    "tablename": "properties",
+    "policyname": "Admin delete properties",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "DELETE",
+    "qual": "is_admin()",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "properties",
+    "policyname": "Admin insert properties",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "is_admin()"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "properties",
+    "policyname": "Admin update properties",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "UPDATE",
+    "qual": "is_admin()",
+    "with_check": "is_admin()"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "properties",
+    "policyname": "Authenticated users can view properties",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(auth.uid() IS NOT NULL)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "properties",
+    "policyname": "Public read properties",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "properties",
+    "policyname": "admins can insert properties",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))"
+  }
+]

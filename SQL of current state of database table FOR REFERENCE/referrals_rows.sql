@@ -17,3 +17,59 @@ create index IF not exists idx_referrals_upline_id on public.referrals using btr
 create trigger trg_notify_upline_on_referral
 after INSERT on referrals for EACH row
 execute FUNCTION notify_upline_on_referral ();
+
+
+
+
+[
+  {
+    "schemaname": "public",
+    "tablename": "referrals",
+    "policyname": "Realtors view own referrals",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(upline_id = auth.uid())",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "referrals",
+    "policyname": "Users can insert their own referral record",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "(auth.uid() = downline_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "referrals",
+    "policyname": "Users can view their own referrals",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "((auth.uid() = upline_id) OR (auth.uid() = downline_id))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "referrals",
+    "policyname": "referrals_insert_by_downline",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "INSERT",
+    "qual": null,
+    "with_check": "((auth.uid() = downline_id) AND (upline_id <> downline_id))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "referrals",
+    "policyname": "referrals_select_upline_or_downline",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "((auth.uid() = upline_id) OR (auth.uid() = downline_id))",
+    "with_check": null
+  }
+]
