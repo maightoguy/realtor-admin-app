@@ -24,6 +24,14 @@ function errorToLogPayload(err: unknown) {
   };
 }
 
+function formatApiError(err: unknown): string {
+  const payload = errorToLogPayload(err);
+  const parts = [payload.message, payload.code, payload.details, payload.hint].filter(
+    (v): v is string => typeof v === "string" && v.trim().length > 0
+  );
+  return parts.join(" | ");
+}
+
 function isMissingDeveloperColumn(err: unknown): boolean {
   const payload = errorToLogPayload(err);
   const message = `${String(payload.message ?? "")} ${String(payload.details ?? "")}`.toLowerCase();
@@ -880,7 +888,6 @@ export const commissionService = {
   }): Promise<Commission> {
     const { data: sessionData } = await getSupabaseClient().auth.getSession();
     const sessionUserId = sessionData.session?.user?.id ?? null;
-    const accessToken = sessionData.session?.access_token ?? null;
     if (!sessionUserId) {
       throw new Error("Not authenticated. Please log in again.");
     }
@@ -890,55 +897,37 @@ export const commissionService = {
       paid_on: params.status === "paid" ? new Date().toISOString() : null,
     };
 
-    const adminFallback = async (): Promise<Commission> => {
-      if (!accessToken) {
-        throw new Error("Update failed. Please log in again.");
-      }
-
-      const res = await fetch(`/api/admin/commissions/${params.id}/status`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ status: params.status }),
-      });
-
-      const json = (await res.json().catch(() => null)) as
-        | { data?: unknown; error?: string }
-        | null;
-      if (!res.ok) {
-        throw new Error(json?.error || "Update failed. Permission denied.");
-      }
-      if (!json?.data) {
-        throw new Error("Update failed. Record not found or permission denied.");
-      }
-      return json.data as Commission;
-    };
-
     try {
       const { data, error } = await getSupabaseClient()
         .from("commissions")
         .update(updates)
         .eq("id", params.id)
-        .select("*");
+        .select("*")
+        .maybeSingle();
 
-      if (error) throw error;
-      const updated = (data ?? [])[0] as Commission | undefined;
-      if (updated) return updated;
-      return await adminFallback();
-    } catch (err) {
-      try {
-        return await adminFallback();
-      } catch (fallbackErr) {
-        const message =
-          fallbackErr instanceof Error
-            ? fallbackErr.message
-            : err instanceof Error
-            ? err.message
-            : "Update failed.";
-        throw new Error(message);
+      if (error) {
+        logger.error("[API][commissions] updateStatus failed", {
+          id: params.id,
+          status: params.status,
+          ...errorToLogPayload(error),
+        });
+        throw error;
       }
+      if (data) return data as Commission;
+
+      const { data: fetched, error: fetchError } = await getSupabaseClient()
+        .from("commissions")
+        .select("*")
+        .eq("id", params.id)
+        .maybeSingle();
+      if (fetchError) throw fetchError;
+      if (fetched) return fetched as Commission;
+
+      throw new Error(
+        "Update may have succeeded, but the record could not be read. Check RLS SELECT policy for admins."
+      );
+    } catch (err) {
+      throw new Error(formatApiError(err) || "Update failed. Permission denied.");
     }
   },
 };
@@ -984,7 +973,6 @@ export const payoutService = {
   }): Promise<Payout> {
     const { data: sessionData } = await getSupabaseClient().auth.getSession();
     const sessionUserId = sessionData.session?.user?.id ?? null;
-    const accessToken = sessionData.session?.access_token ?? null;
     if (!sessionUserId) {
       throw new Error("Not authenticated. Please log in again.");
     }
@@ -994,55 +982,37 @@ export const payoutService = {
       paid_at: params.status === "paid" ? new Date().toISOString() : null,
     };
 
-    const adminFallback = async (): Promise<Payout> => {
-      if (!accessToken) {
-        throw new Error("Update failed. Please log in again.");
-      }
-
-      const res = await fetch(`/api/admin/payouts/${params.id}/status`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ status: params.status }),
-      });
-
-      const json = (await res.json().catch(() => null)) as
-        | { data?: unknown; error?: string }
-        | null;
-      if (!res.ok) {
-        throw new Error(json?.error || "Update failed. Permission denied.");
-      }
-      if (!json?.data) {
-        throw new Error("Update failed. Record not found or permission denied.");
-      }
-      return json.data as Payout;
-    };
-
     try {
       const { data, error } = await getSupabaseClient()
         .from("payouts")
         .update(updates)
         .eq("id", params.id)
-        .select("*");
+        .select("*")
+        .maybeSingle();
 
-      if (error) throw error;
-      const updated = (data ?? [])[0] as Payout | undefined;
-      if (updated) return updated;
-      return await adminFallback();
-    } catch (err) {
-      try {
-        return await adminFallback();
-      } catch (fallbackErr) {
-        const message =
-          fallbackErr instanceof Error
-            ? fallbackErr.message
-            : err instanceof Error
-            ? err.message
-            : "Update failed.";
-        throw new Error(message);
+      if (error) {
+        logger.error("[API][payouts] updateStatus failed", {
+          id: params.id,
+          status: params.status,
+          ...errorToLogPayload(error),
+        });
+        throw error;
       }
+      if (data) return data as Payout;
+
+      const { data: fetched, error: fetchError } = await getSupabaseClient()
+        .from("payouts")
+        .select("*")
+        .eq("id", params.id)
+        .maybeSingle();
+      if (fetchError) throw fetchError;
+      if (fetched) return fetched as Payout;
+
+      throw new Error(
+        "Update may have succeeded, but the record could not be read. Check RLS SELECT policy for admins."
+      );
+    } catch (err) {
+      throw new Error(formatApiError(err) || "Update failed. Permission denied.");
     }
   },
 };

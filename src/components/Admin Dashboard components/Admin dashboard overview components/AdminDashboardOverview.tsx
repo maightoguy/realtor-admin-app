@@ -7,8 +7,10 @@ import ReceiptsIcon from "../../icons/ReceiptsIcon.tsx";
 import TransactionsIcon from "../../icons/TransactionsIcon.tsx";
 import { months } from "./adminDashboardOverviewData";
 import DefaultProfilePic from "../../../assets/Default Profile pic.png";
-import { overviewService } from "../../../services/apiService";
+import { overviewService, receiptService } from "../../../services/apiService";
 import Loader from "../../Loader";
+import AdminReceiptsDetailsModal from "../Admin dashboard receipts components/AdminReceiptsDetailsModal";
+import type { ReceiptStatus } from "../../../services/types";
 
 interface MetricCardProps {
   title: string;
@@ -110,6 +112,7 @@ const TopRealtorItem = ({
 );
 
 interface ReceiptRowProps {
+  id: string;
   receiptId: string;
   property: string;
   realtorName: string;
@@ -117,9 +120,11 @@ interface ReceiptRowProps {
   clientName: string;
   dateUploaded: string;
   status: "Pending" | "Approved" | "Rejected";
+  onViewDetails?: (receiptId: string) => void;
 }
 
 const ReceiptRow = ({
+  id,
   receiptId,
   property,
   realtorName,
@@ -127,6 +132,7 @@ const ReceiptRow = ({
   clientName,
   dateUploaded,
   status,
+  onViewDetails,
 }: ReceiptRowProps) => (
   <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
     <td className="px-4 py-3 text-sm font-medium text-gray-900">{receiptId}</td>
@@ -152,7 +158,11 @@ const ReceiptRow = ({
       </span>
     </td>
     <td className="px-4 py-3">
-      <button className="text-sm text-[#6500AC] font-medium hover:underline">
+      <button
+        type="button"
+        onClick={() => onViewDetails?.(id)}
+        className="text-sm text-[#6500AC] font-medium hover:underline"
+      >
         View details
       </button>
     </td>
@@ -170,6 +180,18 @@ const AdminDashboardOverview = () => {
   > | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<{
+    id: string;
+    realtorName: string;
+    clientName: string;
+    propertyName: string;
+    amountPaid: number;
+    receiptUrls: string[];
+    status: ReceiptStatus;
+    createdAt: string;
+    rejectionReason: string | null;
+  } | null>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -309,6 +331,7 @@ const AdminDashboardOverview = () => {
     };
 
     return snapshot.recentReceipts.map(({ receipt, realtor, property }) => ({
+      id: receipt.id,
       receiptId: `#${receipt.id.slice(0, 6)}`,
       property: property?.title ?? "-",
       realtorName: realtor
@@ -320,6 +343,47 @@ const AdminDashboardOverview = () => {
       status: mapStatus(receipt.status),
     }));
   }, [snapshot]);
+
+  const handleViewReceiptDetails = (receiptId: string) => {
+    if (!snapshot) return;
+    const row = snapshot.recentReceipts.find((r) => r.receipt.id === receiptId) ?? null;
+    if (!row) return;
+
+    const amountPaid = Number(row.receipt.amount_paid);
+    setSelectedReceipt({
+      id: row.receipt.id,
+      realtorName: row.realtor
+        ? `${row.realtor.first_name} ${row.realtor.last_name}`.trim() || "-"
+        : "-",
+      clientName: row.receipt.client_name ?? "-",
+      propertyName: row.property?.title ?? "-",
+      amountPaid: Number.isFinite(amountPaid) ? amountPaid : 0,
+      receiptUrls: Array.isArray(row.receipt.receipt_urls) ? row.receipt.receipt_urls : [],
+      status: row.receipt.status,
+      createdAt: row.receipt.created_at,
+      rejectionReason: row.receipt.rejection_reason ?? null,
+    });
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleCloseReceiptModal = () => {
+    setIsReceiptModalOpen(false);
+    setSelectedReceipt(null);
+  };
+
+  const handleReceiptStatusUpdate = async (
+    receiptId: string,
+    newStatus: ReceiptStatus,
+    rejectionReason?: string
+  ) => {
+    await receiptService.updateStatus({
+      id: receiptId,
+      status: newStatus,
+      rejectionReason: rejectionReason ?? null,
+    });
+    const refreshed = await overviewService.getOverviewSnapshot();
+    setSnapshot(refreshed);
+  };
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
@@ -606,7 +670,11 @@ const AdminDashboardOverview = () => {
                     ? recentReceipts
                     : recentReceipts.slice(0, 2)
                   ).map((receipt) => (
-                    <ReceiptRow key={receipt.receiptId} {...receipt} />
+                    <ReceiptRow
+                      key={receipt.id}
+                      {...receipt}
+                      onViewDetails={handleViewReceiptDetails}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -629,6 +697,13 @@ const AdminDashboardOverview = () => {
           </div>
         )}
       </div>
+
+      <AdminReceiptsDetailsModal
+        isOpen={isReceiptModalOpen}
+        onClose={handleCloseReceiptModal}
+        receipt={selectedReceipt}
+        onStatusUpdate={handleReceiptStatusUpdate}
+      />
     </div>
   );
 };

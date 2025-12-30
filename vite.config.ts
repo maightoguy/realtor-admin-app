@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
       res.end(
         JSON.stringify({
           error:
-            "Admin updates are blocked by RLS. Set SUPABASE_SERVICE_ROLE_KEY in .env (no VITE_ prefix).",
+            "Admin updates are blocked by RLS. Either fix the RLS policies to allow admin status updates, or set SUPABASE_SERVICE_ROLE_KEY in .env (no VITE_ prefix).",
         })
       );
       return;
