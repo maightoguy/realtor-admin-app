@@ -41,6 +41,8 @@ const DashboardProperties = () => {
   const [error, setError] = useState<string | null>(null);
 
   const itemsPerPage = 8;
+  const hasBankDetails =
+    Array.isArray(user?.bank_details) && user.bank_details.length > 0;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -73,12 +75,28 @@ const DashboardProperties = () => {
       typeof p.price === "number"
         ? `₦${p.price.toLocaleString()}`
         : String(p.price ?? "");
+
+    const percent = p.commission_percent;
+    const commission =
+      typeof percent === "number"
+        ? `${
+            Number.isInteger(percent) ? percent : percent.toFixed(2)
+          }% commission`
+        : "10% commission";
     return {
       id: p.id,
       title: p.title,
       location: p.location,
       price: priceStr,
-      commission: "10% commission",
+      commission,
+      commission_percent: percent ?? null,
+      description: p.description ?? null,
+      contract_docs: p.contract_docs ?? null,
+      status: p.status ?? null,
+      land_size_sqm: p.land_size_sqm ?? null,
+      security: p.security ?? null,
+      accessibility: p.accessibility ?? null,
+      topography: p.topography ?? null,
       image: primaryImage,
       images,
       type: uiType,
@@ -173,6 +191,13 @@ const DashboardProperties = () => {
   };
 
   const filteredProperties = sourceList.filter((p) => {
+    const isSold = (p.status ?? "").toLowerCase() === "sold";
+    if (filter === "sold") {
+      if (!isSold) return false;
+    } else if (filter !== "all") {
+      if (isSold) return false;
+    }
+
     if (filter !== "favorite") {
       const typeTabs = new Set(["lands", "buildings"]);
       if (typeTabs.has(filter)) {
@@ -344,30 +369,30 @@ const DashboardProperties = () => {
         </div>
       )}
       {/* 🔔 Alert Banner */}
-      <div className="bg-purple-50 text-purple-700 text-sm py-3 px-4 flex w-full items-center shadow-sm">
-        {/* Desktop */}
-        <div className="hidden lg:flex flex-grow items-center justify-center gap-2">
-          <span className="text-[14px] text-purple-700">
-            Add bank account details to receive earnings
-          </span>
-        </div>
+      {!hasBankDetails && (
+        <div className="bg-purple-50 text-purple-700 text-sm py-3 px-4 flex w-full items-center shadow-sm">
+          <div className="hidden lg:flex flex-grow items-center justify-center gap-2">
+            <span className="text-[14px] text-purple-700">
+              Add bank account details to receive earnings
+            </span>
+          </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="hidden lg:flex items-baseline gap-2 text-[#5E17EB] text-[12px] hover:underline"
-          >
-            Add account details
-            <span className="text-lg text-gray-500">→</span>
-          </button>
-          <BankDetailsModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onAddBankAccount={handleAddBankAccount}
-          />
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="hidden lg:flex items-baseline gap-2 text-[#5E17EB] text-[12px] hover:underline"
+            >
+              Add account details
+              <span className="text-lg text-gray-500">→</span>
+            </button>
+            <BankDetailsModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onAddBankAccount={handleAddBankAccount}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 🔍 Filters (search bar & tabs) */}
       <div className="p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

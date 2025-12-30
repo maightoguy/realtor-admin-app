@@ -28,6 +28,12 @@ create table public.receipts (
 
 create index IF not exists idx_receipts_realtor_id on public.receipts using btree (realtor_id) TABLESPACE pg_default;
 
+create trigger trg_notify_admin_receipt_pending
+after INSERT
+or
+update OF status on receipts for EACH row
+execute FUNCTION notify_admin_receipt_pending ();
+
 create trigger trg_notify_receipt_updates
 after INSERT
 or
@@ -37,13 +43,12 @@ execute FUNCTION notify_receipt_updates ();
 
 
 
-
 [
   {
-    "policy_name": "Realtors can view/upload own receipts",
-    "operation": "ALL",
-    "applied_to": "{public}",
-    "using_expression": "(realtor_id = auth.uid())",
+    "policy_name": "receipts_insert_realtor_own",
+    "operation": "INSERT",
+    "applied_to": "{authenticated}",
+    "using_expression": null,
     "check_expression": "(realtor_id = auth.uid())"
   },
   {
@@ -51,6 +56,13 @@ execute FUNCTION notify_receipt_updates ();
     "operation": "SELECT",
     "applied_to": "{authenticated}",
     "using_expression": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))",
+    "check_expression": null
+  },
+  {
+    "policy_name": "receipts_select_realtor_own",
+    "operation": "SELECT",
+    "applied_to": "{authenticated}",
+    "using_expression": "(realtor_id = auth.uid())",
     "check_expression": null
   },
   {

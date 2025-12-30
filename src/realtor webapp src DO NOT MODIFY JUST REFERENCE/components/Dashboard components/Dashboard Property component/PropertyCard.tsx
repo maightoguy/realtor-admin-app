@@ -1,6 +1,7 @@
 import { type FC } from "react";
 import { Heart, MapPin } from "lucide-react";
 import type { Property } from "../../../modules/Properties";
+import SoldOutIcon from "../../icons/SoldOutIcon";
 
 interface PropertyCardProps {
   image: string;
@@ -8,6 +9,8 @@ interface PropertyCardProps {
   price: string | number;
   location: string;
   commission: string;
+  description?: string | null;
+  status?: string | null;
   type: string;
   images: string[];
   isFavorited?: boolean;
@@ -23,12 +26,16 @@ const PropertyCard: FC<PropertyCardProps & { id: string }> = ({
   price,
   location,
   commission,
+  description,
+  status,
   type,
   images,
   isFavorited = false,
   onFavorite,
   onViewDetails,
 }) => {
+  const isSoldOut = (status ?? "").toLowerCase() === "sold";
+
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -39,6 +46,8 @@ const PropertyCard: FC<PropertyCardProps & { id: string }> = ({
       image,
       location,
       commission,
+      description: description ?? null,
+      status: status ?? null,
       type,
       images,
     };
@@ -54,6 +63,8 @@ const PropertyCard: FC<PropertyCardProps & { id: string }> = ({
       image,
       location,
       commission,
+      description: description ?? null,
+      status: status ?? null,
       type,
       images,
     };
@@ -73,6 +84,13 @@ const PropertyCard: FC<PropertyCardProps & { id: string }> = ({
           className="h-full w-full object-cover"
           loading="lazy"
         />
+
+        {isSoldOut && (
+          <div className="flex flex-row absolute top-3 left-1 bg-gray-700/50 backdrop-blur rounded-md p-1">
+            <SoldOutIcon color="#DC2626" className="w-4 h-4" />
+            <p className="text-[#DC2626] text-xs font-bold">Sold out</p>
+          </div>
+        )}
 
         {/* Favorite Button */}
         <button
@@ -102,14 +120,13 @@ const PropertyCard: FC<PropertyCardProps & { id: string }> = ({
 
         <h3 className="font-semibold text-gray-900 text-base">{title}</h3>
         <p className="text-gray-500 text-sm mt-1">
-          <span className="flex items-center space-x-1 whitespace-nowrap">
-            <MapPin className="w-4 h-4" />
-            <span>{location}</span>
+          <span className="flex items-center space-x-1 min-w-0">
+            <MapPin className="w-4 h-4 shrink-0" />
+            <span className="truncate">{location}</span>
           </span>
         </p>
-        <p className="text-gray-500 text-sm mt-2 line-clamp-2">
-          Lorem ipsum dolor sit amet consectetur. Tempus aliquet duis integer
-          porta. Volutpat integer ultricies diam consequat eget.
+        <p className="text-gray-500 text-sm mt-2 line-clamp-2 overflow-hidden break-words">
+          {description ?? ""}
         </p>
         <button
           onClick={(e) => {

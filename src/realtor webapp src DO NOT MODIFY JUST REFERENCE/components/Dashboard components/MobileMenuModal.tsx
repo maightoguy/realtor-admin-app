@@ -1,4 +1,6 @@
-import { X, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { X, ChevronRight, LogOut } from "lucide-react";
 import VeriplotLogo from "../../assets/Veriplot Primary logo 2.svg";
 import { useUser } from "../../context/UserContext"; // Add this import
 import fallbackProfile from "../../assets/Default Profile pic.png"; // Use existing asset as fallback
@@ -11,6 +13,7 @@ interface MobileMenuModalProps {
   onNotificationClick: () => void;
   onHelpCenterClick?: () => void;
   onKYCClick?: () => void;
+  onLogout?: () => void;
 }
 
 const MobileMenuModal = ({
@@ -20,8 +23,11 @@ const MobileMenuModal = ({
   onSectionChange,
   onHelpCenterClick,
   onKYCClick,
+  onLogout,
 }: MobileMenuModalProps) => {
   const { user, loading } = useUser(); // Use context
+  const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   if (!isOpen) return null;
   if (loading) return <div>Loading...</div>; // Or skeleton
@@ -29,6 +35,13 @@ const MobileMenuModal = ({
   const handleSectionClick = (section: string) => {
     onSectionChange(section);
     onClose();
+  };
+
+  const handleLogout = () => {
+    if (onLogout) onLogout();
+    setShowLogoutConfirm(false);
+    onClose();
+    navigate("/login");
   };
 
   const navigationItems = [
@@ -125,6 +138,14 @@ const MobileMenuModal = ({
               </div>
             )}
 
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="w-full h-11 bg-[#EF4444] text-white rounded-lg shadow-sm hover:bg-red-700 transition-colors font-medium text-base"
+            >
+              Log out
+            </button>
+
             {/* Help Center */}
             <button
               onClick={onHelpCenterClick}
@@ -161,6 +182,58 @@ const MobileMenuModal = ({
           </div>
         </div>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/20"
+            onClick={() => setShowLogoutConfirm(false)}
+          />
+
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 flex flex-col">
+            <button
+              onClick={() => setShowLogoutConfirm(false)}
+              className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors z-10"
+            >
+              <X className="w-6 h-6 text-[#717680]" />
+            </button>
+
+            <div className="p-6 pb-4">
+              <div className="w-12 h-12 bg-white border border-[#E9EAEB] rounded-[10px] shadow-sm flex items-center justify-center mb-4">
+                <div className="w-6 h-6 bg-[#EF4444] rounded-sm flex items-center justify-center">
+                  <LogOut className="w-4 h-4 text-white" />
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-base font-bold text-black leading-6 mb-1">
+                  Log-out
+                </h3>
+                <p className="text-sm text-[#6B7280] leading-[21px]">
+                  Are you sure you want to log-out from your account?
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 h-11 bg-white border border-[#D5D7DA] text-[#414651] rounded-lg shadow-sm hover:bg-gray-50 transition-colors font-medium text-base"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex-1 h-11 bg-[#EF4444] text-white rounded-lg shadow-sm hover:bg-red-700 transition-colors font-medium text-base"
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

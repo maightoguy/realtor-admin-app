@@ -26,6 +26,12 @@ create table public.payouts (
 
 create index IF not exists idx_payouts_realtor_id on public.payouts using btree (realtor_id) TABLESPACE pg_default;
 
+create trigger trg_notify_admin_payout_pending
+after INSERT
+or
+update OF status on payouts for EACH row
+execute FUNCTION notify_admin_payout_pending ();
+
 create trigger trg_notify_payout_updates
 after INSERT
 or
@@ -38,66 +44,26 @@ execute FUNCTION notify_payout_updates ();
 
 
 
-
 [
   {
-    "schemaname": "public",
-    "tablename": "payouts",
-    "policyname": "Admins can manage all payouts",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "ALL",
-    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = auth.uid()) AND (users.role = 'admin'::text))))",
-    "with_check": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = auth.uid()) AND (users.role = 'admin'::text))))"
+    "policy_name": "Admins can manage all payouts",
+    "operation": "ALL",
+    "applied_to": "{authenticated}",
+    "using_expression": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = auth.uid()) AND (users.role = 'admin'::text))))",
+    "check_expression": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = auth.uid()) AND (users.role = 'admin'::text))))"
   },
   {
-    "schemaname": "public",
-    "tablename": "payouts",
-    "policyname": "Realtors can request payouts",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "((auth.uid() = realtor_id) AND ((status IS NULL) OR (status = 'pending'::text)) AND (paid_at IS NULL))"
+    "policy_name": "Realtors can request payouts",
+    "operation": "INSERT",
+    "applied_to": "{authenticated}",
+    "using_expression": null,
+    "check_expression": "((auth.uid() = realtor_id) AND ((status IS NULL) OR (status = 'pending'::text)) AND (paid_at IS NULL))"
   },
   {
-    "schemaname": "public",
-    "tablename": "payouts",
-    "policyname": "Realtors can view own payouts",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "SELECT",
-    "qual": "(auth.uid() = realtor_id)",
-    "with_check": null
-  },
-  {
-    "schemaname": "public",
-    "tablename": "payouts",
-    "policyname": "admin_update_payouts_status",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "UPDATE",
-    "qual": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))",
-    "with_check": "((EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text)))) AND (status = ANY (ARRAY['paid'::text, 'rejected'::text])))"
-  },
-  {
-    "schemaname": "public",
-    "tablename": "payouts",
-    "policyname": "payouts_select_realtor_or_admin",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "SELECT",
-    "qual": "((realtor_id = auth.uid()) OR is_admin())",
-    "with_check": null
-  },
-  {
-    "schemaname": "public",
-    "tablename": "payouts",
-    "policyname": "payouts_update_admin_status_only",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "UPDATE",
-    "qual": "is_admin()",
-    "with_check": "(is_admin() AND (status = ANY (ARRAY['paid'::text, 'rejected'::text])) AND (( SELECT p.status\n   FROM payouts p\n  WHERE (p.id = payouts.id)) = ANY (ARRAY['pending'::text, 'approved'::text])) AND (amount = ( SELECT p.amount\n   FROM payouts p\n  WHERE (p.id = payouts.id))) AND (NOT (realtor_id IS DISTINCT FROM ( SELECT p.realtor_id\n   FROM payouts p\n  WHERE (p.id = payouts.id)))) AND (NOT (bank_details IS DISTINCT FROM ( SELECT p.bank_details\n   FROM payouts p\n  WHERE (p.id = payouts.id)))) AND (((status = 'paid'::text) AND (paid_at IS NOT NULL)) OR ((status = 'rejected'::text) AND (paid_at IS NULL))))"
+    "policy_name": "Realtors can view own payouts",
+    "operation": "SELECT",
+    "applied_to": "{authenticated}",
+    "using_expression": "(auth.uid() = realtor_id)",
+    "check_expression": null
   }
 ]

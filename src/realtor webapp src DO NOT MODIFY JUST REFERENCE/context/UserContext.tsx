@@ -37,18 +37,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       // Fetch full user profile from database
       const profile = await userService.getById(session.data.session.user.id);
       if (!profile) {
-        throw new Error("User profile not found");
+        const created = await authService.ensureUserProfile();
+        if (!created) {
+          throw new Error("User profile not found");
+        }
+        setUser(created);
+        return;
       }
 
       setUser(profile);
     } catch (err) {
       console.error("Failed to fetch user:", err);
       const errorMessage = err instanceof Error ? err.message : "Failed to load profile";
-      
-      // If session exists but profile is missing, force signout
-      if (errorMessage === "User profile not found") {
-        authService.signOut();
-      }
 
       setError(errorMessage);
       setUser(null);

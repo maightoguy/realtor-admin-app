@@ -110,7 +110,7 @@ const Dashboard = () => {
       {/* Sidebar */}
       <aside className="hidden lg:flex flex-col justify-between w-[270px] bg-white border-r border-gray-100 p-6">
         <div>
-          <Link to="/" className="flex items-center gap-2 mb-8">
+          <Link to="/dashboard" className="flex items-center gap-2 mb-8">
             <img
               src={VeriplotLogo}
               alt="Veriplot logo"

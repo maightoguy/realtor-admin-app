@@ -87,19 +87,19 @@ export const userService = {
             .from('users')
             .select('*')
             .eq('referral_code', referralCode)
-            .single();
+            .maybeSingle();
 
         if (error) {
-            if (error.code === 'PGRST116') {
-                logger.warn('⚠️ [API] Referral code not found:', referralCode);
-                return null;
-            }
             logger.error('❌ [API] Failed to fetch user by referral code:', {
                 referralCode,
                 message: error.message,
                 code: error.code,
             });
             throw error;
+        }
+        if (!data) {
+            logger.warn('⚠️ [API] Referral code not found:', referralCode);
+            return null;
         }
         logger.info('✅ [API] User found by referral code:', data.id);
         return data;

@@ -1,15 +1,16 @@
 // src/components/Dashboard components/Header.tsx (updated with backend integration only)
 import { useEffect, useState } from "react";
 import { Menu, Wallet, Bell } from "lucide-react";
-import VeriplotLogo from "../../assets/Veriplot Primary logo 2.svg";
+
 import NotificationModal from "./NotificationModal";
 import MobileMenuModal from "./MobileMenuModal";
 import ProfileModal from "./ProfileModal";
-import { Link } from "react-router-dom";
+
 import { useUser } from "../../context/UserContext"; // Add this import for Supabase user data
 import fallbackProfile from "../../assets/Default Profile pic.png"; // Use existing asset as fallback
 import { transactionService } from "../../services/transactionService";
 import { notificationService } from "../../services/apiService";
+import { authService } from "../../services/authService";
 
 interface HeaderProps {
   activeSection: string;
@@ -97,14 +98,6 @@ const Header = ({
     <>
       <header className="bg-white shadow-sm">
         <div className="max-w-[1440px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              src={VeriplotLogo}
-              alt="Veriplot logo"
-              className="h-6 w-auto"
-            />
-          </Link>
           {/* Page Title (Desktop) */}
           <span className="hidden sm:inline text-lg font-semibold text-gray-900">
             {activeSection}
@@ -162,13 +155,16 @@ const Header = ({
         onSectionChange={onSectionChange}
         onNotificationClick={() => setIsNotificationOpen(true)}
         onHelpCenterClick={onHelpCenterClick}
+        onLogout={() => {
+          void authService.signOut();
+        }}
       />
 
       <ProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         onLogout={() => {
-          // TODO: Implement logout functionality
+          void authService.signOut();
         }}
         onProfileClick={() => {
           setIsProfileOpen(false);

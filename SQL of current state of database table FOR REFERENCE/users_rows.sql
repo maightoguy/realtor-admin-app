@@ -47,72 +47,50 @@ create table public.users (
 
 create index IF not exists idx_users_referral_code on public.users using btree (referral_code) TABLESPACE pg_default;
 
+create trigger trg_notify_admin_kyc_pending
+after INSERT on users for EACH row
+execute FUNCTION notify_admin_kyc_pending ();
+
 create trigger trg_notify_user_welcome
 after INSERT on users for EACH row
 execute FUNCTION notify_user_welcome ();
 
 
 
-
 [
   {
-    "schemaname": "public",
-    "tablename": "users",
-    "policyname": "Allow public signup",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "(auth.uid() = id)"
+    "policy_name": "users_delete_admin_only",
+    "operation": "DELETE",
+    "applied_to": "{authenticated}",
+    "using_expression": "is_admin()",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "users",
-    "policyname": "Users can view own profile",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "(auth.uid() = id)",
-    "with_check": null
+    "policy_name": "users_insert_self",
+    "operation": "INSERT",
+    "applied_to": "{authenticated}",
+    "using_expression": null,
+    "check_expression": "(auth.uid() = id)"
   },
   {
-    "schemaname": "public",
-    "tablename": "users",
-    "policyname": "users_delete_admin_only",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "DELETE",
-    "qual": "is_admin()",
-    "with_check": null
+    "policy_name": "Users can view own profile",
+    "operation": "SELECT",
+    "applied_to": "{public}",
+    "using_expression": "(auth.uid() = id)",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "users",
-    "policyname": "users_insert_self",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "(id = auth.uid())"
+    "policy_name": "users_select_self_or_admin",
+    "operation": "SELECT",
+    "applied_to": "{authenticated}",
+    "using_expression": "((id = auth.uid()) OR is_admin())",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "users",
-    "policyname": "users_select_self_or_admin",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "SELECT",
-    "qual": "((id = auth.uid()) OR is_admin())",
-    "with_check": null
-  },
-  {
-    "schemaname": "public",
-    "tablename": "users",
-    "policyname": "users_update_admin_only",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "UPDATE",
-    "qual": "is_admin()",
-    "with_check": "is_admin()"
+    "policy_name": "users_update_admin_only",
+    "operation": "UPDATE",
+    "applied_to": "{authenticated}",
+    "using_expression": "is_admin()",
+    "check_expression": "is_admin()"
   }
 ]

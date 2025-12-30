@@ -32,40 +32,26 @@ export const authService = {
         try {
             const supabase = getSupabaseClient();
 
-            // Step 1: Look up referral code BEFORE auth signup (to avoid RLS issues)
-            // This is done while anonymous, so RLS policies that allow public read should work
-            let referredBy: string | null = null;
-            if (data.referralCode) {
-                logger.info('🔍 [AUTH] Looking up referral code:', data.referralCode.trim());
-                try {
-                    const { data: referrer, error: referralError } = await supabase
-                        .from('users')
-                        .select('id')
-                        .eq('referral_code', data.referralCode.trim())
-                        .single();
+            const referralCode = `REF-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
 
-                    if (referralError) {
-                        logger.warn('⚠️ [AUTH] Referral code lookup failed:', referralError.message);
-                        // Continue without referral - not a critical error
-                    } else if (referrer) {
-                        referredBy = referrer.id;
-                        logger.info('✅ [AUTH] Referral code found, referrer ID:', referredBy);
-                    } else {
-                        logger.warn('⚠️ [AUTH] Referral code not found:', data.referralCode);
-                    }
-                } catch (referralLookupError) {
-                    logger.error('❌ [AUTH] Error during referral lookup:', referralLookupError);
-                    // Continue without referral - not a critical error
-                }
-            }
-
-            // Step 2: Create auth user
+            // Step 1: Create auth user
             logger.info('👤 [AUTH] Creating auth user...');
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: data.email,
                 password: data.password,
                 options: {
                     emailRedirectTo: `${window.location.origin}/login`,
+                    data: {
+                        first_name: data.firstName,
+                        last_name: data.lastName,
+                        phone_number: data.phoneNumber,
+                        gender: data.gender?.toLowerCase(),
+                        referral_code: referralCode,
+                        referral_input_code: data.referralCode?.trim() ?? null,
+                        referred_by: null,
+                        role: 'realtor',
+                        kyc_status: 'pending',
+                    },
                 },
             });
 
@@ -98,13 +84,38 @@ export const authService = {
 
             logger.info('✅ [AUTH] Auth user created:', authData.user.id);
 
-            // Step 3: Generate unique referral code for new user
-            // Use a combination of timestamp and random string for uniqueness
-            const referralCode = `REF-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-            logger.info('🎫 [AUTH] Generated referral code:', referralCode);
+            if (!authData.session) {
+                return { user: null, error: null };
+            }
 
-            // Step 4: Create user profile in database
-            logger.info('📝 [AUTH] Creating user profile in database...');
+            await supabase.auth.setSession({
+                access_token: authData.session.access_token,
+                refresh_token: authData.session.refresh_token,
+            });
+
+            let referredBy: string | null = null;
+            if (data.referralCode?.trim()) {
+                logger.info('🔍 [AUTH] Looking up referral code:', data.referralCode.trim());
+                try {
+                    const { data: referrer, error: referralError } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('referral_code', data.referralCode.trim())
+                        .maybeSingle();
+
+                    if (referralError) {
+                        logger.warn('⚠️ [AUTH] Referral code lookup failed:', referralError.message);
+                    } else if (referrer?.id) {
+                        referredBy = referrer.id;
+                        logger.info('✅ [AUTH] Referral code found, referrer ID:', referredBy);
+                    } else {
+                        logger.warn('⚠️ [AUTH] Referral code not found:', data.referralCode.trim());
+                    }
+                } catch (referralLookupError) {
+                    logger.error('❌ [AUTH] Error during referral lookup:', referralLookupError);
+                }
+            }
+
             const userProfileData = {
                 id: authData.user.id,
                 email: data.email,
@@ -117,11 +128,6 @@ export const authService = {
                 role: 'realtor' as const,
                 kyc_status: 'pending' as const,
             };
-
-            logger.info('📋 [AUTH] User profile data:', {
-                ...userProfileData,
-                password: '[REDACTED]',
-            });
 
             const { data: userData, error: userError } = await supabase
                 .from('users')
@@ -137,14 +143,20 @@ export const authService = {
                     hint: userError.hint,
                 });
 
-                // Handle unique constraint violations specifically
+                if (
+                    userError.message?.toLowerCase().includes('row-level security') ||
+                    userError.message?.toLowerCase().includes('row level security') ||
+                    userError.code === '42501'
+                ) {
+                    logger.warn('⚠️ [AUTH] User profile insert blocked by RLS during signup. Deferring profile creation until login.');
+                    return { user: null, error: null };
+                }
+
                 if (userError.code === '23505') {
-                    // Try to extract the violated field and value from details
                     const match = userError.details?.match(/\(([^)]+)\)=\(([^)]+)\)/);
                     const violatedField = match ? match[1] : undefined;
                     const violatedValue = match ? match[2] : undefined;
 
-                    // Fallback detection via message text
                     const isEmailViolation =
                         violatedField === 'email' ||
                         (userError.message && userError.message.includes('users_email_key'));
@@ -154,7 +166,6 @@ export const authService = {
 
                     if (isEmailViolation) {
                         const email = violatedValue ?? data.email;
-                        logger.info('📧 [AUTH] Duplicate email detected:', email);
                         const emailExistsError = new Error(
                             `This email address (${email}) is already registered. Please use a different email or try logging in.`
                         );
@@ -164,7 +175,6 @@ export const authService = {
 
                     if (isPhoneViolation) {
                         const phone = violatedValue ?? data.phoneNumber;
-                        logger.info('📱 [AUTH] Duplicate phone number detected:', phone);
                         const phoneExistsError = new Error(
                             `This phone number (${phone}) is already registered. Please use a different phone number or try logging in.`
                         );
@@ -172,7 +182,6 @@ export const authService = {
                         return { user: null, error: phoneExistsError };
                     }
 
-                    // Generic unique violation fallback
                     if (violatedField && violatedValue) {
                         const uniqueError = new Error(
                             `The value (${violatedValue}) for ${violatedField} is already registered. Please use a different value or try logging in.`
@@ -182,37 +191,28 @@ export const authService = {
                     }
                 }
 
-                // If user profile creation fails, we should clean up the auth user
-                // But Supabase doesn't allow deleting auth users easily, so we'll just return error
+                try {
+                    const created = await authService.ensureUserProfile({ referredBy });
+                    if (created) return { user: created, error: null };
+                } catch (ensureError) {
+                    logger.error('❌ [AUTH] Failed to recover by ensuring user profile:', ensureError);
+                }
+
                 return { user: null, error: userError };
             }
 
-            logger.info('✅ [AUTH] User profile created successfully:', userData.id);
-
-            // Step 5: Create referral record if referred
             if (referredBy) {
-                const { data: sessionData } = await supabase.auth.getSession();
-                if (!sessionData.session?.user) {
-                    logger.info('ℹ️ [AUTH] Skipping referral record creation (no active session)', {
-                        downline: userData.id,
-                        upline: referredBy,
+                const { error: referralError } = await supabase
+                    .from('referrals')
+                    .insert({
+                        upline_id: referredBy,
+                        downline_id: userData.id,
+                        level: 1,
+                        commission_earned: 0,
                     });
-                } else {
-                    logger.info('🔗 [AUTH] Creating referral record...', { upline: referredBy, downline: userData.id });
-                    const { error: referralError } = await supabase
-                        .from('referrals')
-                        .insert({
-                            upline_id: referredBy,
-                            downline_id: userData.id,
-                            level: 1,
-                            commission_earned: 0
-                        });
 
-                    if (referralError) {
-                        logger.error('❌ [AUTH] Failed to create referral record:', referralError);
-                    } else {
-                        logger.info('✅ [AUTH] Referral record created successfully');
-                    }
+                if (referralError) {
+                    logger.error('❌ [AUTH] Failed to create referral record:', referralError);
                 }
             }
 
@@ -224,6 +224,85 @@ export const authService = {
                 error: error instanceof Error ? error : new Error('Unknown error during signup'),
             };
         }
+    },
+
+    async ensureUserProfile(options?: { referredBy?: string | null }): Promise<User | null> {
+        const supabase = getSupabaseClient();
+        const session = await supabase.auth.getSession();
+        const authUser = session.data.session?.user;
+        if (!authUser) return null;
+
+        const { data: existing, error: existingError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authUser.id)
+            .maybeSingle();
+
+        if (existingError) throw existingError;
+        if (existing) return existing;
+
+        const meta = (authUser.user_metadata ?? {}) as Record<string, unknown>;
+
+        const firstName = typeof meta.first_name === 'string' ? meta.first_name : '';
+        const lastName = typeof meta.last_name === 'string' ? meta.last_name : '';
+        const phoneNumber = typeof meta.phone_number === 'string' ? meta.phone_number : '';
+        const role = (typeof meta.role === 'string' ? meta.role : 'realtor') as 'realtor' | 'admin';
+        const kycStatus = (typeof meta.kyc_status === 'string' ? meta.kyc_status : 'pending') as
+            | 'pending'
+            | 'approved'
+            | 'rejected';
+
+        const referralCode =
+            typeof meta.referral_code === 'string' && meta.referral_code.trim()
+                ? meta.referral_code
+                : `REF-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+
+        const referredByFromMeta = typeof meta.referred_by === 'string' ? meta.referred_by : null;
+        const referredBy = options?.referredBy ?? referredByFromMeta;
+
+        const genderValue = typeof meta.gender === 'string' ? meta.gender.toLowerCase() : null;
+        const gender =
+            genderValue === 'male' || genderValue === 'female' || genderValue === 'other'
+                ? (genderValue as 'male' | 'female' | 'other')
+                : null;
+
+        const insertData = {
+            id: authUser.id,
+            email: authUser.email ?? '',
+            first_name: firstName,
+            last_name: lastName,
+            phone_number: phoneNumber,
+            gender,
+            role,
+            referral_code: referralCode,
+            referred_by: referredBy,
+            kyc_status: kycStatus,
+        };
+
+        const { data: created, error: createError } = await supabase
+            .from('users')
+            .insert(insertData)
+            .select()
+            .single();
+
+        if (createError) throw createError;
+
+        if (referredBy) {
+            const { error: referralError } = await supabase
+                .from('referrals')
+                .insert({
+                    upline_id: referredBy,
+                    downline_id: authUser.id,
+                    level: 1,
+                    commission_earned: 0,
+                });
+
+            if (referralError) {
+                logger.error('❌ [AUTH] Failed to create referral record:', referralError);
+            }
+        }
+
+        return created;
     },
 
     /**

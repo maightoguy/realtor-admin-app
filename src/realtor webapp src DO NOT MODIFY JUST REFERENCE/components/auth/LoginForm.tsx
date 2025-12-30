@@ -100,12 +100,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
             }
           );
 
-          // Force sign out to clean up session
-          await authService.signOut();
-
-          setError("Account not found. It may have been deleted.");
-          setLoading(false);
-          return;
+          const created = await authService.ensureUserProfile();
+          if (!created) {
+            await authService.signOut();
+            setError("Account not found. It may have been deleted.");
+            setLoading(false);
+            return;
+          }
         }
       } catch (err) {
         logger.error("❌ [LOGIN] Failed to verify user profile:", err);

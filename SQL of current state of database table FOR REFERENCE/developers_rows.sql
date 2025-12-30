@@ -17,66 +17,47 @@ create table public.developers (
 
 
 
-
 [
   {
-    "schemaname": "public",
-    "tablename": "developers",
-    "policyname": "Admin delete developers",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "DELETE",
-    "qual": "is_admin()",
-    "with_check": null
+    "policy_name": "Admins can do everything with developers",
+    "operation": "ALL",
+    "applied_to": "{public}",
+    "using_expression": "(( SELECT users.role\n   FROM users\n  WHERE (users.id = auth.uid())) = 'admin'::text)",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "developers",
-    "policyname": "Admin insert developers",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "is_admin()"
+    "policy_name": "Admin delete developers",
+    "operation": "DELETE",
+    "applied_to": "{public}",
+    "using_expression": "is_admin()",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "developers",
-    "policyname": "Admin select developers",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "is_admin()",
-    "with_check": null
+    "policy_name": "Admin insert developers",
+    "operation": "INSERT",
+    "applied_to": "{public}",
+    "using_expression": null,
+    "check_expression": "is_admin()"
   },
   {
-    "schemaname": "public",
-    "tablename": "developers",
-    "policyname": "Admin update developers",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "UPDATE",
-    "qual": "is_admin()",
-    "with_check": "is_admin()"
+    "policy_name": "Admin select developers",
+    "operation": "SELECT",
+    "applied_to": "{public}",
+    "using_expression": "is_admin()",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "developers",
-    "policyname": "Admins can do everything with developers",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "ALL",
-    "qual": "(( SELECT users.role\n   FROM users\n  WHERE (users.id = auth.uid())) = 'admin'::text)",
-    "with_check": null
+    "policy_name": "Anyone can view developers",
+    "operation": "SELECT",
+    "applied_to": "{public}",
+    "using_expression": "true",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "developers",
-    "policyname": "Anyone can view developers",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "true",
-    "with_check": null
+    "policy_name": "Admin update developers",
+    "operation": "UPDATE",
+    "applied_to": "{public}",
+    "using_expression": "is_admin()",
+    "check_expression": "is_admin()"
   }
 ]

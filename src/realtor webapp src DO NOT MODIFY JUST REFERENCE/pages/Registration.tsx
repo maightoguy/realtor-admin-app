@@ -260,7 +260,7 @@ const RegistrationPage: React.FC = () => {
                     // No KYC document - user will complete it later
                   });
 
-                  if (result.success && result.user) {
+                  if (result.success) {
                     // Registration successful - show email confirmation message
                     logger.info(
                       "✅ [REGISTRATION PAGE] Registration successful, showing confirmation"

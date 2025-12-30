@@ -9,175 +9,52 @@ create table public.notifications (
   created_at timestamp with time zone null default CURRENT_TIMESTAMP,
   title text null,
   metadata jsonb null default '{}'::jsonb,
+  target_role text null,
   constraint notifications_pkey primary key (id)
 ) TABLESPACE pg_default;
 
 create index IF not exists idx_notifications_user_id on public.notifications using btree (user_id) TABLESPACE pg_default;
 
-alter table public.notifications
-add column if not exists target_role text null;
-
-create index if not exists idx_notifications_user_id_target_role_seen_created_at
-on public.notifications using btree (user_id, target_role, seen, created_at);
-
-create or replace function public.notify_admin_receipt_pending()
-returns trigger
-language plpgsql
-as $$
-begin
-  if (tg_op = 'INSERT' and new.status = 'pending')
-    or (tg_op = 'UPDATE' and new.status = 'pending' and new.status is distinct from old.status) then
-    insert into public.notifications (user_id, type, title, message, seen, metadata, target_role)
-    select
-      u.id,
-      'receipt_pending',
-      'Receipt pending approval',
-      concat('A new receipt from ', coalesce(new.client_name, 'a client'), ' is pending review.'),
-      false,
-      jsonb_build_object(
-        'target_role', 'admin',
-        'section', 'Receipts',
-        'receipt_id', new.id,
-        'realtor_id', new.realtor_id,
-        'status', new.status
-      ),
-      'admin'
-    from public.users u
-    where u.role = 'admin';
-  end if;
-
-  return new;
-end;
-$$;
-
-drop trigger if exists trg_notify_admin_receipt_pending on public.receipts;
-create trigger trg_notify_admin_receipt_pending
-after insert or update of status on public.receipts
-for each row execute function public.notify_admin_receipt_pending();
-
-create or replace function public.notify_admin_payout_pending()
-returns trigger
-language plpgsql
-as $$
-begin
-  if (tg_op = 'INSERT' and new.status = 'pending')
-    or (tg_op = 'UPDATE' and new.status = 'pending' and new.status is distinct from old.status) then
-    insert into public.notifications (user_id, type, title, message, seen, metadata, target_role)
-    select
-      u.id,
-      'payout_pending',
-      'Withdrawal pending approval',
-      'A new withdrawal request is pending review.',
-      false,
-      jsonb_build_object(
-        'target_role', 'admin',
-        'section', 'Transactions',
-        'payout_id', new.id,
-        'realtor_id', new.realtor_id,
-        'status', new.status
-      ),
-      'admin'
-    from public.users u
-    where u.role = 'admin';
-  end if;
-
-  return new;
-end;
-$$;
-
-drop trigger if exists trg_notify_admin_payout_pending on public.payouts;
-create trigger trg_notify_admin_payout_pending
-after insert or update of status on public.payouts
-for each row execute function public.notify_admin_payout_pending();
-
-create or replace function public.notify_admin_kyc_pending()
-returns trigger
-language plpgsql
-as $$
-begin
-  if new.role = 'realtor' and new.kyc_status = 'pending' then
-    insert into public.notifications (user_id, type, title, message, seen, metadata, target_role)
-    select
-      u.id,
-      'kyc_pending',
-      'KYC pending review',
-      concat('New realtor ', trim(concat(coalesce(new.first_name, ''), ' ', coalesce(new.last_name, ''))), ' has pending KYC.'),
-      false,
-      jsonb_build_object(
-        'target_role', 'admin',
-        'section', 'Realtors',
-        'realtor_id', new.id,
-        'kyc_status', new.kyc_status
-      ),
-      'admin'
-    from public.users u
-    where u.role = 'admin';
-  end if;
-
-  return new;
-end;
-$$;
-
-drop trigger if exists trg_notify_admin_kyc_pending on public.users;
-create trigger trg_notify_admin_kyc_pending
-after insert on public.users
-for each row execute function public.notify_admin_kyc_pending();
-
+create index IF not exists idx_notifications_user_id_target_role_seen_created_at on public.notifications using btree (user_id, target_role, seen, created_at) TABLESPACE pg_default;
 
 
 
 
 [
   {
-    "schemaname": "public",
-    "tablename": "notifications",
-    "policyname": "Admins insert notifications",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))"
+    "policy_name": "Users view own notifications",
+    "operation": "ALL",
+    "applied_to": "{public}",
+    "using_expression": "(user_id = auth.uid())",
+    "check_expression": "(user_id = auth.uid())"
   },
   {
-    "schemaname": "public",
-    "tablename": "notifications",
-    "policyname": "Admins read notifications",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "SELECT",
-    "qual": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))",
-    "with_check": null
+    "policy_name": "Admins insert notifications",
+    "operation": "INSERT",
+    "applied_to": "{authenticated}",
+    "using_expression": null,
+    "check_expression": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))"
   },
   {
-    "schemaname": "public",
-    "tablename": "notifications",
-    "policyname": "Users read own notifications",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "SELECT",
-    "qual": "(user_id = auth.uid())",
-    "with_check": null
+    "policy_name": "Admins read notifications",
+    "operation": "SELECT",
+    "applied_to": "{authenticated}",
+    "using_expression": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "notifications",
-    "policyname": "Users update own notifications",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "UPDATE",
-    "qual": "(user_id = auth.uid())",
-    "with_check": "(user_id = auth.uid())"
+    "policy_name": "Users read own notifications",
+    "operation": "SELECT",
+    "applied_to": "{authenticated}",
+    "using_expression": "(user_id = auth.uid())",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "notifications",
-    "policyname": "Users view own notifications",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "ALL",
-    "qual": "(user_id = auth.uid())",
-    "with_check": "(user_id = auth.uid())"
+    "policy_name": "Users update own notifications",
+    "operation": "UPDATE",
+    "applied_to": "{authenticated}",
+    "using_expression": "(user_id = auth.uid())",
+    "check_expression": "(user_id = auth.uid())"
   }
 ]
-
 

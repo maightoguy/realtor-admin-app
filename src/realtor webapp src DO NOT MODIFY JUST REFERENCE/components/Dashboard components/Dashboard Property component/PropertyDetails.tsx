@@ -1,4 +1,4 @@
-import { useState, type FC } from "react";
+import { useEffect, useMemo, useState, type FC } from "react";
 import { Heart, MapPin, ArrowLeft, Download, Check } from "lucide-react";
 import ImageViewerModal from "./ImageViewerModal";
 import UploadReceiptModal from "./UploadReceiptModal";
@@ -7,6 +7,9 @@ import { useUser } from "../../../context/UserContext";
 import { receiptService } from "../../../services/receiptService";
 import { logger } from "../../../utils/logger";
 import MapViewer from "../../MapViewer";
+import { propertyService as propertyApiService } from "../../../services/apiService";
+import type { Property as DbProperty } from "../../../services/types";
+import { storageService } from "../../../services/storageService";
 
 const lagosDefaultCenter: [number, number] = [6.5244, 3.3792];
 
@@ -28,15 +31,159 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
   const [isUploadReceiptOpen, setIsUploadReceiptOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDownloadingAllDocuments, setIsDownloadingAllDocuments] =
+    useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const { user } = useUser();
 
-  // Mock additional property details for demonstration
+  const [dbProperty, setDbProperty] = useState<DbProperty | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDetails = async () => {
+      try {
+        const data = await propertyApiService.getById(property.id);
+        if (!isMounted) return;
+        setDbProperty(data);
+      } catch (e) {
+        if (!isMounted) return;
+        logger.error("Failed to load property details", e);
+        setDbProperty(null);
+      }
+    };
+    fetchDetails();
+    return () => {
+      isMounted = false;
+    };
+  }, [property.id]);
+
+  const toPublicUrl = (path: string) => {
+    if (!path) return "";
+    if (/^https?:\/\//i.test(path)) return path;
+    return storageService.getPublicUrl("properties", path);
+  };
+
+  const resolvedImages = useMemo(() => {
+    const raw = dbProperty?.images ?? null;
+    if (raw && raw.length > 0) return raw.map((p) => toPublicUrl(p));
+    return property.images && property.images.length > 0
+      ? property.images
+      : [property.image];
+  }, [dbProperty?.images, property.image, property.images]);
+
+  useEffect(() => {
+    if (resolvedImages.length === 0) return;
+    if (currentImageIndex < resolvedImages.length) return;
+    setCurrentImageIndex(0);
+  }, [currentImageIndex, resolvedImages.length]);
+
+  const commissionText = useMemo(() => {
+    const percent =
+      dbProperty?.commission_percent ?? property.commission_percent;
+    if (typeof percent === "number") {
+      return `${
+        Number.isInteger(percent) ? percent : percent.toFixed(2)
+      }% commission`;
+    }
+    return property.commission;
+  }, [
+    dbProperty?.commission_percent,
+    property.commission,
+    property.commission_percent,
+  ]);
+
+  const contractDocs = useMemo(() => {
+    const docs = dbProperty?.contract_docs ?? property.contract_docs ?? [];
+    return Array.isArray(docs)
+      ? docs.filter((d): d is string => typeof d === "string")
+      : [];
+  }, [dbProperty?.contract_docs, property.contract_docs]);
+
+  const isDocFile = (value: string) => {
+    const lower = value.toLowerCase();
+    if (/^https?:\/\//i.test(value)) return true;
+    if (value.includes("/")) return true;
+    if (/\.(pdf|png|jpg|jpeg|doc|docx)$/i.test(lower)) return true;
+    return false;
+  };
+
+  const documentTypes = useMemo(
+    () => contractDocs.filter((d) => !isDocFile(d)),
+    [contractDocs]
+  );
+
+  const documentFiles = useMemo(() => {
+    return contractDocs.filter(isDocFile).map((doc) => {
+      const url = toPublicUrl(doc);
+      const name = (() => {
+        if (!doc) return "Document";
+        if (/^https?:\/\//i.test(doc)) {
+          try {
+            const u = new URL(doc);
+            const filename = u.pathname.split("/").pop();
+            return filename ? decodeURIComponent(filename) : "Document";
+          } catch {
+            return "Document";
+          }
+        }
+        const filename = doc.split("/").pop();
+        return filename ? filename : "Document";
+      })();
+      return { name, url };
+    });
+  }, [contractDocs]);
+
+  const downloadableDocuments = useMemo(
+    () => documentFiles.filter((f) => Boolean(f.url)),
+    [documentFiles]
+  );
+
+  const handleDownloadAllDocuments = async () => {
+    const files = downloadableDocuments;
+    if (files.length === 0) return;
+    if (isDownloadingAllDocuments) return;
+
+    setIsDownloadingAllDocuments(true);
+    try {
+      for (const file of files) {
+        try {
+          const response = await fetch(file.url);
+          if (!response.ok) throw new Error(`Failed to download ${file.url}`);
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+
+          const a = document.createElement("a");
+          a.href = objectUrl;
+          a.download = file.name || "document";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(objectUrl);
+
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        } catch (e) {
+          logger.error("Failed to download document", e);
+          window.open(file.url, "_blank", "noopener,noreferrer");
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+      }
+    } finally {
+      setIsDownloadingAllDocuments(false);
+    }
+  };
+
+  const landSize = dbProperty?.land_size_sqm ?? property.land_size_sqm ?? null;
+  const landSizeText =
+    typeof landSize === "number" ? `${landSize.toLocaleString()}sqms` : "";
+  const securityText = dbProperty?.security ?? property.security ?? "";
+  const accessibilityText =
+    dbProperty?.accessibility ?? property.accessibility ?? "";
+  const topographyText = dbProperty?.topography ?? property.topography ?? "";
+
   const propertyDetails = {
     ...property,
-    description:
-      "This stunning property offers modern living with premium amenities. Located in a prime area with excellent connectivity to major business districts and entertainment zones. The property features contemporary design with spacious rooms and high-quality finishes. Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempus aliquet duis integer porta. Volutpat integer ultricies diam consequat eget. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.",
-    documents: ["Title of Property", "Governor's consent"],
+    description: dbProperty?.description ?? property.description ?? "",
+    documents: documentTypes,
     features: [
       {
         icon: (
@@ -68,7 +215,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
             </defs>
           </svg>
         ),
-        value: "1000sqms",
+        value: landSizeText,
         label: "Land size",
       },
       {
@@ -96,7 +243,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
             />
           </svg>
         ),
-        value: "Secured",
+        value: securityText,
         label: "Security",
       },
       {
@@ -121,7 +268,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
             </defs>
           </svg>
         ),
-        value: "Yes",
+        value: accessibilityText,
         label: "Accessible",
       },
       {
@@ -139,11 +286,11 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
             />
           </svg>
         ),
-        value: "Wetland",
+        value: topographyText,
         label: "Topography",
       },
     ],
-    images: property.images || [property.image], // Use property images or fallback to single image
+    images: resolvedImages,
   };
 
   const handleFavorite = () => {
@@ -272,7 +419,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
 
               {/* Commission Badge */}
               <div className="absolute bottom-4 left-4 bg-black/60 text-white text-xs font-semibold px-3 py-1 rounded-md">
-                {property.commission}
+                {commissionText}
               </div>
             </div>
 
@@ -389,6 +536,52 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
 
         {/* Right Column - Location and Actions */}
         <div className="space-y-6">
+          {documentFiles.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                Uploaded forms
+              </h3>
+              <div className="space-y-2">
+                {documentFiles.map((form, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg overflow-auto"
+                  >
+                    <div className="flex items-center gap-3">
+                      <svg
+                        className="w-5 h-5 text-green-500 shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <div className="min-w-0 flex-1">
+                        {form.url ? (
+                          <a
+                            href={form.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-medium text-gray-900 truncate hover:underline block"
+                          >
+                            {form.name}
+                          </a>
+                        ) : (
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {form.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Location */}
           <div>
             <div className="flex items-center gap-2 mb-4">
@@ -427,9 +620,22 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
               Upload Receipt
             </button>
 
-            <button className="w-full bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadAllDocuments}
+              disabled={
+                isDownloadingAllDocuments || downloadableDocuments.length === 0
+              }
+              className={`w-full bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+                isDownloadingAllDocuments || downloadableDocuments.length === 0
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-50"
+              }`}
+            >
               <Download className="w-5 h-5" />
-              Download all documents
+              {isDownloadingAllDocuments
+                ? "Downloading..."
+                : "Download all documents"}
             </button>
           </div>
         </div>

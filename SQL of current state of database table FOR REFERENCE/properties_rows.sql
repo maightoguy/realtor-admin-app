@@ -81,66 +81,47 @@ create table public.properties (
 ) TABLESPACE pg_default;
 
 
-
 [
   {
-    "schemaname": "public",
-    "tablename": "properties",
-    "policyname": "Admin delete properties",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "DELETE",
-    "qual": "is_admin()",
-    "with_check": null
+    "policy_name": "Admin delete properties",
+    "operation": "DELETE",
+    "applied_to": "{public}",
+    "using_expression": "is_admin()",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "properties",
-    "policyname": "Admin insert properties",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "is_admin()"
+    "policy_name": "Admin insert properties",
+    "operation": "INSERT",
+    "applied_to": "{public}",
+    "using_expression": null,
+    "check_expression": "is_admin()"
   },
   {
-    "schemaname": "public",
-    "tablename": "properties",
-    "policyname": "Admin update properties",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "UPDATE",
-    "qual": "is_admin()",
-    "with_check": "is_admin()"
+    "policy_name": "admins can insert properties",
+    "operation": "INSERT",
+    "applied_to": "{authenticated}",
+    "using_expression": null,
+    "check_expression": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))"
   },
   {
-    "schemaname": "public",
-    "tablename": "properties",
-    "policyname": "Authenticated users can view properties",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "(auth.uid() IS NOT NULL)",
-    "with_check": null
+    "policy_name": "Authenticated users can view properties",
+    "operation": "SELECT",
+    "applied_to": "{public}",
+    "using_expression": "(auth.uid() IS NOT NULL)",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "properties",
-    "policyname": "Public read properties",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "true",
-    "with_check": null
+    "policy_name": "Public read properties",
+    "operation": "SELECT",
+    "applied_to": "{public}",
+    "using_expression": "true",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "properties",
-    "policyname": "admins can insert properties",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))"
+    "policy_name": "Admin update properties",
+    "operation": "UPDATE",
+    "applied_to": "{public}",
+    "using_expression": "is_admin()",
+    "check_expression": "is_admin()"
   }
 ]

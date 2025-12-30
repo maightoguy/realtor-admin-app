@@ -63,6 +63,23 @@ export const registrationService = {
             const { user, error: signUpError } = await authService.signUp(signUpData);
 
             if (signUpError || !user) {
+                if (!signUpError && !user) {
+                    if (data.kycDocument && data.documentType) {
+                        return {
+                            success: true,
+                            user: null,
+                            error:
+                                'Account created. Please confirm your email, then log in to upload your KYC document.',
+                        };
+                    }
+
+                    return {
+                        success: true,
+                        user: null,
+                        error: null,
+                    };
+                }
+
                 logger.error('❌ [REGISTRATION] User signup failed:', signUpError);
 
                 // Check for email already exists error

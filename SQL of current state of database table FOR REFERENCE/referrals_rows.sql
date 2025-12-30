@@ -20,56 +20,40 @@ execute FUNCTION notify_upline_on_referral ();
 
 
 
-
 [
   {
-    "schemaname": "public",
-    "tablename": "referrals",
-    "policyname": "Realtors view own referrals",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "(upline_id = auth.uid())",
-    "with_check": null
+    "policy_name": "Users can insert their own referral record",
+    "operation": "INSERT",
+    "applied_to": "{public}",
+    "using_expression": null,
+    "check_expression": "(auth.uid() = downline_id)"
   },
   {
-    "schemaname": "public",
-    "tablename": "referrals",
-    "policyname": "Users can insert their own referral record",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "(auth.uid() = downline_id)"
+    "policy_name": "referrals_insert_by_downline",
+    "operation": "INSERT",
+    "applied_to": "{authenticated}",
+    "using_expression": null,
+    "check_expression": "((auth.uid() = downline_id) AND (upline_id <> downline_id))"
   },
   {
-    "schemaname": "public",
-    "tablename": "referrals",
-    "policyname": "Users can view their own referrals",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "((auth.uid() = upline_id) OR (auth.uid() = downline_id))",
-    "with_check": null
+    "policy_name": "Realtors view own referrals",
+    "operation": "SELECT",
+    "applied_to": "{public}",
+    "using_expression": "(upline_id = auth.uid())",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "referrals",
-    "policyname": "referrals_insert_by_downline",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "((auth.uid() = downline_id) AND (upline_id <> downline_id))"
+    "policy_name": "Users can view their own referrals",
+    "operation": "SELECT",
+    "applied_to": "{public}",
+    "using_expression": "((auth.uid() = upline_id) OR (auth.uid() = downline_id))",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "referrals",
-    "policyname": "referrals_select_upline_or_downline",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "SELECT",
-    "qual": "((auth.uid() = upline_id) OR (auth.uid() = downline_id))",
-    "with_check": null
+    "policy_name": "referrals_select_upline_or_downline",
+    "operation": "SELECT",
+    "applied_to": "{authenticated}",
+    "using_expression": "((auth.uid() = upline_id) OR (auth.uid() = downline_id))",
+    "check_expression": null
   }
 ]

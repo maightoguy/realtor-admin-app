@@ -14,36 +14,26 @@ create table public.favorites (
 
 
 
-
 [
   {
-    "schemaname": "public",
-    "tablename": "favorites",
-    "policyname": "Users can add favorites",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "INSERT",
-    "qual": null,
-    "with_check": "(auth.uid() = user_id)"
+    "policy_name": "Users can remove their own favorites",
+    "operation": "DELETE",
+    "applied_to": "{public}",
+    "using_expression": "(auth.uid() = user_id)",
+    "check_expression": null
   },
   {
-    "schemaname": "public",
-    "tablename": "favorites",
-    "policyname": "Users can remove their own favorites",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "DELETE",
-    "qual": "(auth.uid() = user_id)",
-    "with_check": null
+    "policy_name": "Users can add favorites",
+    "operation": "INSERT",
+    "applied_to": "{public}",
+    "using_expression": null,
+    "check_expression": "(auth.uid() = user_id)"
   },
   {
-    "schemaname": "public",
-    "tablename": "favorites",
-    "policyname": "Users can view their own favorites",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "(auth.uid() = user_id)",
-    "with_check": null
+    "policy_name": "Users can view their own favorites",
+    "operation": "SELECT",
+    "applied_to": "{public}",
+    "using_expression": "(auth.uid() = user_id)",
+    "check_expression": null
   }
 ]
