@@ -34,7 +34,9 @@ const AdminDashboardPage = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("Overview");
   const [isAddPropertyFormActive, setIsAddPropertyFormActive] = useState(false);
-  const [currentUser] = useState<User | null>(() => authManager.getUser());
+  const [currentUser, setCurrentUser] = useState<User | null>(() =>
+    authManager.getUser()
+  );
 
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -81,7 +83,12 @@ const AdminDashboardPage = () => {
         return <AdminDashboardReferrals />;
 
       case "Settings":
-        return <AdminDashboardSettings />;
+        return (
+          <AdminDashboardSettings
+            user={currentUser}
+            onUserUpdated={setCurrentUser}
+          />
+        );
       default:
         return null;
     }

@@ -5,7 +5,13 @@ export type PropertyType = "land" | "housing";
 export type PropertyStatus = "available" | "sold" | "pending";
 export type ReceiptStatus = "pending" | "approved" | "rejected" | "under_review";
 export type CommissionStatus = "pending" | "approved" | "paid" | "rejected";
-export type DeveloperStatus = "Active" | "Inactive" | "active" | "inactive";
+export type DeveloperStatus =
+  | "Active"
+  | "Removed"
+  | "Inactive"
+  | "active"
+  | "inactive"
+  | "removed";
 export type PayoutStatus = "pending" | "approved" | "paid" | "rejected";
 
 export interface BankAccount {

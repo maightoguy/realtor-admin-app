@@ -471,7 +471,7 @@ function adaptDeveloperRow(row: Record<string, unknown>): Developer {
     name: String(row.name ?? ""),
     email: String(row.email ?? ""),
     phone: String(row.phone ?? ""),
-    status: (statusNormalized === "inactive" ? "Inactive" : "Active") as Developer["status"],
+    status: (statusNormalized === "inactive" ? "Removed" : "Active") as Developer["status"],
     dateAdded: typeof row.created_at === "string" ? row.created_at : new Date().toISOString(),
     totalProperties: 0,
   };
@@ -651,6 +651,53 @@ export const propertyMediaService = {
     }
 
     return uploadedPaths;
+  },
+};
+
+export const profileAvatarService = {
+  bucket: "profile-avatars",
+
+  getPublicUrl(pathOrUrl: string): string {
+    if (!pathOrUrl) return "";
+    if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+    const { data } = getSupabaseClient()
+      .storage.from(this.bucket)
+      .getPublicUrl(pathOrUrl);
+    return data.publicUrl;
+  },
+
+  async uploadForUser(userId: string, file: File): Promise<string> {
+    const supabase = getSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
+    if (sessionUserId !== userId) {
+      throw new Error("User ID mismatch. Cannot upload avatar.");
+    }
+
+    const ext = file.name.split(".").pop() || "bin";
+    const path = `${userId}/avatar-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}.${ext}`;
+
+    const { error } = await supabase.storage.from(this.bucket).upload(path, file, {
+      contentType: file.type,
+      upsert: true,
+    });
+    if (error) {
+      const payload = errorToLogPayload(error);
+      const msg = String(payload.message ?? "");
+      if (msg.toLowerCase().includes("row-level security")) {
+        throw new Error(
+          "Permission denied uploading avatar: your Storage RLS policy blocks inserts into `storage.objects` for the `profile-avatars` bucket."
+        );
+      }
+      throw new Error(msg || "Failed to upload avatar");
+    }
+
+    return this.getPublicUrl(path);
   },
 };
 

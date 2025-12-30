@@ -1,12 +1,29 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, Camera, User } from "lucide-react";
+import {
+  profileAvatarService,
+  userService,
+} from "../../../services/apiService";
+import type { User as DbUser } from "../../../services/types";
+import { authManager } from "../../../services/authManager";
+import { authService } from "../../../services/authService";
+import { getSupabaseClient } from "../../../services/supabaseClient";
+import { logger } from "../../../utils/logger";
 
-const AdminDashboardSettings = () => {
+interface AdminDashboardSettingsProps {
+  user: DbUser | null;
+  onUserUpdated?: (user: DbUser) => void;
+}
+
+const AdminDashboardSettings = ({
+  user,
+  onUserUpdated,
+}: AdminDashboardSettingsProps) => {
   const [activeTab, setActiveTab] = useState<"Profile" | "Security">("Profile");
   const [formData, setFormData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "Veriplot@mail.com",
+    firstName: "",
+    lastName: "",
+    email: "",
   });
   const [securityData, setSecurityData] = useState({
     oldPassword: "",
@@ -19,8 +36,17 @@ const AdminDashboardSettings = () => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const [isSecuritySaving, setIsSecuritySaving] = useState(false);
+  const [securityError, setSecurityError] = useState<string | null>(null);
+  const [securitySuccess, setSecuritySuccess] = useState<string | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
+    setProfileError(null);
+    setProfileSuccess(null);
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -28,6 +54,7 @@ const AdminDashboardSettings = () => {
   };
 
   const handleSecurityInputChange = (field: string, value: string) => {
+    setSecurityError(null);
     setSecurityData((prev) => ({
       ...prev,
       [field]: value,
@@ -58,6 +85,8 @@ const AdminDashboardSettings = () => {
       return;
     }
 
+    setProfileError(null);
+    setProfileSuccess(null);
     setAvatarFile(file);
 
     // Create preview URL
@@ -72,37 +101,172 @@ const AdminDashboardSettings = () => {
     fileInputRef.current?.click();
   };
 
-  const handleSaveProfileChanges = () => {
-    console.log("Saving profile changes:", formData);
-    if (avatarFile) {
-      console.log("Avatar file to upload:", avatarFile);
-      // Here you would typically upload the file to your backend
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let cancelled = false;
+    setIsProfileLoading(true);
+    setProfileError(null);
+
+    userService
+      .getById(user.id)
+      .then(async (fresh: DbUser | null) => {
+        if (cancelled) return;
+        const baseEmail = fresh?.email ?? user.email ?? "";
+        const email =
+          baseEmail ||
+          (await getSupabaseClient().auth.getUser()).data.user?.email ||
+          "";
+
+        setFormData({
+          firstName: fresh?.first_name || user.first_name || "",
+          lastName: fresh?.last_name || user.last_name || "",
+          email,
+        });
+        setAvatarPreview(fresh?.avatar_url ?? user.avatar_url ?? null);
+      })
+      .catch((e: unknown) => {
+        logger.error("[ADMIN][SETTINGS] Failed to load profile", { error: e });
+        if (cancelled) return;
+        setFormData({
+          firstName: user.first_name || "",
+          lastName: user.last_name || "",
+          email: user.email || "",
+        });
+        setAvatarPreview(user.avatar_url ?? null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    user?.avatar_url,
+    user?.email,
+    user?.first_name,
+    user?.id,
+    user?.last_name,
+  ]);
+
+  useEffect(() => {
+    if (!profileSuccess) return;
+    const timer = window.setTimeout(() => setProfileSuccess(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [profileSuccess]);
+
+  useEffect(() => {
+    if (!securitySuccess) return;
+    const timer = window.setTimeout(() => setSecuritySuccess(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [securitySuccess]);
+
+  const handleSaveProfileChanges = async () => {
+    if (!user?.id) return;
+    setIsProfileSaving(true);
+    setProfileError(null);
+    setProfileSuccess(null);
+
+    try {
+      const firstName = formData.firstName.trim();
+      const lastName = formData.lastName.trim();
+      if (!firstName || !lastName) {
+        throw new Error("First name and last name are required");
+      }
+
+      let avatarUrl = avatarPreview;
+      if (avatarFile) {
+        avatarUrl = await profileAvatarService.uploadForUser(
+          user.id,
+          avatarFile
+        );
+      }
+
+      const updated = await userService.update(user.id, {
+        first_name: firstName,
+        last_name: lastName,
+        avatar_url: avatarUrl ?? null,
+      });
+
+      authManager.saveUser(updated);
+      onUserUpdated?.(updated);
+
+      setAvatarPreview(updated.avatar_url ?? null);
+      setAvatarFile(null);
+      setFormData((prev) => ({
+        ...prev,
+        firstName: updated.first_name || "",
+        lastName: updated.last_name || "",
+        email: prev.email,
+      }));
+      setProfileSuccess("Profile updated successfully");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to save profile";
+      logger.error("[ADMIN][SETTINGS] Save profile failed", { message });
+      setProfileError(message);
+    } finally {
+      setIsProfileSaving(false);
     }
-    alert("Profile changes saved successfully!");
   };
 
-  const handleSaveSecurityChanges = () => {
-    // Validate passwords
-    if (securityData.newPassword !== securityData.confirmPassword) {
-      alert("Passwords do not match");
-      return;
+  const handleSaveSecurityChanges = async () => {
+    setIsSecuritySaving(true);
+    setSecurityError(null);
+    setSecuritySuccess(null);
+
+    try {
+      if (securityData.newPassword !== securityData.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      if (securityData.newPassword.length < 8) {
+        throw new Error("Password must be at least 8 characters long");
+      }
+
+      const email =
+        formData.email.trim() ||
+        user?.email?.trim() ||
+        (await getSupabaseClient().auth.getUser()).data.user?.email ||
+        "";
+
+      if (!email) {
+        throw new Error("Missing email. Please refresh and try again.");
+      }
+
+      const signInResult = await authService.signInWithPassword(
+        email,
+        securityData.oldPassword
+      );
+      if (signInResult.error) {
+        throw new Error("Old password is incorrect");
+      }
+
+      const updateResult = await authService.updatePassword(
+        securityData.newPassword
+      );
+      if (updateResult.error) {
+        throw updateResult.error;
+      }
+
+      setSecurityData({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setShowOldPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setSecuritySuccess("Password updated successfully");
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Failed to update password";
+      logger.error("[ADMIN][SETTINGS] Save password failed", { message });
+      setSecurityError(message);
+    } finally {
+      setIsSecuritySaving(false);
     }
-
-    if (securityData.newPassword.length < 8) {
-      alert("Password must be at least 8 characters long");
-      return;
-    }
-
-    console.log("Saving security changes");
-    // Here you would typically make an API call to update the password
-    alert("Password updated successfully!");
-
-    // Reset form
-    setSecurityData({
-      oldPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
   };
 
   const isSecurityFormValid =
@@ -152,12 +316,25 @@ const AdminDashboardSettings = () => {
             </h2>
           </div>
 
+          <div className="min-h-12">
+            {profileSuccess ? (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg p-3">
+                {profileSuccess}
+              </div>
+            ) : profileError ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+                {profileError}
+              </div>
+            ) : null}
+          </div>
+
           {/* Avatar Section */}
           <div className="flex flex-col items-start space-y-3">
             <div className="relative">
               <button
                 onClick={handleAvatarClick}
                 className="relative group cursor-pointer"
+                disabled={isProfileLoading || isProfileSaving}
               >
                 <div className="w-20 h-20 bg-[#F0E6F7] rounded-full flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-[#6500AC] transition-colors">
                   {avatarPreview ? (
@@ -196,6 +373,7 @@ const AdminDashboardSettings = () => {
                 type="text"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange("firstName", e.target.value)}
+                disabled={isProfileLoading || isProfileSaving}
                 className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
             </div>
@@ -209,6 +387,7 @@ const AdminDashboardSettings = () => {
                 type="text"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange("lastName", e.target.value)}
+                disabled={isProfileLoading || isProfileSaving}
                 className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
             </div>
@@ -221,8 +400,9 @@ const AdminDashboardSettings = () => {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                disabled
+                readOnly
+                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
             </div>
           </div>
@@ -230,8 +410,13 @@ const AdminDashboardSettings = () => {
           {/* Save Button */}
           <div className="pt-4">
             <button
-              onClick={handleSaveProfileChanges}
-              className="px-6 py-3 bg-[#6500AC] text-white font-medium rounded-lg hover:bg-[#4A14C7] transition-colors"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                void handleSaveProfileChanges();
+              }}
+              disabled={!user?.id || isProfileLoading || isProfileSaving}
+              className="px-6 py-3 bg-[#6500AC] text-white font-medium rounded-lg hover:bg-[#4A14C7] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Save changes
             </button>
@@ -249,6 +434,18 @@ const AdminDashboardSettings = () => {
             </h2>
           </div>
 
+          <div className="min-h-12">
+            {securitySuccess ? (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg p-3">
+                {securitySuccess}
+              </div>
+            ) : securityError ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+                {securityError}
+              </div>
+            ) : null}
+          </div>
+
           {/* Password Change Form */}
           <div className="space-y-4">
             {/* Old Password Field */}
@@ -259,11 +456,16 @@ const AdminDashboardSettings = () => {
               <div className="relative">
                 <input
                   type={showOldPassword ? "text" : "password"}
+                  name="admin-old-password"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={securityData.oldPassword}
                   onChange={(e) =>
                     handleSecurityInputChange("oldPassword", e.target.value)
                   }
                   placeholder="Input old Password"
+                  disabled={isSecuritySaving}
                   className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent pr-10"
                 />
                 <button
@@ -288,11 +490,16 @@ const AdminDashboardSettings = () => {
               <div className="relative">
                 <input
                   type={showNewPassword ? "text" : "password"}
+                  name="admin-new-password"
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={securityData.newPassword}
                   onChange={(e) =>
                     handleSecurityInputChange("newPassword", e.target.value)
                   }
                   placeholder="Input new Password"
+                  disabled={isSecuritySaving}
                   className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent pr-10"
                 />
                 <button
@@ -323,11 +530,16 @@ const AdminDashboardSettings = () => {
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
+                  name="admin-confirm-password"
+                  autoComplete="new-password"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={securityData.confirmPassword}
                   onChange={(e) =>
                     handleSecurityInputChange("confirmPassword", e.target.value)
                   }
                   placeholder="Enter Password again"
+                  disabled={isSecuritySaving}
                   className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent pr-10"
                 />
                 <button
@@ -352,10 +564,14 @@ const AdminDashboardSettings = () => {
           {/* Save Button */}
           <div className="pt-4">
             <button
-              onClick={handleSaveSecurityChanges}
-              disabled={!isSecurityFormValid}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                void handleSaveSecurityChanges();
+              }}
+              disabled={!isSecurityFormValid || isSecuritySaving}
               className={`px-6 py-3 font-medium rounded-lg transition-colors ${
-                isSecurityFormValid
+                isSecurityFormValid && !isSecuritySaving
                   ? "bg-[#6500AC] text-white hover:bg-[#4A14C7]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}

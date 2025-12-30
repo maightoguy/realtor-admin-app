@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Trash2, X } from "lucide-react";
 import AdminPropertyCard from "./AdminPropertyCard.tsx";
 import AdminPropertyDeveloper from "./AdminPropertyDeveloper.tsx";
 import AdminSearchBar from "../../AdminSearchBar.tsx";
@@ -94,6 +95,95 @@ const MetricCard = ({
   </div>
 );
 
+interface RemoveDeveloperModalProps {
+  isOpen: boolean;
+  developerName: string;
+  isRemoving: boolean;
+  error: string | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+const RemoveDeveloperModal = ({
+  isOpen,
+  developerName,
+  isRemoving,
+  error,
+  onClose,
+  onConfirm,
+}: RemoveDeveloperModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="flex items-center justify-between p-6 border-b border-[#EAECF0]">
+          <div className="flex flex-col items-start gap-3">
+            <div className="w-8 h-8 bg-[#FEE2E2] rounded-lg flex items-center justify-center">
+              <Trash2 className="w-4 h-4 text-[#DC2626]" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#0A1B39]">
+              Remove developer
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#9CA1AA] hover:text-[#667085] transition-colors"
+            disabled={isRemoving}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-[#667085] text-sm leading-relaxed">
+            You are about to remove{" "}
+            <span className="text-[#0A1B39] font-medium">{developerName}</span>{" "}
+            from the active developers list.
+          </p>
+
+          <ul className="space-y-2 text-[#667085] text-sm">
+            <li className="flex items-start gap-2">
+              <span className="text-[#DC2626] mt-1">•</span>
+              <span>The developer will be marked as Removed.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#DC2626] mt-1">•</span>
+              <span>Associated properties will remain as-is.</span>
+            </li>
+          </ul>
+
+          {error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex justify-end gap-3 p-6 border-t border-[#EAECF0]">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isRemoving}
+            className="px-4 py-2 border border-[#D0D5DD] rounded-lg text-sm font-semibold text-[#344054] hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isRemoving}
+            className="px-4 py-2 bg-[#DC2626] text-white rounded-lg text-sm font-semibold hover:bg-[#B91C1C] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isRemoving ? "Removing..." : "Proceed"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface Property {
   id: string;
   image: string;
@@ -149,6 +239,15 @@ const AdminDashboardProperties = ({
   const [editingDeveloper, setEditingDeveloper] = useState<Developer | null>(
     null
   );
+  const [developerToRemove, setDeveloperToRemove] = useState<Developer | null>(
+    null
+  );
+  const [isRemoveDeveloperModalOpen, setIsRemoveDeveloperModalOpen] =
+    useState(false);
+  const [isRemovingDeveloper, setIsRemovingDeveloper] = useState(false);
+  const [removeDeveloperError, setRemoveDeveloperError] = useState<
+    string | null
+  >(null);
   const itemsPerPage = 8;
 
   const developersById = useMemo(() => {
@@ -519,26 +618,65 @@ const AdminDashboardProperties = ({
     setEditingDeveloper(developer);
   };
 
-  const handleRemoveDeveloper = async (developerId: string) => {
+  const handleRemoveDeveloper = (developerId: string) => {
     logger.info("[ADMIN][DEVELOPERS] Remove clicked", { developerId });
+    const developer =
+      developers.find((d) => d.id === developerId) ??
+      (selectedDeveloper?.id === developerId ? selectedDeveloper : null);
+    if (!developer) return;
+    setDeveloperToRemove(developer);
+    setRemoveDeveloperError(null);
+    setIsRemoveDeveloperModalOpen(true);
+  };
+
+  const handleCloseRemoveDeveloperModal = () => {
+    if (isRemovingDeveloper) return;
+    setIsRemoveDeveloperModalOpen(false);
+    setDeveloperToRemove(null);
+    setRemoveDeveloperError(null);
+  };
+
+  const handleConfirmRemoveDeveloper = async () => {
+    if (!developerToRemove) return;
+    setIsRemovingDeveloper(true);
+    setRemoveDeveloperError(null);
     try {
-      await developerService.update(developerId, { status: "Inactive" });
+      const updated = await developerService.update(developerToRemove.id, {
+        status: "Removed",
+      });
       setDevelopers((prev) =>
         prev.map((d) =>
-          d.id === developerId ? { ...d, status: "Inactive" } : d
+          d.id === developerToRemove.id
+            ? {
+                ...d,
+                ...updated,
+                totalProperties: d.totalProperties,
+                dateAdded: d.dateAdded,
+              }
+            : d
         )
       );
-      if (selectedDeveloper?.id === developerId) {
-        setSelectedDeveloper((prev) =>
-          prev?.id === developerId ? { ...prev, status: "Inactive" } : prev
-        );
-      }
+      setSelectedDeveloper((prev) =>
+        prev?.id === developerToRemove.id
+          ? {
+              ...prev,
+              ...updated,
+              totalProperties: prev.totalProperties,
+              dateAdded: prev.dateAdded,
+            }
+          : prev
+      );
+      handleCloseRemoveDeveloperModal();
     } catch (e: unknown) {
       logger.error("[ADMIN][DEVELOPERS] Remove failed", {
-        developerId,
+        developerId: developerToRemove.id,
         error: e,
       });
-      alert(toUserErrorMessage(e, "Failed to remove developer"));
+      setRemoveDeveloperError(
+        toUserErrorMessage(e, "Failed to remove developer")
+      );
+    } finally {
+      setIsRemovingDeveloper(false);
     }
   };
 
@@ -998,6 +1136,15 @@ const AdminDashboardProperties = ({
           );
           setEditingDeveloper(null);
         }}
+      />
+
+      <RemoveDeveloperModal
+        isOpen={isRemoveDeveloperModalOpen}
+        developerName={developerToRemove?.name ?? ""}
+        isRemoving={isRemovingDeveloper}
+        error={removeDeveloperError}
+        onClose={handleCloseRemoveDeveloperModal}
+        onConfirm={handleConfirmRemoveDeveloper}
       />
 
       {/* Content based on active tab */}
