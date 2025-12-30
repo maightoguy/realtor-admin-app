@@ -40,13 +40,24 @@ execute FUNCTION notify_receipt_updates ();
 
 [
   {
-    "schemaname": "public",
-    "tablename": "receipts",
-    "policyname": "Realtors can view/upload own receipts",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "ALL",
-    "qual": "(realtor_id = auth.uid())",
-    "with_check": "(realtor_id = auth.uid())"
+    "policy_name": "Realtors can view/upload own receipts",
+    "operation": "ALL",
+    "applied_to": "{public}",
+    "using_expression": "(realtor_id = auth.uid())",
+    "check_expression": "(realtor_id = auth.uid())"
+  },
+  {
+    "policy_name": "receipts_select_admin_all",
+    "operation": "SELECT",
+    "applied_to": "{authenticated}",
+    "using_expression": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))",
+    "check_expression": null
+  },
+  {
+    "policy_name": "receipts_update_admin_all",
+    "operation": "UPDATE",
+    "applied_to": "{authenticated}",
+    "using_expression": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))",
+    "check_expression": "(EXISTS ( SELECT 1\n   FROM users u\n  WHERE ((u.id = auth.uid()) AND (u.role = 'admin'::text))))"
   }
 ]
