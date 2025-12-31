@@ -648,7 +648,7 @@ const RealtorDetailsSection = ({
       if (onRemoveRealtor) {
         await onRemoveRealtor(realtor.id);
       } else {
-        await userService.delete(realtor.id);
+        await userService.removeAsAdmin(realtor.id);
       }
       setIsRemoveModalOpen(false);
       onBack();

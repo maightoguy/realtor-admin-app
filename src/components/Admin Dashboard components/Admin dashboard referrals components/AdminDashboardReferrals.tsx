@@ -153,7 +153,7 @@ const AdminDashboardReferrals = () => {
   };
 
   const handleRemoveRealtor = async (realtorId: string) => {
-    await userService.delete(realtorId);
+    await userService.removeAsAdmin(realtorId);
     setRows((prev) => prev.filter((r) => r.id !== realtorId));
     setSelectedRealtor(null);
   };

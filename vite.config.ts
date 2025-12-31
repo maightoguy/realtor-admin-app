@@ -50,18 +50,23 @@ export default defineConfig(({ mode }) => {
       return;
     }
 
-    const match = url.match(
+    const statusMatch = url.match(
       /^\/api\/admin\/(commissions|payouts)\/([^/]+)\/status(?:\?.*)?$/
     );
-    if (!match) {
+    const userRemoveMatch = url.match(
+      /^\/api\/admin\/users\/([^/]+)\/remove(?:\?.*)?$/
+    );
+    if (!statusMatch && !userRemoveMatch) {
       res.statusCode = 404;
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify({ error: "Not found." }));
       return;
     }
 
-    const table = match[1] as "commissions" | "payouts";
-    const id = match[2];
+    const isStatusUpdate = Boolean(statusMatch);
+    const table = statusMatch ? (statusMatch[1] as "commissions" | "payouts") : null;
+    const id = statusMatch ? statusMatch[2] : null;
+    const removeUserId = userRemoveMatch ? userRemoveMatch[1] : null;
 
     const authHeader = String(req.headers.authorization || "");
     const token = authHeader.startsWith("Bearer ")
@@ -89,26 +94,28 @@ export default defineConfig(({ mode }) => {
     }
 
     const status = body?.status;
-    if (typeof status !== "string") {
-      res.statusCode = 400;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "Missing `status`." }));
-      return;
-    }
-
-    if (table === "commissions") {
-      if (!["pending", "approved", "paid", "rejected"].includes(status)) {
+    if (isStatusUpdate) {
+      if (typeof status !== "string") {
         res.statusCode = 400;
         res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ error: "Invalid `status` value." }));
+        res.end(JSON.stringify({ error: "Missing `status`." }));
         return;
       }
-    } else {
-      if (!["pending", "approved", "paid", "rejected"].includes(status)) {
-        res.statusCode = 400;
-        res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ error: "Invalid `status` value." }));
-        return;
+
+      if (table === "commissions") {
+        if (!["pending", "approved", "paid", "rejected"].includes(status)) {
+          res.statusCode = 400;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Invalid `status` value." }));
+          return;
+        }
+      } else {
+        if (!["pending", "approved", "paid", "rejected"].includes(status)) {
+          res.statusCode = 400;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Invalid `status` value." }));
+          return;
+        }
       }
     }
 
@@ -138,37 +145,119 @@ export default defineConfig(({ mode }) => {
       return;
     }
 
-    const updatePayload: Record<string, unknown> = { status };
-    if (table === "commissions") {
-      updatePayload.paid_on = status === "paid" ? new Date().toISOString() : null;
+    if (isStatusUpdate) {
+      const updatePayload: Record<string, unknown> = { status };
+      if (table === "commissions") {
+        updatePayload.paid_on = status === "paid" ? new Date().toISOString() : null;
+      } else {
+        updatePayload.paid_at = status === "paid" ? new Date().toISOString() : null;
+      }
+
+      const { data: updatedRows, error: updateErr } = await serviceClient
+        .from(table!)
+        .update(updatePayload)
+        .eq("id", id!)
+        .select("*");
+
+      if (updateErr) {
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: updateErr.message }));
+        return;
+      }
+
+      const updated = (updatedRows ?? [])[0] ?? null;
+      if (!updated) {
+        res.statusCode = 404;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "Record not found." }));
+        return;
+      }
+
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ data: updated }));
+      return;
+    }
+
+    const targetId = removeUserId!;
+    const nowIso = new Date().toISOString();
+    const placeholderEmail = `deleted+${targetId}@deleted.local`;
+    const placeholderPhone = `del-${targetId}`.slice(0, 20);
+
+    const authAdmin = (serviceClient.auth as any)?.admin;
+    let authUpdated = false;
+    let authSignedOut = false;
+
+    if (authAdmin?.updateUserById) {
+      const result = await authAdmin.updateUserById(targetId, {
+        email: placeholderEmail,
+        user_metadata: {
+          deleted_at: nowIso,
+          admin_removed_at: nowIso,
+          admin_removed_by: adminUser.id,
+        },
+        ban_duration: "876000h",
+      });
+      if (result?.error && result.error.status !== 404) {
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: result.error.message }));
+        return;
+      }
+      authUpdated = !result?.error;
+    }
+
+    if (authAdmin?.signOut) {
+      const result = await authAdmin.signOut(targetId);
+      authSignedOut = !result?.error;
+    }
+
+    const { error: deletePublicErr } = await serviceClient
+      .from("users")
+      .delete()
+      .eq("id", targetId);
+
+    let publicDeleted = false;
+    let publicScrubbed = false;
+    if (!deletePublicErr) {
+      publicDeleted = true;
     } else {
-      updatePayload.paid_at = status === "paid" ? new Date().toISOString() : null;
-    }
+      const { error: scrubErr } = await serviceClient
+        .from("users")
+        .update({
+          first_name: "Deleted",
+          last_name: "User",
+          email: placeholderEmail,
+          phone_number: placeholderPhone,
+          gender: null,
+          avatar_url: null,
+          bank_details: null,
+        })
+        .eq("id", targetId);
 
-    const { data: updatedRows, error: updateErr } = await serviceClient
-      .from(table)
-      .update(updatePayload)
-      .eq("id", id)
-      .select("*");
-
-    if (updateErr) {
-      res.statusCode = 500;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: updateErr.message }));
-      return;
-    }
-
-    const updated = (updatedRows ?? [])[0] ?? null;
-    if (!updated) {
-      res.statusCode = 404;
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ error: "Record not found." }));
-      return;
+      if (scrubErr) {
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: scrubErr.message }));
+        return;
+      }
+      publicScrubbed = true;
     }
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ data: updated }));
+    res.end(
+      JSON.stringify({
+        data: {
+          userId: targetId,
+          authUpdated,
+          authSignedOut,
+          publicDeleted,
+          publicScrubbed,
+        },
+      })
+    );
   };
 
   return {

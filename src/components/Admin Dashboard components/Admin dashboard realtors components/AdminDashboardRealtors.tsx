@@ -340,7 +340,7 @@ const AdminDashboardRealtors = () => {
   };
 
   const handleRemoveRealtor = async (realtorId: string) => {
-    await userService.delete(realtorId);
+    await userService.removeAsAdmin(realtorId);
     setRealtors((prev) => prev.filter((r) => r.id !== realtorId));
     setTotalRealtorsCount((prev) => Math.max(0, prev - 1));
     setSelectedRealtor(null);

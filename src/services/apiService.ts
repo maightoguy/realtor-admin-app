@@ -168,6 +168,40 @@ export const userService = {
     }
     logger.info("[API][users] delete success", { id });
   },
+
+  async removeAsAdmin(id: string): Promise<void> {
+    logger.info("[API][admin][users] remove start", { id });
+    const { data: sessionData } = await getSupabaseClient().auth.getSession();
+    const token = sessionData.session?.access_token ?? null;
+    if (!token) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}/remove`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message =
+          payload && typeof payload === "object" && typeof payload.error === "string"
+            ? payload.error
+            : `Request failed (${res.status})`;
+        throw new Error(message);
+      }
+
+      logger.info("[API][admin][users] remove success", { id });
+    } catch (err) {
+      logger.error("[API][admin][users] remove failed", { id, ...errorToLogPayload(err) });
+      throw new Error(formatApiError(err) || "Failed to remove user.");
+    }
+  },
 };
 
 export const propertyService = {
