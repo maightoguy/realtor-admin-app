@@ -88,6 +88,14 @@ const LoginForm: React.FC<LoginFormProps> = ({
         return;
       }
 
+      const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+      if (typeof meta.deleted_at === "string" && meta.deleted_at.trim()) {
+        await authService.signOut();
+        setError("This account has been deleted.");
+        setLoading(false);
+        return;
+      }
+
       // Verify user profile exists (handle deleted accounts)
       try {
         const userProfile = await userService.getById(data.user.id);

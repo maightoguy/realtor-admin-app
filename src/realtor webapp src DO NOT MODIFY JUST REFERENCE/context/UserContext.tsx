@@ -39,6 +39,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       if (!profile) {
         const created = await authService.ensureUserProfile();
         if (!created) {
+          await authService.signOut();
           throw new Error("User profile not found");
         }
         setUser(created);

@@ -22,6 +22,28 @@ export interface AuthResponse {
  * Auth Service for Supabase Authentication
  */
 export const authService = {
+    async markCurrentUserDeleted() {
+        const supabase = getSupabaseClient();
+        const deletedAt = new Date().toISOString();
+        logger.info('🗑️ [AUTH] Marking current user as deleted', { deletedAt });
+
+        const result = await supabase.auth.updateUser({
+            data: {
+                deleted_at: deletedAt,
+            },
+        });
+
+        if (result.error) {
+            logger.error('❌ [AUTH] Failed to mark user as deleted:', {
+                message: result.error.message,
+                status: result.error.status,
+            });
+        } else {
+            logger.info('✅ [AUTH] User marked as deleted');
+        }
+
+        return result;
+    },
     /**
      * Sign up a new user with email and password
      * Creates auth user and user profile in database
@@ -242,6 +264,9 @@ export const authService = {
         if (existing) return existing;
 
         const meta = (authUser.user_metadata ?? {}) as Record<string, unknown>;
+        if (typeof meta.deleted_at === 'string' && meta.deleted_at.trim()) {
+            return null;
+        }
 
         const firstName = typeof meta.first_name === 'string' ? meta.first_name : '';
         const lastName = typeof meta.last_name === 'string' ? meta.last_name : '';

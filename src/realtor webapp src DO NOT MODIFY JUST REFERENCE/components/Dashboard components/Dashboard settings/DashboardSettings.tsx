@@ -246,7 +246,12 @@ const DashboardSettings = () => {
     setLoading(true);
     setError(null);
     try {
-      await userService.delete(currentUserId);
+      await authService.markCurrentUserDeleted();
+      try {
+        await userService.delete(currentUserId);
+      } catch (e: any) {
+        logger.error("[DASHBOARD SETTINGS] Failed to delete user profile:", e);
+      }
       await authService.signOut();
       setShowFinalConfirmationModal(false);
       navigate("/login", { replace: true });

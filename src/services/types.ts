@@ -86,6 +86,8 @@ export interface Commission {
   status: CommissionStatus;
   realtor_id: string;
   receipt_id?: string | null;
+  commission_type?: "sale" | "referral";
+  downline_id?: string | null;
   created_at: string;
   paid_on?: string | null;
 }

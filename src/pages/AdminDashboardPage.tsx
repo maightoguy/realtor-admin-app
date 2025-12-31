@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { LogOut } from "lucide-react";
 import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 import DefaultProfilePic from "../assets/Default Profile pic.png";
@@ -7,6 +8,8 @@ import { authManager } from "../services/authManager";
 import { authService } from "../services/authService";
 import type { User } from "../services/types";
 import { logger } from "../utils/logger";
+import Loader from "../components/Loader";
+import { userService } from "../services/apiService";
 
 // Icons
 import ReceiptsIcon from "../components/icons/ReceiptsIcon.tsx";
@@ -38,14 +41,82 @@ const AdminDashboardPage = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(() =>
     authManager.getUser()
   );
+  const [isCheckingSession, setIsCheckingSession] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const refreshInFlightRef = useRef(false);
 
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
+  const refreshSessionAndUser = useCallback(
+    async (reason: string) => {
+      if (refreshInFlightRef.current) return;
+      refreshInFlightRef.current = true;
+      setIsCheckingSession(true);
+      try {
+        logger.info("[ADMIN] Checking session", { reason });
+        const { data, error } = await authService.getSession();
+        if (error) throw error;
+        const sessionUserId = data.session?.user?.id ?? null;
+        if (!sessionUserId) {
+          authManager.clearUser();
+          setCurrentUser(null);
+          navigate("/login", { replace: true });
+          return;
+        }
+
+        const profile = await userService.getById(sessionUserId);
+        if (!profile || profile.role !== "admin") {
+          await authService.signOut();
+          authManager.clearUser();
+          setCurrentUser(null);
+          navigate("/login", { replace: true });
+          return;
+        }
+
+        authManager.saveUser(profile);
+        setCurrentUser(profile);
+        setRefreshNonce((v) => v + 1);
+      } catch (err) {
+        logger.error("[ADMIN] Failed to check session", { reason, err });
+      } finally {
+        setIsCheckingSession(false);
+        refreshInFlightRef.current = false;
+      }
+    },
+    [navigate]
+  );
+
   useEffect(() => {
-    if (!currentUser) {
-      navigate("/login");
-    }
-  }, [currentUser, navigate]);
+    refreshSessionAndUser("mount").catch(() => {});
+
+    const onFocus = () => {
+      refreshSessionAndUser("window_focus").catch(() => {});
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSessionAndUser("tab_visible").catch(() => {});
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    const { data } = authService.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        refreshSessionAndUser(`auth_${event}`).catch(() => {});
+      }
+      if (event === "SIGNED_OUT") {
+        authManager.clearUser();
+        setCurrentUser(null);
+        navigate("/login", { replace: true });
+      }
+    });
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      data?.subscription?.unsubscribe();
+    };
+  }, [navigate, refreshSessionAndUser]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -94,37 +165,47 @@ const AdminDashboardPage = () => {
   };
 
   const renderSection = () => {
+    let content: ReactNode = null;
     switch (activeSection) {
       case "Overview":
-        return <AdminDashboardOverview />;
+        content = <AdminDashboardOverview />;
+        break;
       case "Properties":
-        return (
+        content = (
           <AdminDashboardProperties
             onAddFormStateChange={setIsAddPropertyFormActive}
           />
         );
+        break;
       case "Receipts":
-        return <AdminDashboardReceipts />;
+        content = <AdminDashboardReceipts />;
+        break;
       case "Realtors":
-        return <AdminDashboardRealtors />;
+        content = <AdminDashboardRealtors />;
+        break;
 
       case "Transactions":
-        return <AdminDashboardTransactions />;
+        content = <AdminDashboardTransactions />;
+        break;
       case "Notifications":
-        return <AdminDashboardNotifications />;
+        content = <AdminDashboardNotifications />;
+        break;
       case "Referrals":
-        return <AdminDashboardReferrals />;
+        content = <AdminDashboardReferrals />;
+        break;
 
       case "Settings":
-        return (
+        content = (
           <AdminDashboardSettings
             user={currentUser}
             onUserUpdated={setCurrentUser}
           />
         );
+        break;
       default:
-        return null;
+        content = null;
     }
+    return <div key={`${activeSection}:${refreshNonce}`}>{content}</div>;
   };
 
   const getIconComponent = (
@@ -159,6 +240,7 @@ const AdminDashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-[#FCFCFC] text-gray-800 flex flex-col lg:flex-row">
+      <Loader text="Checking session..." isOpen={isCheckingSession} />
       {/* Sidebar */}
       <aside className="hidden lg:flex flex-col justify-between w-[270px] bg-white border-r border-gray-100 p-6 shrink-0">
         <div>

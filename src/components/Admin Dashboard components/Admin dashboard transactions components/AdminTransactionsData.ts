@@ -5,10 +5,10 @@ export interface Transaction {
   type: "Commission" | "Withdrawal";
   amount: string;
   date: string;
-  status: "Paid" | "Pending" | "Rejected";
+  status: "Paid" | "Approved" | "Pending" | "Rejected";
+  dbStatus: "pending" | "approved" | "paid" | "rejected";
   bankName?: string;
   accountNumber?: string;
   accountBalance?: string;
   rejectionReason?: string;
 }
-

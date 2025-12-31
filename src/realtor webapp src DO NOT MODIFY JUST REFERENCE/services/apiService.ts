@@ -231,12 +231,34 @@ export const userService = {
 
     // Delete user
     async delete(id: string): Promise<void> {
-        const { error } = await getSupabaseClient()
+        const supabase = getSupabaseClient();
+
+        const { error } = await supabase.from('users').delete().eq('id', id);
+        if (!error) return;
+
+        logger.warn('⚠️ [API] Failed to delete user row, attempting scrub update:', {
+            id,
+            message: error.message,
+            code: error.code,
+        });
+
+        const placeholderEmail = `deleted+${id}@deleted.local`;
+        const placeholderPhone = `del-${id}`.slice(0, 20);
+
+        const { error: scrubError } = await supabase
             .from('users')
-            .delete()
+            .update({
+                first_name: 'Deleted',
+                last_name: 'User',
+                email: placeholderEmail,
+                phone_number: placeholderPhone,
+                gender: null,
+                avatar_url: null,
+                bank_details: null,
+            })
             .eq('id', id);
 
-        if (error) throw error;
+        if (scrubError) throw error;
     },
 };
 

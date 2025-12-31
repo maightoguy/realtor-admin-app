@@ -6,6 +6,7 @@ interface TransactionDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   transaction: Transaction | null;
+  onApprove?: (transactionId: string) => void | Promise<void>;
   onMarkAsPaid?: (transactionId: string) => void | Promise<void>;
   onReject?: (transactionId: string, reason: string) => void | Promise<void>;
 }
@@ -14,6 +15,7 @@ const TransactionDetailsModal = ({
   isOpen,
   onClose,
   transaction,
+  onApprove,
   onMarkAsPaid,
   onReject,
 }: TransactionDetailsModalProps) => {
@@ -47,6 +49,8 @@ const TransactionDetailsModal = ({
     switch (status) {
       case "Paid":
         return "text-[#22C55E] bg-[#E9F9EF]";
+      case "Approved":
+        return "text-[#6500AC] bg-[#F0E6F7]";
       case "Pending":
         return "text-[#6B7280] bg-[#F5F5F5]";
       case "Rejected":
@@ -56,7 +60,22 @@ const TransactionDetailsModal = ({
     }
   };
 
-  const canAct = transaction.status === "Pending";
+  const canApprove = transaction.dbStatus === "pending";
+  const canMarkAsPaid = transaction.dbStatus === "approved";
+  const canReject = transaction.dbStatus === "pending" || transaction.dbStatus === "approved";
+
+  const handleApprove = async () => {
+    if (!onApprove) return;
+    try {
+      setIsSubmitting(true);
+      await onApprove(transaction.id);
+      onClose();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Failed to approve.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleMarkAsPaid = async () => {
     if (!onMarkAsPaid) return;
@@ -194,7 +213,7 @@ const TransactionDetailsModal = ({
               </div>
             </div>
 
-            {canAct && (
+            {canReject && (
               <div className="pt-4">
                 {isRejecting ? (
                   <div className="space-y-3">
@@ -238,14 +257,25 @@ const TransactionDetailsModal = ({
                     >
                       Reject
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleMarkAsPaid}
-                      className="flex-1 px-4 py-3 bg-[#22C55E] text-white rounded-lg text-sm font-medium hover:bg-[#16A34A] transition-colors disabled:opacity-50"
-                      disabled={isSubmitting}
-                    >
-                      Mark as paid
-                    </button>
+                    {canApprove ? (
+                      <button
+                        type="button"
+                        onClick={handleApprove}
+                        className="flex-1 px-4 py-3 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors disabled:opacity-50"
+                        disabled={isSubmitting}
+                      >
+                        Approve
+                      </button>
+                    ) : canMarkAsPaid ? (
+                      <button
+                        type="button"
+                        onClick={handleMarkAsPaid}
+                        className="flex-1 px-4 py-3 bg-[#22C55E] text-white rounded-lg text-sm font-medium hover:bg-[#16A34A] transition-colors disabled:opacity-50"
+                        disabled={isSubmitting}
+                      >
+                        Mark as paid
+                      </button>
+                    ) : null}
                   </div>
                 )}
               </div>

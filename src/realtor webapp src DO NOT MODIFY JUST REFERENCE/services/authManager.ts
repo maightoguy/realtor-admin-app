@@ -82,6 +82,16 @@ export const authManager = {
 
                 if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     if (session?.user) {
+                        const meta = (session.user.user_metadata ?? {}) as Record<string, unknown>;
+                        if (typeof meta.deleted_at === 'string' && meta.deleted_at.trim()) {
+                            logger.warn('⚠️ [AUTH MANAGER] Deleted account signed in, signing out', {
+                                userId: session.user.id,
+                            });
+                            await supabase.auth.signOut();
+                            this.clearUser();
+                            this.clearSession();
+                            return;
+                        }
                         logger.info('✅ [AUTH MANAGER] User signed in / token refreshed', {
                             userId: session.user.id,
                             email: session.user.email,

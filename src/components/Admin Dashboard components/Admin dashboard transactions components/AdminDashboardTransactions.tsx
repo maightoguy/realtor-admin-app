@@ -141,6 +141,7 @@ const MetricCard = ({
 const StatusBadge = ({ status }: { status: Transaction["status"] }) => {
   const statusConfig = {
     Paid: { color: "#22C55E", bgColor: "#D1FAE5", label: "Paid" },
+    Approved: { color: "#6500AC", bgColor: "#F0E6F7", label: "Approved" },
     Pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
     Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
   };
@@ -205,8 +206,18 @@ const AdminDashboardTransactionsInner = () => {
     status: Commission["status"] | Payout["status"]
   ): Transaction["status"] => {
     if (status === "paid") return "Paid";
+    if (status === "approved") return "Approved";
     if (status === "rejected") return "Rejected";
     return "Pending";
+  };
+
+  const normalizeDbStatus = (
+    status: Commission["status"] | Payout["status"]
+  ): Transaction["dbStatus"] => {
+    if (status === "paid") return "paid";
+    if (status === "approved") return "approved";
+    if (status === "rejected") return "rejected";
+    return "pending";
   };
 
   const extractString = (obj: unknown, key: string): string | undefined => {
@@ -253,6 +264,7 @@ const AdminDashboardTransactionsInner = () => {
               amount: formatNaira(c.amount),
               date: formatDate(c.created_at),
               status: statusToUi(c.status),
+              dbStatus: normalizeDbStatus(c.status),
               createdAtIso: c.created_at,
             };
           }),
@@ -275,6 +287,7 @@ const AdminDashboardTransactionsInner = () => {
               amount: formatNaira(p.amount),
               date: formatDate(p.created_at),
               status: statusToUi(p.status),
+              dbStatus: normalizeDbStatus(p.status),
               bankName,
               accountNumber,
               createdAtIso: p.created_at,
@@ -309,7 +322,9 @@ const AdminDashboardTransactionsInner = () => {
       return sum + amount;
     }, 0);
     const pendingPayouts = transactions.filter(
-      (t) => t.type === "Withdrawal" && t.status === "Pending"
+      (t) =>
+        t.type === "Withdrawal" &&
+        (t.status === "Pending" || t.status === "Approved")
     ).length;
 
     return {
@@ -392,6 +407,32 @@ const AdminDashboardTransactionsInner = () => {
     setSelectedTransaction(null);
   };
 
+  const handleApprovePayout = async (transactionId: string) => {
+    const updated = await payoutService.updateStatus({
+      id: transactionId,
+      status: "approved",
+    });
+
+    const tx = transactions.find((t) => t.id === transactionId);
+    if (tx) {
+      await notificationService.create({
+        userId: tx.realtorId,
+        type: "success",
+        title: "Withdrawal Approved",
+        message: `Your withdrawal request of ${tx.amount} has been approved.`,
+        metadata: { payout_id: transactionId, status: "approved" },
+      });
+    }
+
+    setTransactions((prev) =>
+      prev.map((t) =>
+        t.id === updated.id
+          ? { ...t, status: "Approved", dbStatus: "approved" }
+          : t
+      )
+    );
+  };
+
   const handleMarkPayoutAsPaid = async (transactionId: string) => {
     const updated = await payoutService.updateStatus({
       id: transactionId,
@@ -412,7 +453,12 @@ const AdminDashboardTransactionsInner = () => {
     setTransactions((prev) =>
       prev.map((t) =>
         t.id === updated.id
-          ? { ...t, status: "Paid", date: formatDate(updated.created_at) }
+          ? {
+              ...t,
+              status: "Paid",
+              dbStatus: "paid",
+              date: formatDate(updated.created_at),
+            }
           : t
       )
     );
@@ -441,9 +487,36 @@ const AdminDashboardTransactionsInner = () => {
           ? {
               ...t,
               status: "Rejected",
+              dbStatus: "rejected",
               date: formatDate(updated.created_at),
               rejectionReason: reason,
             }
+          : t
+      )
+    );
+  };
+
+  const handleApproveCommission = async (transactionId: string) => {
+    const updated = await commissionService.updateStatus({
+      id: transactionId,
+      status: "approved",
+    });
+
+    const tx = transactions.find((t) => t.id === transactionId);
+    if (tx) {
+      await notificationService.create({
+        userId: tx.realtorId,
+        type: "success",
+        title: "Commission Approved",
+        message: `Your commission of ${tx.amount} has been approved.`,
+        metadata: { commission_id: transactionId, status: "approved" },
+      });
+    }
+
+    setTransactions((prev) =>
+      prev.map((t) =>
+        t.id === updated.id
+          ? { ...t, status: "Approved", dbStatus: "approved" }
           : t
       )
     );
@@ -467,7 +540,9 @@ const AdminDashboardTransactionsInner = () => {
     }
 
     setTransactions((prev) =>
-      prev.map((t) => (t.id === updated.id ? { ...t, status: "Paid" } : t))
+      prev.map((t) =>
+        t.id === updated.id ? { ...t, status: "Paid", dbStatus: "paid" } : t
+      )
     );
   };
 
@@ -494,7 +569,12 @@ const AdminDashboardTransactionsInner = () => {
     setTransactions((prev) =>
       prev.map((t) =>
         t.id === updated.id
-          ? { ...t, status: "Rejected", rejectionReason: reason }
+          ? {
+              ...t,
+              status: "Rejected",
+              dbStatus: "rejected",
+              rejectionReason: reason,
+            }
           : t
       )
     );
@@ -693,6 +773,7 @@ const AdminDashboardTransactionsInner = () => {
             isOpen={isTransactionModalOpen}
             onClose={handleCloseModals}
             transaction={selectedTransaction}
+            onApprove={handleApproveCommission}
             onMarkAsPaid={handleMarkCommissionAsPaid}
             onReject={handleRejectCommission}
           />
@@ -702,6 +783,7 @@ const AdminDashboardTransactionsInner = () => {
             isOpen={isWithdrawalModalOpen}
             onClose={handleCloseModals}
             transaction={selectedTransaction}
+            onApprove={handleApprovePayout}
             onMarkAsPaid={handleMarkPayoutAsPaid}
             onReject={handleRejectPayout}
           />

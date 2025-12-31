@@ -48,6 +48,9 @@ const getNotificationIcon = (type: string) => {
     case "receipt_pending":
     case "payout_pending":
     case "kyc_pending":
+    case "user_deletion":
+    case "user_deleted":
+    case "user_scrubbed":
       return (
         <svg
           width="32"
