@@ -171,31 +171,17 @@ export const userService = {
 
   async removeAsAdmin(id: string): Promise<void> {
     logger.info("[API][admin][users] remove start", { id });
-    const { data: sessionData } = await getSupabaseClient().auth.getSession();
-    const token = sessionData.session?.access_token ?? null;
-    if (!token) {
-      throw new Error("Not authenticated. Please log in again.");
-    }
-
     try {
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(id)}/remove`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({}),
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.functions.invoke("admin-remove-user", {
+        body: { userId: id },
       });
-
-      const payload = await res.json().catch(() => null);
-      if (!res.ok) {
-        const message =
-          payload && typeof payload === "object" && typeof payload.error === "string"
-            ? payload.error
-            : `Request failed (${res.status})`;
-        throw new Error(message);
+      if (error) {
+        throw error;
       }
-
+      if (!data || typeof data !== "object") {
+        throw new Error("Unexpected response from admin-remove-user.");
+      }
       logger.info("[API][admin][users] remove success", { id });
     } catch (err) {
       logger.error("[API][admin][users] remove failed", { id, ...errorToLogPayload(err) });
@@ -920,46 +906,16 @@ export const commissionService = {
     id: string;
     status: Commission["status"];
   }): Promise<Commission> {
-    const { data: sessionData } = await getSupabaseClient().auth.getSession();
-    const sessionUserId = sessionData.session?.user?.id ?? null;
-    if (!sessionUserId) {
-      throw new Error("Not authenticated. Please log in again.");
-    }
-
-    const updates: Partial<Commission> = {
-      status: params.status,
-      paid_on: params.status === "paid" ? new Date().toISOString() : null,
-    };
-
     try {
-      const { data, error } = await getSupabaseClient()
-        .from("commissions")
-        .update(updates)
-        .eq("id", params.id)
-        .select("*")
-        .maybeSingle();
-
-      if (error) {
-        logger.error("[API][commissions] updateStatus failed", {
-          id: params.id,
-          status: params.status,
-          ...errorToLogPayload(error),
-        });
-        throw error;
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.functions.invoke("admin-update-commission-status", {
+        body: { id: params.id, status: params.status },
+      });
+      if (error) throw error;
+      if (!data || typeof data !== "object" || !("data" in data)) {
+        throw new Error("Unexpected response from admin-update-commission-status.");
       }
-      if (data) return data as Commission;
-
-      const { data: fetched, error: fetchError } = await getSupabaseClient()
-        .from("commissions")
-        .select("*")
-        .eq("id", params.id)
-        .maybeSingle();
-      if (fetchError) throw fetchError;
-      if (fetched) return fetched as Commission;
-
-      throw new Error(
-        "Update may have succeeded, but the record could not be read. Check RLS SELECT policy for admins."
-      );
+      return (data as { data: Commission }).data;
     } catch (err) {
       throw new Error(formatApiError(err) || "Update failed. Permission denied.");
     }
@@ -1005,46 +961,16 @@ export const payoutService = {
     id: string;
     status: Payout["status"];
   }): Promise<Payout> {
-    const { data: sessionData } = await getSupabaseClient().auth.getSession();
-    const sessionUserId = sessionData.session?.user?.id ?? null;
-    if (!sessionUserId) {
-      throw new Error("Not authenticated. Please log in again.");
-    }
-
-    const updates: Partial<Payout> = {
-      status: params.status,
-      paid_at: params.status === "paid" ? new Date().toISOString() : null,
-    };
-
     try {
-      const { data, error } = await getSupabaseClient()
-        .from("payouts")
-        .update(updates)
-        .eq("id", params.id)
-        .select("*")
-        .maybeSingle();
-
-      if (error) {
-        logger.error("[API][payouts] updateStatus failed", {
-          id: params.id,
-          status: params.status,
-          ...errorToLogPayload(error),
-        });
-        throw error;
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase.functions.invoke("admin-update-payout-status", {
+        body: { id: params.id, status: params.status },
+      });
+      if (error) throw error;
+      if (!data || typeof data !== "object" || !("data" in data)) {
+        throw new Error("Unexpected response from admin-update-payout-status.");
       }
-      if (data) return data as Payout;
-
-      const { data: fetched, error: fetchError } = await getSupabaseClient()
-        .from("payouts")
-        .select("*")
-        .eq("id", params.id)
-        .maybeSingle();
-      if (fetchError) throw fetchError;
-      if (fetched) return fetched as Payout;
-
-      throw new Error(
-        "Update may have succeeded, but the record could not be read. Check RLS SELECT policy for admins."
-      );
+      return (data as { data: Payout }).data;
     } catch (err) {
       throw new Error(formatApiError(err) || "Update failed. Permission denied.");
     }
