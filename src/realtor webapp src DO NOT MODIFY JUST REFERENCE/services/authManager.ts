@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getSupabaseClient } from './supabaseClient';
 import { logger } from '../utils/logger';
-import { userService } from './apiService';
+import { referralService, userService } from './apiService';
 import type { User } from './types';
 
 /**
@@ -14,6 +14,24 @@ const USER_STORAGE_KEY = 'realtor_app_user';
 const SESSION_STORAGE_KEY = 'realtor_app_session';
 
 export const authManager = {
+    async attachPendingReferral(userProfile: User, meta: Record<string, unknown>) {
+        if (userProfile.referred_by) return;
+
+        const metaCode = typeof meta.referral_input_code === 'string' ? meta.referral_input_code.trim() : '';
+        const storageCode = localStorage.getItem('pending_referral_code')?.trim() ?? '';
+        const code = metaCode || storageCode;
+        if (!code) return;
+
+        try {
+            await referralService.attachReferralCode(code);
+            localStorage.removeItem('pending_referral_code');
+            const refreshed = await userService.getById(userProfile.id);
+            if (refreshed) this.saveUser(refreshed);
+        } catch (error) {
+            logger.warn('⚠️ [AUTH MANAGER] Failed to attach pending referral code:', error);
+        }
+    },
+
     async ensureReferralRecord(userProfile: User) {
         if (!userProfile.referred_by) return;
         if (userProfile.referred_by === userProfile.id) return;
@@ -105,6 +123,7 @@ export const authManager = {
                                 if (userProfile) {
                                     this.saveUser(userProfile);
                                     await this.ensureReferralRecord(userProfile);
+                                    await this.attachPendingReferral(userProfile, meta);
                                     logger.info('✅ [AUTH MANAGER] User profile saved:', userProfile.id);
                                 } else {
                                     logger.warn('⚠️ [AUTH MANAGER] User profile not found in database');

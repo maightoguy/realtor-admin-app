@@ -1,4 +1,5 @@
-INSERT INTO "public"."payouts" ("id", "realtor_id", "amount", "status", "bank_details", "created_at", "paid_at") VALUES ('149300de-5b8b-4e50-b60c-65b4025302c4', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', '20000', 'pending', '{"bankName":"United Bank for Africa","accountNo":"2101193001","accountName":"Veriplot Technologies"}', '2025-12-21 10:27:40.388118+00', null), ('c0f836ef-221c-4abd-9ece-21fd64d58235', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', '80000', 'approved', '{"bankName":"Opay","accountNo":"8087292952","accountName":"Saliu Richard Olugbenga"}', '2025-12-22 16:54:36.501677+00', null);
+INSERT INTO "public"."payouts" ("id", "realtor_id", "amount", "status", "bank_details", "created_at", "paid_at") VALUES ('dfec2d82-1d6a-45bf-92cd-f9a0d04b3d6f', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', '40000', 'paid', '{"bankName":"Opay","accountNo":"8087292952","accountName":"Saliu Richard Olugbenga"}', '2025-12-31 22:53:55.013766+00', '2025-12-31 22:55:14.508+00');
+
 
 create table public.payouts (
   id uuid not null default extensions.uuid_generate_v4 (),
@@ -37,11 +38,6 @@ after INSERT
 or
 update OF status on payouts for EACH row
 execute FUNCTION notify_payout_updates ();
-
-
-
-
-
 
 
 [

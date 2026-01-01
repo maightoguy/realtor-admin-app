@@ -5,12 +5,14 @@ import { Menu, Wallet, Bell } from "lucide-react";
 import NotificationModal from "./NotificationModal";
 import MobileMenuModal from "./MobileMenuModal";
 import ProfileModal from "./ProfileModal";
+import VeriplotLogo from "../../assets/Veriplot Primary logo 2.svg";
 
 import { useUser } from "../../context/UserContext"; // Add this import for Supabase user data
 import fallbackProfile from "../../assets/Default Profile pic.png"; // Use existing asset as fallback
 import { transactionService } from "../../services/transactionService";
 import { notificationService } from "../../services/apiService";
 import { authService } from "../../services/authService";
+import { Link } from "react-router-dom";
 
 interface HeaderProps {
   activeSection: string;
@@ -104,10 +106,21 @@ const Header = ({
           </span>
 
           {/* Right Side Icons */}
-          <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-green-700 rounded-lg hover:bg-purple-100">
+          <div className="md:hidden flex items-center min-w-0">
+            <Link to="/dashboard" className="flex items-center gap-2">
+              <img
+                src={VeriplotLogo}
+                alt="Veriplot logo"
+                className="h-6 w-auto"
+              />
+            </Link>
+          </div>
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+            <button className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 bg-purple-50 text-green-700 rounded-lg hover:bg-purple-100 text-sm md:text-base">
               <Wallet className="w-4 h-4" />
-              {formatCurrency(currentBalance)}
+              <span className="max-w-[92px] truncate">
+                {formatCurrency(currentBalance)}
+              </span>
             </button>
             <button
               onClick={() => setIsNotificationOpen(true)}

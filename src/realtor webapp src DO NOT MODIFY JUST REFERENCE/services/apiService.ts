@@ -781,6 +781,21 @@ export const referralService = {
 
         if (error) throw error;
     },
+
+    async attachReferralCode(referralCode: string): Promise<void> {
+        const trimmed = referralCode.trim();
+        if (!trimmed) throw new Error('Referral code is required');
+
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase.functions.invoke('referrals-attach', {
+            body: { referralCode: trimmed },
+        });
+
+        if (error) throw error;
+        if (data && typeof (data as { error?: unknown }).error === 'string') {
+            throw new Error((data as { error: string }).error);
+        }
+    },
 };
 
 // ==================== NOTIFICATIONS SERVICE ====================

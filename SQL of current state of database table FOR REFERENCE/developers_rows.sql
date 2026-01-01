@@ -1,4 +1,5 @@
-INSERT INTO "public"."developers" ("id", "name", "email", "phone", "status", "created_at") VALUES ('80403476-9cac-432d-970f-f4cdef07cc62', 'Bruce', 'batman@gmail.com', '545454545', 'active', '2025-12-28 10:10:30.471373+00'), ('a9a94378-ccdc-4384-b2cd-1a47025acdb6', 'Richard Saliu Olugbenga', 'maightoguy@gmail.com', '09052580288', 'active', '2025-12-27 13:11:16.846432+00');
+INSERT INTO "public"."developers" ("id", "name", "email", "phone", "status", "created_at") VALUES ('0136f0f3-e4ea-4092-ad90-9b29e1e6cd59', 'tony', 'tonyunguyen@gmail.com', '98898998', 'active', '2025-12-30 04:37:35.8581+00'), ('80403476-9cac-432d-970f-f4cdef07cc62', 'Bruce', 'batman@gmail.com', '484848484', 'inactive', '2025-12-28 10:10:30.471373+00'), ('80d1371c-cab7-4b85-acaf-9fcbf683a84f', 'keath', 'keath14@gmail.com', '696969', 'inactive', '2025-12-29 23:09:41.072493+00'), ('a9a94378-ccdc-4384-b2cd-1a47025acdb6', 'Richard Saliu Olugbenga', 'maightoguy@gmail.com', '09052580288', 'inactive', '2025-12-27 13:11:16.846432+00');
+
 
 create table public.developers (
   id uuid not null default gen_random_uuid (),
@@ -14,7 +15,6 @@ create table public.developers (
     )
   )
 ) TABLESPACE pg_default;
-
 
 
 [

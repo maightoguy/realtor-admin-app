@@ -23,7 +23,7 @@ const ReferralCodeCard = ({ code }: { code: string }) => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Construct dynamic referral link
-  const referralLink = `${window.location.origin}/signup?ref=${code}`;
+  const referralLink = `${window.location.origin}/register?ref=${code}`;
 
   const handleCopyCode = async () => {
     try {

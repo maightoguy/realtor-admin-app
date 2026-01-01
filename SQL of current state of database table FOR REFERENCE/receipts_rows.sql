@@ -1,4 +1,5 @@
-INSERT INTO "public"."receipts" ("id", "realtor_id", "client_name", "property_id", "amount_paid", "receipt_urls", "status", "created_at", "rejection_reason") VALUES ('469a1994-6b3d-4b75-922e-bf8ea37f6d69', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', 'Donwanchasm', null, '50000', ARRAY["https://yeebxvkrxygkfxrbinny.supabase.co/storage/v1/object/public/receipt-uploads/3e5b64dc-902d-4a97-888d-ebc61b873fcc/1766486020170_cf80lio.pdf"], 'approved', '2025-12-23 10:33:41.901246+00', null);
+INSERT INTO "public"."receipts" ("id", "realtor_id", "client_name", "property_id", "amount_paid", "receipt_urls", "status", "created_at", "rejection_reason") VALUES ('ba2c2b5e-46f2-42df-b31d-352ebe0cfbfa', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', 'duke', 'dadddb9b-4377-4f9e-9b6d-7e4adb112989', '0', ARRAY["https://yeebxvkrxygkfxrbinny.supabase.co/storage/v1/object/public/receipt-uploads/3e5b64dc-902d-4a97-888d-ebc61b873fcc/1767222623758_yfjo3fw.pdf"], 'pending', '2025-12-31 23:10:27.563473+00', null), ('bb804441-76f1-4a03-8452-b502ae843384', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', 'Heidinburg', '31dee512-3e32-4ab4-8861-c14ce7d32dff', '600000', ARRAY["https://yeebxvkrxygkfxrbinny.supabase.co/storage/v1/object/public/receipt-uploads/3e5b64dc-902d-4a97-888d-ebc61b873fcc/1767178638487_aff5v1x.pdf"], 'approved', '2025-12-31 10:57:19.668154+00', null);
+
 
 create table public.receipts (
   id uuid not null default extensions.uuid_generate_v4 (),
@@ -28,6 +29,12 @@ create table public.receipts (
 
 create index IF not exists idx_receipts_realtor_id on public.receipts using btree (realtor_id) TABLESPACE pg_default;
 
+create trigger trg_create_commissions_on_receipt_approved
+after INSERT
+or
+update OF status on receipts for EACH row
+execute FUNCTION create_commissions_on_receipt_approved ();
+
 create trigger trg_notify_admin_receipt_pending
 after INSERT
 or
@@ -39,8 +46,6 @@ after INSERT
 or
 update OF status on receipts for EACH row
 execute FUNCTION notify_receipt_updates ();
-
-
 
 
 [

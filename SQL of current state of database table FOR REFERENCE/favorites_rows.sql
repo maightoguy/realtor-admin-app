@@ -1,4 +1,5 @@
-INSERT INTO "public"."favorites" ("id", "user_id", "property_id", "created_at") VALUES ('6c4d54a7-3c5f-4081-8a79-ac163c0b8eb8', '68436d36-2bd6-446c-9ca2-6c1411bd58f3', 'dadddb9b-4377-4f9e-9b6d-7e4adb112989', '2025-12-29 11:07:34.03582+00');
+INSERT INTO "public"."favorites" ("id", "user_id", "property_id", "created_at") VALUES ('19f249c6-834a-4fae-80f4-ad48f9257ecf', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', 'f6cdd2b7-d602-4724-8ad4-b92173a2f5cc', '2025-12-30 17:59:10.613432+00');
+
 
 create table public.favorites (
   id uuid not null default gen_random_uuid (),
@@ -10,8 +11,6 @@ create table public.favorites (
   constraint favorites_property_id_fkey foreign KEY (property_id) references properties (id) on delete CASCADE,
   constraint favorites_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
-
 
 
 [

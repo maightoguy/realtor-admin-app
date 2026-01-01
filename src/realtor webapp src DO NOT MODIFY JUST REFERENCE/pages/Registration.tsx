@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // RegistrationPage.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { CreateAccountData } from "../components/registration components/CreateAccountForm";
 import { CreateAccountForm } from "../components/registration components/CreateAccountForm";
 import StepProgress from "../components/registration components/StepProgress";
@@ -43,6 +43,21 @@ const RegistrationPage: React.FC = () => {
     text: string;
   } | null>(null);
   const navigate = useNavigate();
+
+  const referralCodeFromUrl = (() => {
+    try {
+      const value = new URLSearchParams(window.location.search).get("ref");
+      const trimmed = value?.trim();
+      return trimmed ? trimmed : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  useEffect(() => {
+    if (!referralCodeFromUrl) return;
+    localStorage.setItem("pending_referral_code", referralCodeFromUrl);
+  }, [referralCodeFromUrl]);
 
   const handleResendEmail = async () => {
     if (!registrationSuccess?.email) return;
@@ -228,7 +243,10 @@ const RegistrationPage: React.FC = () => {
 
           {!registrationSuccess && currentStep === 1 && (
             <PersonalInfoForm
-              initialData={personalInfoData ?? undefined}
+              initialData={
+                personalInfoData ??
+                (referralCodeFromUrl ? { referral: referralCodeFromUrl } : undefined)
+              }
               onNext={(data) => {
                 setPersonalInfoData(data);
                 setCurrentStep(2); // go to KYC
