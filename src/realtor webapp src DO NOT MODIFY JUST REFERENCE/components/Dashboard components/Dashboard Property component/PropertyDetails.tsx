@@ -591,7 +591,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
               </h3>
             </div>
 
-            <div className="w-full h-64">
+            <div className="w-full h-64 z-0">
               <MapViewer
                 locationName={property.location}
                 defaultCenter={lagosDefaultCenter}

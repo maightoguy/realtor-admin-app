@@ -43,6 +43,8 @@ export const authManager = {
                 .select('id')
                 .eq('upline_id', userProfile.referred_by)
                 .eq('downline_id', userProfile.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
                 .maybeSingle();
 
             if (existingError) {

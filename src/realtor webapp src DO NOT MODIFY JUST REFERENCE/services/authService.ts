@@ -252,7 +252,9 @@ export const authService = {
         const supabase = getSupabaseClient();
         const session = await supabase.auth.getSession();
         const authUser = session.data.session?.user;
-        if (!authUser) return null;
+        if (!authUser) return null
+
+        const meta = (authUser.user_metadata ?? {}) as Record<string, unknown>;
 
         const { data: existing, error: existingError } = await supabase
             .from('users')
@@ -261,16 +263,65 @@ export const authService = {
             .maybeSingle();
 
         if (existingError) throw existingError;
-        if (existing) return existing;
+        const firstName =
+            typeof meta.first_name === 'string'
+                ? meta.first_name
+                : typeof meta.firstName === 'string'
+                    ? meta.firstName
+                    : '';
+        const lastName =
+            typeof meta.last_name === 'string'
+                ? meta.last_name
+                : typeof meta.lastName === 'string'
+                    ? meta.lastName
+                    : '';
+        const phoneNumber =
+            typeof meta.phone_number === 'string'
+                ? meta.phone_number
+                : typeof meta.phoneNumber === 'string'
+                    ? meta.phoneNumber
+                    : typeof meta.phone === 'string'
+                        ? meta.phone
+                        : '';
 
-        const meta = (authUser.user_metadata ?? {}) as Record<string, unknown>;
+        const genderValue = typeof meta.gender === 'string' ? meta.gender.toLowerCase() : null;
+        const gender =
+            genderValue === 'male' || genderValue === 'female' || genderValue === 'other'
+                ? (genderValue as 'male' | 'female' | 'other')
+                : null;
+
+        if (existing) {
+            const updates: Partial<User> = {};
+            if (!existing.first_name?.trim() && firstName.trim()) updates.first_name = firstName;
+            if (!existing.last_name?.trim() && lastName.trim()) updates.last_name = lastName;
+            if (!existing.phone_number?.trim() && phoneNumber.trim()) updates.phone_number = phoneNumber;
+            if (!existing.gender && gender) updates.gender = gender;
+
+            if (Object.keys(updates).length) {
+                const { data: repaired, error: repairError } = await supabase
+                    .from('users')
+                    .update(updates)
+                    .eq('id', authUser.id)
+                    .select()
+                    .single();
+
+                if (repairError) {
+                    logger.warn('⚠️ [AUTH] Failed to backfill profile fields from auth metadata:', {
+                        message: repairError.message,
+                        code: repairError.code,
+                    });
+                    return existing;
+                }
+                return repaired;
+            }
+
+            return existing;
+        }
+
         if (typeof meta.deleted_at === 'string' && meta.deleted_at.trim()) {
             return null;
         }
 
-        const firstName = typeof meta.first_name === 'string' ? meta.first_name : '';
-        const lastName = typeof meta.last_name === 'string' ? meta.last_name : '';
-        const phoneNumber = typeof meta.phone_number === 'string' ? meta.phone_number : '';
         const role = (typeof meta.role === 'string' ? meta.role : 'realtor') as 'realtor' | 'admin';
         const kycStatus = (typeof meta.kyc_status === 'string' ? meta.kyc_status : 'pending') as
             | 'pending'
@@ -284,12 +335,6 @@ export const authService = {
 
         const referredByFromMeta = typeof meta.referred_by === 'string' ? meta.referred_by : null;
         const referredBy = options?.referredBy ?? referredByFromMeta;
-
-        const genderValue = typeof meta.gender === 'string' ? meta.gender.toLowerCase() : null;
-        const gender =
-            genderValue === 'male' || genderValue === 'female' || genderValue === 'other'
-                ? (genderValue as 'male' | 'female' | 'other')
-                : null;
 
         const insertData = {
             id: authUser.id,

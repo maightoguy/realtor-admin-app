@@ -87,33 +87,24 @@ const AdminDashboardPage = () => {
   );
 
   useEffect(() => {
+    // Initial session check on mount
     refreshSessionAndUser("mount").catch(() => {});
 
-    const onFocus = () => {
-      refreshSessionAndUser("window_focus").catch(() => {});
-    };
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        refreshSessionAndUser("tab_visible").catch(() => {});
-      }
-    };
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
     const { data } = authService.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+      // ONLY refresh profile on SIGNED_IN (explicit login)
+      if (event === "SIGNED_IN") {
         refreshSessionAndUser(`auth_${event}`).catch(() => {});
       }
+      // ONLY clear data on SIGNED_OUT
       if (event === "SIGNED_OUT") {
         authManager.clearUser();
         setCurrentUser(null);
         navigate("/login", { replace: true });
       }
+      // Note: TOKEN_REFRESHED and other events are ignored to prevent disrupting active workflows
     });
 
     return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
       data?.subscription?.unsubscribe();
     };
   }, [navigate, refreshSessionAndUser]);
@@ -160,7 +151,7 @@ const AdminDashboardPage = () => {
       await authService.signOut();
     } finally {
       authManager.clearUser();
-      navigate("/login", { replace: true });
+      navigate("/login", { replace: true, state: { loggedOut: true } });
     }
   };
 

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabaseClient';
+import { authService } from './authService';
 import { logger } from '../utils/logger';
 import type {
     User,
@@ -120,25 +121,97 @@ export const userService = {
     // Update user
     async update(id: string, updates: UserUpdate): Promise<User> {
         logger.info('🔄 [API] Updating user:', id, { updates });
-        const { data, error } = await getSupabaseClient()
-            .from('users')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
+        const supabase = getSupabaseClient();
 
-        if (error) {
-            logger.error('❌ [API] Failed to update user:', {
-                id,
-                message: error.message,
-                code: error.code,
-                details: error.details,
-                hint: error.hint,
-            });
-            throw error;
+        const attemptUpdate = async () => {
+            const { data, error } = await supabase
+                .from('users')
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .maybeSingle();
+
+            if (error) {
+                const code = (error as unknown as { code?: string }).code;
+                const status = (error as unknown as { status?: number }).status;
+                if (code === 'PGRST116' || status === 406) {
+                    logger.warn('⚠️ [API] User update returned no row or 406; will attempt recovery', {
+                        id,
+                        code,
+                        status,
+                        message: error.message,
+                    });
+                    return null;
+                }
+                logger.error('❌ [API] Failed to update user:', {
+                    id,
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    hint: error.hint,
+                });
+                throw error;
+            }
+
+            return data;
+        };
+
+        let updated = await attemptUpdate();
+        if (updated) {
+            logger.info('✅ [API] User updated successfully:', id);
+            return updated;
         }
-        logger.info('✅ [API] User updated successfully:', id);
-        return data;
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const currentUserId = sessionData.session?.user?.id ?? null;
+
+        if (currentUserId && currentUserId === id) {
+            try {
+                await authService.ensureUserProfile();
+            } catch (ensureError) {
+                logger.warn('⚠️ [API] Failed to ensure user profile before retrying update:', ensureError);
+            }
+
+            updated = await attemptUpdate();
+            if (updated) {
+                logger.info('✅ [API] User updated successfully after profile ensure:', id);
+                return updated;
+            }
+
+            try {
+                const { data: fnData, error: fnError } = await supabase.functions.invoke('users-update-self', {
+                    body: { updates },
+                });
+
+                if (fnError) throw fnError;
+
+                const maybeUser = (fnData as unknown as { user?: User | null })?.user ?? null;
+                if (maybeUser) {
+                    logger.info('✅ [API] User updated successfully via Edge Function:', id);
+                    return maybeUser;
+                }
+            } catch (fnInvokeError) {
+                logger.warn('⚠️ [API] Edge Function update fallback failed:', fnInvokeError);
+            }
+        }
+
+        const { data: exists, error: existsError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (existsError) throw existsError;
+
+        if (exists?.id) {
+            const noRowsError = new Error('Failed to update user profile. Please try again.');
+            (noRowsError as unknown as { code?: string }).code = 'NO_ROWS_UPDATED';
+            throw noRowsError;
+        }
+
+        const notFoundError = new Error('User profile not found. Please sign out and sign in again.');
+        (notFoundError as unknown as { code?: string }).code = 'USER_NOT_FOUND';
+        throw notFoundError;
     },
 
     // Update bank details
@@ -146,7 +219,21 @@ export const userService = {
         logger.info('🏦 [API] Updating bank details for user:', userId);
         
         // First get current user to retrieve existing bank details
-        const currentUser = await this.getById(userId);
+        let currentUser = await this.getById(userId);
+        if (!currentUser) {
+            const supabase = getSupabaseClient();
+            const { data: sessionData } = await supabase.auth.getSession();
+            const currentUserId = sessionData.session?.user?.id ?? null;
+
+            if (currentUserId && currentUserId === userId) {
+                try {
+                    await authService.ensureUserProfile();
+                } catch (ensureError) {
+                    logger.warn('⚠️ [API] Failed to ensure user profile before updating bank details:', ensureError);
+                }
+                currentUser = await this.getById(userId);
+            }
+        }
         if (!currentUser) {
             throw new Error('User not found');
         }
@@ -157,25 +244,29 @@ export const userService = {
         // Add new bank details
         const updatedBankDetails = [...currentBankDetails, bankData];
 
-        const { data, error } = await getSupabaseClient()
-            .from('users')
-            .update({ bank_details: updatedBankDetails })
-            .eq('id', userId)
-            .select()
-            .single();
-
-        if (error) {
-            logger.error('❌ [API] Failed to update bank details:', error);
-            throw error;
-        }
+        const updatedUser = await this.update(userId, { bank_details: updatedBankDetails });
         logger.info('✅ [API] Bank details updated successfully');
-        return data;
+        return updatedUser;
     },
 
     async removeBankDetails(userId: string, bankData: { bankName: string; accountNo: string; accountName: string }): Promise<User> {
         logger.info('🏦 [API] Removing bank details for user:', userId);
 
-        const currentUser = await this.getById(userId);
+        let currentUser = await this.getById(userId);
+        if (!currentUser) {
+            const supabase = getSupabaseClient();
+            const { data: sessionData } = await supabase.auth.getSession();
+            const currentUserId = sessionData.session?.user?.id ?? null;
+
+            if (currentUserId && currentUserId === userId) {
+                try {
+                    await authService.ensureUserProfile();
+                } catch (ensureError) {
+                    logger.warn('⚠️ [API] Failed to ensure user profile before removing bank details:', ensureError);
+                }
+                currentUser = await this.getById(userId);
+            }
+        }
         if (!currentUser) {
             throw new Error('User not found');
         }
@@ -193,19 +284,7 @@ export const userService = {
         });
 
         if (matchIndex === -1) {
-            const { data, error } = await getSupabaseClient()
-                .from('users')
-                .update({ bank_details: currentBankDetails })
-                .eq('id', userId)
-                .select()
-                .single();
-
-            if (error) {
-                logger.error('❌ [API] Failed to update bank details:', error);
-                throw error;
-            }
-
-            return data;
+            return await this.update(userId, { bank_details: currentBankDetails });
         }
 
         const updatedBankDetails = [
@@ -213,20 +292,9 @@ export const userService = {
             ...currentBankDetails.slice(matchIndex + 1),
         ];
 
-        const { data, error } = await getSupabaseClient()
-            .from('users')
-            .update({ bank_details: updatedBankDetails })
-            .eq('id', userId)
-            .select()
-            .single();
-
-        if (error) {
-            logger.error('❌ [API] Failed to remove bank details:', error);
-            throw error;
-        }
-
+        const updatedUser = await this.update(userId, { bank_details: updatedBankDetails });
         logger.info('✅ [API] Bank details removed successfully');
-        return data;
+        return updatedUser;
     },
 
     // Delete user
@@ -695,10 +763,10 @@ export const referralService = {
     // Get referrals by upline ID with downline details
     async getReferralsByUpline(
         uplineId: string
-    ): Promise<(Referral & { downline?: { first_name: string | null; last_name: string | null } | null })[]> {
+    ): Promise<(Referral & { downline?: { first_name: string | null; last_name: string | null; email?: string | null; phone_number?: string | null } | null })[]> {
         const { data, error } = await getSupabaseClient()
             .from('referrals')
-            .select('*, downline:users!referrals_downline_id_fkey(first_name,last_name)')
+            .select('*, downline:users!referrals_downline_id_fkey(first_name,last_name,email,phone_number)')
             .eq('upline_id', uplineId)
             .order('created_at', { ascending: false });
 
@@ -724,10 +792,10 @@ export const referralService = {
     // Get referrals by upline ID
     async getByUplineId(
         uplineId: string
-    ): Promise<(Referral & { downline?: { first_name: string | null; last_name: string | null } | null })[]> {
+    ): Promise<(Referral & { downline?: { first_name: string | null; last_name: string | null; email?: string | null; phone_number?: string | null } | null })[]> {
         const { data, error } = await getSupabaseClient()
             .from('referrals')
-            .select('*, downline:users!referrals_downline_id_fkey(first_name,last_name)')
+            .select('*, downline:users!referrals_downline_id_fkey(first_name,last_name,email,phone_number)')
             .eq('upline_id', uplineId)
             .order('created_at', { ascending: false });
 
@@ -812,6 +880,7 @@ export const notificationService = {
         let query = getSupabaseClient()
             .from('notifications')
             .select('*')
+            .or('target_role.is.null,target_role.neq.admin')
             .order('created_at', { ascending: false });
 
         if (filters?.user_id) {
@@ -864,6 +933,7 @@ export const notificationService = {
             .from('notifications')
             .select('*')
             .eq('user_id', userId)
+            .or('target_role.is.null,target_role.neq.admin')
             .order('created_at', { ascending: false });
 
         if (filters?.seen !== undefined) {
@@ -886,6 +956,7 @@ export const notificationService = {
             .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
+            .or('target_role.is.null,target_role.neq.admin')
             .eq('seen', false);
 
         if (error) throw error;
@@ -931,6 +1002,7 @@ export const notificationService = {
             .from('notifications')
             .update({ seen: true })
             .eq('user_id', userId)
+            .or('target_role.is.null,target_role.neq.admin')
             .eq('seen', false);
 
         if (error) throw error;

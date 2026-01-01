@@ -63,12 +63,13 @@ export const userService = {
   },
 
   async getByIds(ids: string[]): Promise<User[]> {
-    if (ids.length === 0) return [];
-    logger.info("[API][users] getByIds start", { count: ids.length });
+    const validIds = ids.filter(id => id && id !== 'null' && id.trim().length > 0);
+    if (validIds.length === 0) return [];
+    logger.info("[API][users] getByIds start", { count: validIds.length, ids: validIds });
     const { data, error } = await getSupabaseClient()
       .from("users")
       .select("*")
-      .in("id", ids);
+      .in("id", validIds);
     if (error) {
       logger.error("[API][users] getByIds failed", { ...errorToLogPayload(error) });
       throw error;
@@ -192,12 +193,13 @@ export const userService = {
 
 export const propertyService = {
   async getByIds(ids: string[]): Promise<Property[]> {
-    if (ids.length === 0) return [];
-    logger.info("[API][properties] getByIds start", { count: ids.length });
+    const validIds = ids.filter(id => id && id !== 'null' && id.trim().length > 0);
+    if (validIds.length === 0) return [];
+    logger.info("[API][properties] getByIds start", { count: validIds.length, ids: validIds });
     const { data, error } = await getSupabaseClient()
       .from("properties")
       .select("*")
-      .in("id", ids);
+      .in("id", validIds);
     if (error) {
       logger.error("[API][properties] getByIds failed", { ...errorToLogPayload(error) });
       throw error;

@@ -63,11 +63,16 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 
     // Optional: Listen for auth changes
     const { data: authListener } = authService.onAuthStateChange(
-      (event, _session) => {
+      (event, session) => {
+        // Only refresh user data on explicit SIGNED_IN event or when session changes substantially
         if (event === "SIGNED_IN") {
           fetchUser();
         } else if (event === "SIGNED_OUT") {
           setUser(null);
+        } else if (event === "TOKEN_REFRESHED") {
+            // Do NOT re-fetch user profile on token refresh to avoid UI disruptions
+            // The session is valid, just the token was updated
+            logger.info("🔄 [USER CONTEXT] Token refreshed, skipping profile fetch");
         }
       }
     );

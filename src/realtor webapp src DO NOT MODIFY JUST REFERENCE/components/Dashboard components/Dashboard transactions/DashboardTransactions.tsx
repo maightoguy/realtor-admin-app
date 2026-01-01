@@ -15,6 +15,8 @@ import type {
   TransactionMetrics,
   UnifiedTransaction,
 } from "../../../services/transactionService";
+import Toast from "../../Toast";
+import type { ToastType } from "../../Toast";
 
 type TransactionStatus = "Paid" | "Pending" | "Failed";
 type TransactionType = "Commission" | "Withdrawal" | "Referral";
@@ -290,8 +292,35 @@ const DashboardTransactions = () => {
   const gray = CardColors.Gray;
   const yellow = CardColors.Yellow;
 
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
+
+  const handleRequestPayout = () => {
+    if (!user) return;
+
+    if (user.kyc_status !== "approved") {
+      setToast({
+        message:
+          "You must complete your KYC verification before requesting a payout.",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsRequestPayoutOpen(true);
+  };
+
   return (
     <div className="px-6 py-6 space-y-6">
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       {/* Transaction Type Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide lg:flex-wrap lg:overflow-visible -mx-4 px-4 pb-2">
         {["All transaction", "Earnings", "Withdrawals", "Referrals"].map(
