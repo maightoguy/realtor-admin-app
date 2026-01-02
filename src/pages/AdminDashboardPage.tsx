@@ -157,6 +157,13 @@ const AdminDashboardPage = () => {
     }
   };
 
+  const handleNavigate = (section: string) => {
+    setActiveSection(section);
+    if (section !== "Properties") {
+      setIsAddPropertyFormActive(false);
+    }
+  };
+
   const renderSection = () => {
     let content: ReactNode = null;
     switch (activeSection) {
@@ -174,7 +181,14 @@ const AdminDashboardPage = () => {
         content = <AdminDashboardReceipts />;
         break;
       case "Realtors":
-        content = <AdminDashboardRealtors />;
+        content = (
+          <AdminDashboardRealtors
+            onNavigateToProperties={() => handleNavigate("Properties")}
+            onNavigateToReceipts={() => handleNavigate("Receipts")}
+            onNavigateToTransactions={() => handleNavigate("Transactions")}
+            onNavigateToReferrals={() => handleNavigate("Referrals")}
+          />
+        );
         break;
 
       case "Transactions":

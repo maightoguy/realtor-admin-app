@@ -126,7 +126,19 @@ const StatusBadge = ({ status }: { status: AdminRealtorRow["status"] }) => {
   );
 };
 
-const AdminDashboardRealtors = () => {
+interface AdminDashboardRealtorsProps {
+  onNavigateToProperties?: () => void;
+  onNavigateToReceipts?: () => void;
+  onNavigateToTransactions?: () => void;
+  onNavigateToReferrals?: () => void;
+}
+
+const AdminDashboardRealtors = ({
+  onNavigateToProperties,
+  onNavigateToReceipts,
+  onNavigateToTransactions,
+  onNavigateToReferrals,
+}: AdminDashboardRealtorsProps) => {
   const [activeFilter, setActiveFilter] = useState<
     "All Realtors" | "Top realtors" | "Approved receipts" | "Rejected receipts"
   >("All Realtors");
@@ -330,29 +342,11 @@ const AdminDashboardRealtors = () => {
     setSelectedRealtor(null);
   };
 
-  const handleViewBankDetails = () => {
-    const bankDetails = selectedRealtor?.bank_details ?? null;
-    if (!bankDetails || bankDetails.length === 0) {
-      window.alert("No bank details found for this realtor.");
-      return;
-    }
-    window.alert(JSON.stringify(bankDetails, null, 2));
-  };
-
   const handleRemoveRealtor = async (realtorId: string) => {
     await userService.removeAsAdmin(realtorId);
     setRealtors((prev) => prev.filter((r) => r.id !== realtorId));
     setTotalRealtorsCount((prev) => Math.max(0, prev - 1));
     setSelectedRealtor(null);
-  };
-
-  const handleViewPropertyDetails = (propertyId: string) => {
-    console.log("View property details:", propertyId);
-  };
-
-  const handleViewReceiptDetails = (receiptId: string) => {
-    // TODO: Implement view receipt details
-    console.log("View receipt details:", receiptId);
   };
 
   const handleRealtorUpdated = (updated: User) => {
@@ -384,11 +378,12 @@ const AdminDashboardRealtors = () => {
         <RealtorDetailsSection
           realtor={selectedRealtor}
           onBack={handleBackFromDetails}
-          onViewBankDetails={handleViewBankDetails}
           onRemoveRealtor={handleRemoveRealtor}
-          onViewPropertyDetails={handleViewPropertyDetails}
-          onViewReceiptDetails={handleViewReceiptDetails}
           onRealtorUpdated={handleRealtorUpdated}
+          onNavigateToProperties={onNavigateToProperties}
+          onNavigateToReceipts={onNavigateToReceipts}
+          onNavigateToTransactions={onNavigateToTransactions}
+          onNavigateToReferrals={onNavigateToReferrals}
         />
       </div>
     );

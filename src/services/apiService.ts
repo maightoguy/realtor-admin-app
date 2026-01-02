@@ -1416,7 +1416,7 @@ export const referralService = {
   > {
     const supabase = getSupabaseClient();
     const limit = params?.limit ?? 5000;
-    const commissionStatuses = params?.commissionStatuses ?? ["approved", "paid"];
+    const commissionStatuses = params?.commissionStatuses ?? ["approved", "paid", "pending"];
 
     const realtors = await userService.getAll({ role: "realtor", limit });
     const realtorIds = realtors.map((r) => r.id);

@@ -24,7 +24,6 @@ import type {
   Property,
   Receipt,
   ReceiptStatus,
-  Referral,
   User,
 } from "../../../services/types";
 
@@ -180,11 +179,12 @@ const TransactionStatusBadge = ({
 interface RealtorDetailsSectionProps {
   realtor: User;
   onBack: () => void;
-  onViewBankDetails?: () => void;
   onRemoveRealtor?: (realtorId: string) => Promise<void>;
-  onViewPropertyDetails?: (propertyId: string) => void;
-  onViewReceiptDetails?: (receiptId: string) => void;
   onRealtorUpdated?: (updated: User) => void;
+  onNavigateToProperties?: () => void;
+  onNavigateToReceipts?: () => void;
+  onNavigateToTransactions?: () => void;
+  onNavigateToReferrals?: () => void;
 }
 
 interface RemoveRealtorModalProps {
@@ -588,9 +588,11 @@ const RealtorDetailsSection = ({
   realtor,
   onBack,
   onRemoveRealtor,
-  onViewPropertyDetails,
-  onViewReceiptDetails,
   onRealtorUpdated,
+  onNavigateToProperties,
+  onNavigateToReceipts,
+  onNavigateToTransactions,
+  onNavigateToReferrals,
 }: RealtorDetailsSectionProps) => {
   const [activeTab, setActiveTab] = useState<
     "Properties sold" | "Receipts" | "Transactions" | "Referrals"
@@ -621,7 +623,6 @@ const RealtorDetailsSection = ({
   const [properties, setProperties] = useState<Property[]>([]);
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
-  const [referrals, setReferrals] = useState<Referral[]>([]);
   const [downlines, setDownlines] = useState<User[]>([]);
   const [isKycModalOpen, setIsKycModalOpen] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
@@ -736,7 +737,8 @@ const RealtorDetailsSection = ({
         const newDownlineIds = missingReceiptsRes
           .map((r) => r.realtor_id)
           .filter(
-            (id): id is string => Boolean(id) && !downlineIds.includes(id)
+            (id): id is string =>
+              typeof id === "string" && Boolean(id) && !downlineIds.includes(id)
           );
 
         let finalDownlines = downlinesRes;
@@ -749,7 +751,6 @@ const RealtorDetailsSection = ({
         setReceipts(receiptsRes);
         setCommissions(enrichedCommissions);
         setPayouts(payoutsRes);
-        setReferrals(referralsRes);
         setProperties(propertiesRes);
         setDownlines(finalDownlines);
       })
@@ -758,7 +759,6 @@ const RealtorDetailsSection = ({
         setReceipts([]);
         setCommissions([]);
         setPayouts([]);
-        setReferrals([]);
         setProperties([]);
         setDownlines([]);
       })
@@ -1458,7 +1458,7 @@ const RealtorDetailsSection = ({
                   location={property.location}
                   isSoldOut={property.isSoldOut}
                   description={property.description}
-                  onViewDetails={() => onViewPropertyDetails?.(property.id)}
+                  onViewDetails={() => onNavigateToProperties?.()}
                 />
               ))
             ) : (
@@ -1564,7 +1564,7 @@ const RealtorDetailsSection = ({
                           </td>
                           <td className="px-6 py-4">
                             <button
-                              onClick={() => onViewReceiptDetails?.(receipt.id)}
+                              onClick={() => onNavigateToReceipts?.()}
                               className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                             >
                               View details
@@ -1803,12 +1803,7 @@ const RealtorDetailsSection = ({
                           </td>
                           <td className="px-6 py-4">
                             <button
-                              onClick={() =>
-                                console.log(
-                                  "View transaction details",
-                                  transaction.id
-                                )
-                              }
+                              onClick={() => onNavigateToTransactions?.()}
                               className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                             >
                               View details
@@ -2012,12 +2007,7 @@ const RealtorDetailsSection = ({
                           <td className="px-6 py-4">
                             <button
                               className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
-                              onClick={() =>
-                                console.log(
-                                  "View referral details",
-                                  referral.id
-                                )
-                              }
+                              onClick={() => onNavigateToReferrals?.()}
                             >
                               View details
                             </button>

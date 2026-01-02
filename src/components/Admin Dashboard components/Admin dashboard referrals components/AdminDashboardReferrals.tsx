@@ -143,15 +143,6 @@ const AdminDashboardReferrals = () => {
     setSelectedRealtor(null);
   };
 
-  const handleViewBankDetails = () => {
-    const bankDetails = selectedRealtor?.bank_details ?? null;
-    if (!bankDetails || bankDetails.length === 0) {
-      window.alert("No bank details found for this realtor.");
-      return;
-    }
-    window.alert(JSON.stringify(bankDetails, null, 2));
-  };
-
   const handleRemoveRealtor = async (realtorId: string) => {
     await userService.removeAsAdmin(realtorId);
     setRows((prev) => prev.filter((r) => r.id !== realtorId));
@@ -164,7 +155,6 @@ const AdminDashboardReferrals = () => {
         <RealtorDetailsSection
           realtor={selectedRealtor}
           onBack={handleBackFromDetails}
-          onViewBankDetails={handleViewBankDetails}
           onRemoveRealtor={handleRemoveRealtor}
         />
       </div>
