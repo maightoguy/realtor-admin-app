@@ -561,14 +561,27 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
                       </svg>
                       <div className="min-w-0 flex-1">
                         {form.url ? (
-                          <a
-                            href={form.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-sm font-medium text-gray-900 truncate hover:underline block"
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              fetch(form.url)
+                                .then((resp) => resp.blob())
+                                .then((blob) => {
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.style.display = "none";
+                                  a.href = url;
+                                  a.download = form.name;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                })
+                                .catch(() => window.open(form.url, "_blank"));
+                            }}
+                            className="text-sm font-medium text-gray-900 truncate hover:underline block text-left w-full"
                           >
                             {form.name}
-                          </a>
+                          </button>
                         ) : (
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {form.name}

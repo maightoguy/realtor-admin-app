@@ -933,7 +933,6 @@ export const notificationService = {
             .from('notifications')
             .select('*')
             .eq('user_id', userId)
-            .or('target_role.is.null,target_role.neq.admin')
             .order('created_at', { ascending: false });
 
         if (filters?.seen !== undefined) {
@@ -956,7 +955,6 @@ export const notificationService = {
             .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .or('target_role.is.null,target_role.neq.admin')
             .eq('seen', false);
 
         if (error) throw error;

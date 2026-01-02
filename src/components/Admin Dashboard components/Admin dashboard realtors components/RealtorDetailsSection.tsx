@@ -667,13 +667,19 @@ const RealtorDetailsSection = ({
 
     Promise.resolve()
       .then(async () => {
-        const [receiptsRes, commissionsRes, payoutsRes, referralsRes] =
-          await Promise.all([
-            receiptService.getAll({ realtorId: realtor.id, limit: 1000 }),
-            commissionService.getAll({ realtorId: realtor.id, limit: 1000 }),
-            payoutService.getAll({ realtorId: realtor.id, limit: 1000 }),
-            referralService.getAll({ upline_id: realtor.id, limit: 1000 }),
-          ]);
+        const [
+          receiptsRes,
+          commissionsRes,
+          payoutsRes,
+          referralsRes,
+          directReferralsRes,
+        ] = await Promise.all([
+          receiptService.getAll({ realtorId: realtor.id, limit: 1000 }),
+          commissionService.getAll({ realtorId: realtor.id, limit: 1000 }),
+          payoutService.getAll({ realtorId: realtor.id, limit: 1000 }),
+          referralService.getAll({ upline_id: realtor.id, limit: 1000 }),
+          userService.getAll({ referredBy: realtor.id, limit: 1000 }),
+        ]);
 
         const propertyIds = Array.from(
           new Set(
@@ -684,11 +690,12 @@ const RealtorDetailsSection = ({
         );
 
         const downlineIds = Array.from(
-          new Set(
-            referralsRes
+          new Set([
+            ...referralsRes
               .map((r) => r.downline_id)
-              .filter((id): id is string => Boolean(id))
-          )
+              .filter((id): id is string => Boolean(id)),
+            ...directReferralsRes.map((u) => u.id),
+          ])
         );
 
         const [propertiesRes, downlinesRes] = await Promise.all([
@@ -991,51 +998,36 @@ const RealtorDetailsSection = ({
   }, [transactionFilter, searchQuery, realtor.id]);
 
   const realtorReferrals = useMemo(() => {
-    const downlineMap = new Map(downlines.map((u) => [u.id, u]));
-    const grouped = new Map<
-      string,
-      { downline_id: string; commission: number; created_at: string }
-    >();
+    const commissionMap = new Map<string, number>();
 
     for (const r of referrals) {
-      const downlineId = r.downline_id ?? null;
-      if (!downlineId) continue;
-
-      const current = grouped.get(downlineId) ?? {
-        downline_id: downlineId,
-        commission: 0,
-        created_at: r.created_at,
-      };
+      if (!r.downline_id) continue;
       const earned = Number(r.commission_earned);
-      current.commission += Number.isFinite(earned) ? earned : 0;
-      const cd = new Date(current.created_at).getTime();
-      const rd = new Date(r.created_at).getTime();
-      if (Number.isFinite(rd) && (!Number.isFinite(cd) || rd > cd)) {
-        current.created_at = r.created_at;
-      }
-      grouped.set(downlineId, current);
+      const current = commissionMap.get(r.downline_id) ?? 0;
+      commissionMap.set(
+        r.downline_id,
+        current + (Number.isFinite(earned) ? earned : 0)
+      );
     }
 
-    return [...grouped.values()]
-      .map((row) => {
-        const downline = downlineMap.get(row.downline_id) ?? null;
-        const name = downline
-          ? `${downline.first_name ?? ""} ${downline.last_name ?? ""}`.trim() ||
-            downline.email ||
-            row.downline_id
-          : row.downline_id;
+    return downlines
+      .map((user) => {
+        const commission = commissionMap.get(user.id) ?? 0;
+        const name =
+          `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() ||
+          user.email ||
+          user.id;
 
         return {
-          id: row.downline_id,
+          id: user.id,
           name,
-          dateJoined: downline?.created_at
-            ? formatDate(downline.created_at)
-            : "-",
-          totalCommissionEarned: formatCurrencyValue(row.commission),
-          totalReferralCommission: formatCurrencyValue(row.commission),
+          dateJoined: user.created_at ? formatDate(user.created_at) : "-",
+          totalCommissionEarned: formatCurrencyValue(commission),
+          totalReferralCommission: formatCurrencyValue(commission),
+          rawDate: new Date(user.created_at).getTime(),
         };
       })
-      .sort((a, b) => b.id.localeCompare(a.id));
+      .sort((a, b) => b.rawDate - a.rawDate);
   }, [downlines, referrals]);
 
   const filteredReferrals = useMemo(() => {

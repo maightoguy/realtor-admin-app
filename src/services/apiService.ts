@@ -95,6 +95,7 @@ export const userService = {
   async getAll(filters?: {
     role?: User["role"];
     kycStatus?: User["kyc_status"];
+    referredBy?: string;
     searchText?: string;
     limit?: number;
     offset?: number;
@@ -112,6 +113,9 @@ export const userService = {
     }
     if (filters?.kycStatus) {
       query = query.eq("kyc_status", filters.kycStatus);
+    }
+    if (filters?.referredBy) {
+      query = query.eq("referred_by", filters.referredBy);
     }
     if (q) {
       query = query.or(

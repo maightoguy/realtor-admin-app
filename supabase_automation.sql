@@ -25,8 +25,9 @@ create table if not exists public.referral_commission_rates (
 );
 
 insert into public.referral_commission_rates (level, percent)
-values (1, 5.00)
-on conflict (level) do nothing;
+values (1, 2.00)
+on conflict (level) do update
+set percent = excluded.percent;
 
 alter table public.commissions
   add column if not exists commission_type text not null default 'sale',

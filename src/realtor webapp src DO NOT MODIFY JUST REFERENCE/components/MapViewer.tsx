@@ -49,8 +49,8 @@ const MapViewer: React.FC<MapViewerProps> = ({
         center={defaultCenter}
         zoom={zoom}
         scrollWheelZoom={false}
-        className="w-full h-full rounded-lg"
-        style={{ height: "100%", width: "100%" }}
+        className="w-full h-full rounded-lg z-0" // Ensure z-index is lower than notifications (usually z-50)
+        style={{ height: "100%", width: "100%", zIndex: 0 }}
         key={`${defaultCenter[0]}-${defaultCenter[1]}`}
       >
         {/* OpenStreetMap tile layer (the actual map image) */}

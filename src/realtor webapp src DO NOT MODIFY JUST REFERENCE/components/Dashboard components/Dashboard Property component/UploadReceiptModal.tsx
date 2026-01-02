@@ -1,6 +1,7 @@
-import { useState, type FC } from "react";
+import { useState, useEffect, useRef, type FC } from "react";
 import { X, Upload, Download, Check } from "lucide-react";
 import { trimValues } from "../../../utils/trim";
+import { draftService } from "../../../services/draftService";
 
 interface UploadedFile {
   file: File;
@@ -19,6 +20,8 @@ interface UploadReceiptModalProps {
   isLoading?: boolean;
 }
 
+const DRAFT_KEY = "upload_receipt_draft";
+
 const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
   isOpen,
   onClose,
@@ -29,6 +32,60 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
   const [amount, setAmount] = useState("");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [isDraftSaved, setIsDraftSaved] = useState(false);
+  const isSubmittingRef = useRef(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    let isMounted = true;
+    const loadDraft = async () => {
+      try {
+        const draft = await draftService.getDraft(DRAFT_KEY);
+        if (!isMounted) return;
+
+        if (draft) {
+          setClientName(draft.clientName || "");
+          setAmount(draft.amount || "");
+
+          if (draft.files && Array.isArray(draft.files)) {
+            // Reconstruct files from stored data
+            setFiles(
+              draft.files.map((f: any) => ({
+                ...f,
+                uploadDate: new Date(f.uploadDate), // Restore date object
+              }))
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load draft:", err);
+      }
+    };
+    if (isOpen) {
+      loadDraft();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  // Auto-save draft
+  useEffect(() => {
+    if (isSubmittingRef.current) return;
+    setIsDraftSaved(false);
+
+    const saveTimeout = setTimeout(() => {
+      draftService
+        .saveDraft(DRAFT_KEY, {
+          clientName,
+          amount,
+          files,
+        })
+        .then(() => setIsDraftSaved(true));
+    }, 1000); // Debounce 1s
+
+    return () => clearTimeout(saveTimeout);
+  }, [clientName, amount, files]);
 
   const handleFileUpload = (newFiles: FileList | null) => {
     if (newFiles) {
@@ -389,18 +446,16 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
             <button
               type="submit"
               onClick={handleSubmit}
-              disabled={!isFormValid() || isLoading}
-              className={`flex-1 h-11 rounded-lg font-medium transition-colors flex items-center justify-center ${
-                isFormValid() && !isLoading
-                  ? "bg-purple-600 text-white hover:bg-purple-200 cursor-pointer"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              disabled={
+                isLoading || !clientName || !amount || files.length === 0
+              }
+              className={`px-6 py-2 rounded-lg text-white font-medium transition-colors ${
+                isLoading || !clientName || !amount || files.length === 0
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-[#5E17EB] hover:bg-[#4A14C7]"
               }`}
             >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                "Submit receipt"
-              )}
+              {isLoading ? "Submitting..." : "Submit Receipt"}
             </button>
           </div>
         </div>

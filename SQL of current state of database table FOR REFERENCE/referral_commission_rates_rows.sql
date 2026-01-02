@@ -1,4 +1,4 @@
-INSERT INTO "public"."referral_commission_rates" ("level", "percent", "created_at") VALUES ('1', '5.00', '2025-12-31 10:51:25.637733+00');
+INSERT INTO "public"."referral_commission_rates" ("level", "percent", "created_at") VALUES ('1', '2.00', '2025-12-31 10:51:25.637733+00');
 
 
 create table public.referral_commission_rates (

@@ -40,7 +40,7 @@ const Toast = ({
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg transition-all transform translate-y-0 opacity-100 ${styles[type]}`}
+      className={`fixed top-4 right-4 z-[9999] flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg transition-all transform translate-y-0 opacity-100 ${styles[type]}`}
     >
       {icons[type]}
       <p className="font-medium text-sm">{message}</p>

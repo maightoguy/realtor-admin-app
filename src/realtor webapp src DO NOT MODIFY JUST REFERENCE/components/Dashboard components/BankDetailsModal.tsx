@@ -154,10 +154,10 @@ const BankDetailsModal = ({
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-4">
           <button
             onClick={onClose}
-            className="flex-1 border border-gray-300 text-gray-700 font-medium rounded-lg py-2 hover:bg-gray-50"
+            className="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
@@ -173,13 +173,13 @@ const BankDetailsModal = ({
               onClose();
             }}
             disabled={!isFormValid}
-            className={`flex-1 py-2 rounded-lg font-medium text-white transition-colors ${
+            className={`flex-1 py-3 rounded-xl font-medium text-white transition-colors ${
               isFormValid
-                ? "bg-[#6500AC] hover:bg-[#52008A]"
-                : "bg-gray-300 cursor-not-allowed"
+                ? "bg-[#5E17EB] hover:bg-[#4A14C7]"
+                : "bg-gray-200 cursor-not-allowed"
             }`}
           >
-            Add details
+            Save details
           </button>
         </div>
       </div>
