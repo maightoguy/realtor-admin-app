@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { saveDraft, getDraft, clearDraft } from "../../../utils/draftDB";
 import IslandIcon from "../../icons/IslandIcon";
 
 import MapViewer from "../../MapViewer"; // <--- ADD THIS
@@ -117,6 +118,84 @@ const AddPropertyForm = ({
   const formFileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const geocodeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const DRAFT_KEY = "addProperty_draft_data";
+
+  // Load draft on mount (only if adding new property)
+  useEffect(() => {
+    if (initialProperty) return;
+
+    const loadDraft = async () => {
+      try {
+        const draft = await getDraft(DRAFT_KEY);
+        if (draft) {
+          if (draft.formData) {
+            setFormData((prev) => ({ ...prev, ...draft.formData }));
+          }
+          if (draft.currentStep) {
+            setCurrentStep(draft.currentStep);
+          }
+          if (draft.images && Array.isArray(draft.images)) {
+            const restoredImages = draft.images.map((img: any) => {
+              if (img.file instanceof Blob) {
+                return {
+                  ...img,
+                  preview: URL.createObjectURL(img.file),
+                };
+              }
+              return img;
+            });
+            setImages(restoredImages);
+          }
+          if (draft.uploadedForms && Array.isArray(draft.uploadedForms)) {
+            setUploadedForms(draft.uploadedForms);
+          }
+          if (draft.existingUploadedForms) {
+            setExistingUploadedForms(draft.existingUploadedForms);
+          }
+        }
+      } catch (e) {
+        logger.error("[ADMIN][ADD PROPERTY] Failed to load draft", {
+          error: e,
+        });
+      }
+    };
+    loadDraft();
+  }, [initialProperty]);
+
+  // Save draft on change
+  useEffect(() => {
+    if (initialProperty || isSaving) return;
+
+    const timeout = setTimeout(() => {
+      const dataToSave = {
+        formData,
+        currentStep,
+        images: images.map((img) => {
+          if (img.kind === "new" && img.file) {
+            return { ...img, preview: "" }; // Don't save blob URL
+          }
+          return img;
+        }),
+        uploadedForms,
+        existingUploadedForms,
+        timestamp: Date.now(),
+      };
+      saveDraft(DRAFT_KEY, dataToSave).catch((e) =>
+        logger.error("[ADMIN][ADD PROPERTY] Failed to save draft", { error: e })
+      );
+    }, 1000);
+
+    return () => clearTimeout(timeout);
+  }, [
+    formData,
+    currentStep,
+    images,
+    uploadedForms,
+    existingUploadedForms,
+    initialProperty,
+    isSaving,
+  ]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -546,6 +625,19 @@ const AddPropertyForm = ({
         developerId: newProperty.developerId,
       });
       await onSave(newProperty);
+
+      // Clear draft on successful save
+      if (!initialProperty) {
+        try {
+          await clearDraft(DRAFT_KEY);
+          logger.info("[ADMIN][ADD PROPERTY] Draft cleared successfully");
+        } catch (error) {
+          logger.error("[ADMIN][ADD PROPERTY] Failed to clear draft", {
+            error,
+          });
+        }
+      }
+
       logger.info("[ADMIN][ADD PROPERTY] Submit success", {
         title: newProperty.title,
         developer: selectedDeveloperName,

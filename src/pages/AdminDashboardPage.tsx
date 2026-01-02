@@ -75,7 +75,9 @@ const AdminDashboardPage = () => {
 
         authManager.saveUser(profile);
         setCurrentUser(profile);
-        setRefreshNonce((v) => v + 1);
+        if (!isAddPropertyFormActive) {
+          setRefreshNonce((v) => v + 1);
+        }
       } catch (err) {
         logger.error("[ADMIN] Failed to check session", { reason, err });
       } finally {
