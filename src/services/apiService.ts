@@ -536,7 +536,10 @@ export const developerService = {
     return rows.map(adaptDeveloperRow);
   },
 
-  async getAll(params?: { limit?: number; offset?: number }): Promise<Developer[]> {
+  async getAll(params?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<Developer[]> {
     logger.info("[API][developers] getAll start", { params: params ?? null });
     let query = getSupabaseClient()
       .from("developers")
@@ -547,7 +550,7 @@ export const developerService = {
       query = query.limit(params.limit);
     }
     if (typeof params?.offset === "number") {
-      const limit = params?.limit ?? 10;
+      const limit = params.limit ?? 10;
       query = query.range(params.offset, params.offset + limit - 1);
     }
 
@@ -736,6 +739,19 @@ export const profileAvatarService = {
 };
 
 export const receiptService = {
+  async getByIds(ids: string[]): Promise<Receipt[]> {
+    const validIds = ids.filter(id => id && id !== 'null' && id.trim().length > 0);
+    if (validIds.length === 0) return [];
+    
+    const { data, error } = await getSupabaseClient()
+      .from("receipts")
+      .select("*")
+      .in("id", validIds);
+      
+    if (error) throw error;
+    return (data ?? []) as Receipt[];
+  },
+
   async countByStatus(status: Receipt["status"]): Promise<number> {
     const { count, error } = await getSupabaseClient()
       .from("receipts")
@@ -1426,14 +1442,14 @@ export const referralService = {
       recruitsByUpline.set(row.referred_by, list);
     }
 
-    const recruitIdsUnique = Array.from(recruitToUpline.keys());
     const commissionsByUpline = new Map<string, number>();
 
-    if (recruitIdsUnique.length > 0) {
+    if (realtorIds.length > 0) {
       const { data: commissionRows, error: commissionErr } = await supabase
         .from("commissions")
-        .select("realtor_id,amount,status")
-        .in("realtor_id", recruitIdsUnique)
+        .select("realtor_id,amount,status,commission_type")
+        .in("realtor_id", realtorIds)
+        .eq("commission_type", "referral")
         .in("status", commissionStatuses)
         .limit(50000);
       if (commissionErr) throw commissionErr;
@@ -1442,10 +1458,9 @@ export const referralService = {
         realtor_id: string | null;
         amount: number | string;
       }>) {
-        const recruitId = row.realtor_id ?? null;
-        if (!recruitId) continue;
-        const uplineId = recruitToUpline.get(recruitId) ?? null;
+        const uplineId = row.realtor_id;
         if (!uplineId) continue;
+        
         const amount = Number(row.amount);
         const safeAmount = Number.isFinite(amount) ? amount : 0;
         commissionsByUpline.set(

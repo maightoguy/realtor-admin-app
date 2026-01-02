@@ -698,18 +698,60 @@ const RealtorDetailsSection = ({
           ])
         );
 
-        const [propertiesRes, downlinesRes] = await Promise.all([
-          propertyService.getByIds(propertyIds),
-          userService.getByIds(downlineIds),
-        ]);
+        // Collect receipt IDs from referral commissions that are missing downline_id
+        const referralCommissionReceiptIds = commissionsRes
+          .filter(
+            (c) =>
+              c.commission_type === "referral" && !c.downline_id && c.receipt_id
+          )
+          .map((c) => c.receipt_id as string);
+
+        const [propertiesRes, downlinesRes, missingReceiptsRes] =
+          await Promise.all([
+            propertyService.getByIds(propertyIds),
+            userService.getByIds(downlineIds),
+            referralCommissionReceiptIds.length > 0
+              ? receiptService.getByIds(referralCommissionReceiptIds)
+              : Promise.resolve([]),
+          ]);
+
+        // Enrich commissions with downline_id from receipt if missing
+        const enrichedCommissions = commissionsRes.map((c) => {
+          if (
+            c.commission_type === "referral" &&
+            !c.downline_id &&
+            c.receipt_id
+          ) {
+            const receipt = missingReceiptsRes.find(
+              (r) => r.id === c.receipt_id
+            );
+            if (receipt && receipt.realtor_id) {
+              return { ...c, downline_id: receipt.realtor_id };
+            }
+          }
+          return c;
+        });
+
+        // Also add any new downlines found from these receipts to the downlines list
+        const newDownlineIds = missingReceiptsRes
+          .map((r) => r.realtor_id)
+          .filter(
+            (id): id is string => Boolean(id) && !downlineIds.includes(id)
+          );
+
+        let finalDownlines = downlinesRes;
+        if (newDownlineIds.length > 0) {
+          const newDownlinesRes = await userService.getByIds(newDownlineIds);
+          finalDownlines = [...downlinesRes, ...newDownlinesRes];
+        }
 
         if (cancelled) return;
         setReceipts(receiptsRes);
-        setCommissions(commissionsRes);
+        setCommissions(enrichedCommissions);
         setPayouts(payoutsRes);
         setReferrals(referralsRes);
         setProperties(propertiesRes);
-        setDownlines(downlinesRes);
+        setDownlines(finalDownlines);
       })
       .catch(() => {
         if (cancelled) return;
@@ -1000,13 +1042,15 @@ const RealtorDetailsSection = ({
   const realtorReferrals = useMemo(() => {
     const commissionMap = new Map<string, number>();
 
-    for (const r of referrals) {
-      if (!r.downline_id) continue;
-      const earned = Number(r.commission_earned);
-      const current = commissionMap.get(r.downline_id) ?? 0;
+    for (const c of commissions) {
+      if (c.commission_type !== "referral" || !c.downline_id) continue;
+      if (c.status === "rejected") continue;
+
+      const amount = Number(c.amount);
+      const current = commissionMap.get(c.downline_id) ?? 0;
       commissionMap.set(
-        r.downline_id,
-        current + (Number.isFinite(earned) ? earned : 0)
+        c.downline_id,
+        current + (Number.isFinite(amount) ? amount : 0)
       );
     }
 
@@ -1028,7 +1072,7 @@ const RealtorDetailsSection = ({
         };
       })
       .sort((a, b) => b.rawDate - a.rawDate);
-  }, [downlines, referrals]);
+  }, [downlines, commissions]);
 
   const filteredReferrals = useMemo(() => {
     if (!searchQuery.trim()) return realtorReferrals;
@@ -1056,16 +1100,20 @@ const RealtorDetailsSection = ({
   }, [searchQuery, realtor.id, activeTab]);
 
   const referralMetrics = useMemo(() => {
-    const totalCommissionValue = referrals.reduce((sum, r) => {
-      const earned = Number(r.commission_earned);
-      return sum + (Number.isFinite(earned) ? earned : 0);
-    }, 0);
+    const totalCommissionValue = commissions
+      .filter(
+        (c) => c.commission_type === "referral" && c.status !== "rejected"
+      )
+      .reduce((sum, c) => {
+        const amount = Number(c.amount);
+        return sum + (Number.isFinite(amount) ? amount : 0);
+      }, 0);
 
     return {
       count: realtorReferrals.length,
       totalCommission: formatCurrencyValue(totalCommissionValue),
     };
-  }, [realtorReferrals, referrals]);
+  }, [realtorReferrals, commissions]);
 
   const realtorReferralCode = useMemo(() => {
     return realtor.referral_code || "-";
@@ -1806,7 +1854,7 @@ const RealtorDetailsSection = ({
                   <div className="w-12 h-12 rounded-full bg-white/15 border border-white/30 flex items-center justify-center">
                     <Link2 className="w-5 h-5 text-white" strokeWidth={1.5} />
                   </div>
-                  <p className="text-sm font-medium text-white/80">
+                  <p className="text-sm font-medium text-white/80 truncate">
                     Realtors referral code
                   </p>
                 </div>
@@ -1830,7 +1878,7 @@ const RealtorDetailsSection = ({
                       href={realtorReferralLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex-1 min-w-[200px] px-4 py-2 border border-white/30 rounded-2xl bg-white/5 text-sm text-white font-medium break-all hover:bg-white/10 transition-colors"
+                      className="flex-1 min-w-[200px] px-4 py-2 border border-white/30 rounded-2xl bg-white/5 text-sm text-white font-medium break-all hover:bg-white/10 transition-colors truncate"
                     >
                       {referralLinkDisplay}
                     </a>
