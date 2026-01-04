@@ -18,22 +18,24 @@ interface UploadReceiptModalProps {
     files: File[]; // Changed from UploadedFile[] to File[] for easier handling
   }) => Promise<void>;
   isLoading?: boolean;
+  propertyId: string;
 }
-
-const DRAFT_KEY = "upload_receipt_draft";
 
 const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
   isLoading = false,
+  propertyId,
 }) => {
   const [clientName, setClientName] = useState("");
   const [amount, setAmount] = useState("");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const [isDraftSaved, setIsDraftSaved] = useState(false);
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const isSubmittingRef = useRef(false);
+
+  const DRAFT_KEY = `upload_receipt_draft_${propertyId}`;
 
   // Restore draft on mount
   useEffect(() => {
@@ -56,9 +58,16 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
               }))
             );
           }
+        } else {
+          // Reset if no draft found (important when switching properties)
+          setClientName("");
+          setAmount("");
+          setFiles([]);
         }
       } catch (err) {
         console.error("Failed to load draft:", err);
+      } finally {
+        if (isMounted) setIsDraftLoaded(true);
       }
     };
     if (isOpen) {
@@ -67,12 +76,11 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [isOpen]);
+  }, [isOpen, DRAFT_KEY]);
 
   // Auto-save draft
   useEffect(() => {
-    if (isSubmittingRef.current) return;
-    setIsDraftSaved(false);
+    if (!isOpen || !isDraftLoaded || isSubmittingRef.current) return;
 
     const saveTimeout = setTimeout(() => {
       draftService
@@ -81,11 +89,11 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
           amount,
           files,
         })
-        .then(() => setIsDraftSaved(true));
+        .catch((err) => console.error("Failed to save draft:", err));
     }, 1000); // Debounce 1s
 
     return () => clearTimeout(saveTimeout);
-  }, [clientName, amount, files]);
+  }, [clientName, amount, files, isDraftLoaded, DRAFT_KEY, isOpen]);
 
   const handleFileUpload = (newFiles: FileList | null) => {
     if (newFiles) {
@@ -171,11 +179,16 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
     if (isFormValid()) {
       const trimmedData = trimValues({ clientName, amount });
       try {
+        isSubmittingRef.current = true;
         await onSubmit?.({
           clientName: trimmedData.clientName as string,
           amount: trimmedData.amount as string,
           files: files.map((f) => f.file),
         });
+
+        // Clear draft on successful submission
+        await draftService.deleteDraft(DRAFT_KEY);
+
         // Only reset and close if submission was successful (parent should handle errors)
         setClientName("");
         setAmount("");
@@ -184,14 +197,22 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
       } catch (error) {
         // Error handling is done in the parent component
         console.error("Submission failed", error);
+      } finally {
+        isSubmittingRef.current = false;
       }
     }
   };
 
   const handleClose = () => {
-    setClientName("");
-    setAmount("");
-    setFiles([]);
+    // Save current state before closing to ensure no data loss
+    draftService
+      .saveDraft(DRAFT_KEY, {
+        clientName,
+        amount,
+        files,
+      })
+      .catch((err) => console.error("Failed to save draft on close:", err));
+    
     onClose();
   };
 

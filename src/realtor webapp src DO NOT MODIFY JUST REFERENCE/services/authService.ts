@@ -238,6 +238,9 @@ export const authService = {
                 }
             }
 
+           
+            
+
             return { user: userData, error: null };
         } catch (error) {
             logger.error('❌ [AUTH] Unexpected error during signup:', error);

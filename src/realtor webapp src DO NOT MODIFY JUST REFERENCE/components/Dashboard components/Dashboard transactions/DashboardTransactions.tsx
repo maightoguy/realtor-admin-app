@@ -354,7 +354,7 @@ const DashboardTransactions = () => {
           valueTextColor={purple.valueTextColor}
           button={
             <button
-              onClick={() => setIsRequestPayoutOpen(true)}
+              onClick={handleRequestPayout}
               className={`px-3 py-1 md:py-3 bg-white text-[${purple.buttonText}] text-sm font-medium rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors `}
             >
               Request Payout

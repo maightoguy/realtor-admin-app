@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { authService } from "../services/authService";
 import { userService } from "../services/apiService";
+import { logger } from "../utils/logger";
 import type { User } from "../services/types"; // Adjust path if needed
 
 interface UserContextValue {
@@ -49,7 +50,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       setUser(profile);
     } catch (err) {
       console.error("Failed to fetch user:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to load profile";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load profile";
 
       setError(errorMessage);
       setUser(null);
@@ -63,16 +65,18 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 
     // Optional: Listen for auth changes
     const { data: authListener } = authService.onAuthStateChange(
-      (event, session) => {
+      (event, _session) => {
         // Only refresh user data on explicit SIGNED_IN event or when session changes substantially
         if (event === "SIGNED_IN") {
           fetchUser();
         } else if (event === "SIGNED_OUT") {
           setUser(null);
         } else if (event === "TOKEN_REFRESHED") {
-            // Do NOT re-fetch user profile on token refresh to avoid UI disruptions
-            // The session is valid, just the token was updated
-            logger.info("🔄 [USER CONTEXT] Token refreshed, skipping profile fetch");
+          // Do NOT re-fetch user profile on token refresh to avoid UI disruptions
+          // The session is valid, just the token was updated
+          logger.info(
+            "🔄 [USER CONTEXT] Token refreshed, skipping profile fetch"
+          );
         }
       }
     );

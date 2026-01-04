@@ -42,7 +42,6 @@ const AdminDashboardPage = () => {
     authManager.getUser()
   );
   const [isCheckingSession, setIsCheckingSession] = useState(false);
-  const [refreshNonce, setRefreshNonce] = useState(0);
   const refreshInFlightRef = useRef(false);
 
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -51,7 +50,12 @@ const AdminDashboardPage = () => {
     async (reason: string) => {
       if (refreshInFlightRef.current) return;
       refreshInFlightRef.current = true;
-      setIsCheckingSession(true);
+
+      // Only block if we don't have a user cached (optimistic UI)
+      if (!authManager.getUser()) {
+        setIsCheckingSession(true);
+      }
+
       try {
         logger.info("[ADMIN] Checking session", { reason });
         const { data, error } = await authService.getSession();
@@ -75,9 +79,6 @@ const AdminDashboardPage = () => {
 
         authManager.saveUser(profile);
         setCurrentUser(profile);
-        if (!isAddPropertyFormActive) {
-          setRefreshNonce((v) => v + 1);
-        }
       } catch (err) {
         logger.error("[ADMIN] Failed to check session", { reason, err });
       } finally {
@@ -212,7 +213,7 @@ const AdminDashboardPage = () => {
       default:
         content = null;
     }
-    return <div key={`${activeSection}:${refreshNonce}`}>{content}</div>;
+    return <div key={activeSection}>{content}</div>;
   };
 
   const getIconComponent = (

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
+import { draftService } from "../../services/draftService";
 
 interface BankDetailsModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface BankDetailsModalProps {
   }) => void;
 }
 
+const DRAFT_KEY = "bank_details_draft";
+
 const BankDetailsModal = ({
   isOpen,
   onClose,
@@ -19,6 +22,8 @@ const BankDetailsModal = ({
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
+  const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   // Example mock bank list
   const banks = [
@@ -47,6 +52,64 @@ const BankDetailsModal = ({
       document.body.style.overflow = "auto";
     };
   }, [isOpen]);
+
+  // Restore draft on mount
+  useEffect(() => {
+    let isMounted = true;
+    const loadDraft = async () => {
+      try {
+        const draft = await draftService.getDraft(DRAFT_KEY);
+        if (!isMounted) return;
+
+        if (draft) {
+          setBankName(draft.bankName || "");
+          setAccountNumber(draft.accountNumber || "");
+          setAccountName(draft.accountName || "");
+        }
+      } catch (err) {
+        console.error("Failed to load draft:", err);
+      } finally {
+        if (isMounted) setIsDraftLoaded(true);
+      }
+    };
+    if (isOpen) {
+      loadDraft();
+    } else {
+      setIsDraftLoaded(false); // Reset loaded state when closed
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  // Auto-save draft
+  useEffect(() => {
+    if (!isDraftLoaded || isSubmittingRef.current) return;
+
+    const saveTimeout = setTimeout(() => {
+      draftService
+        .saveDraft(DRAFT_KEY, {
+          bankName,
+          accountNumber,
+          accountName,
+        })
+        .catch((err) => console.error("Failed to save draft:", err));
+    }, 1000); // Debounce 1s
+
+    return () => clearTimeout(saveTimeout);
+  }, [bankName, accountNumber, accountName, isDraftLoaded, isOpen]);
+
+  const handleClose = () => {
+    // Save draft before closing
+    draftService
+      .saveDraft(DRAFT_KEY, {
+        bankName,
+        accountNumber,
+        accountName,
+      })
+      .catch((err) => console.error("Failed to save draft on close:", err));
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -156,19 +219,27 @@ const BankDetailsModal = ({
         {/* Footer */}
         <div className="flex gap-4">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (isFormValid && onAddBankAccount) {
+                isSubmittingRef.current = true;
                 onAddBankAccount({
                   bankName,
                   accountNo: accountNumber,
                   accountName,
                 });
+                try {
+                  await draftService.deleteDraft(DRAFT_KEY);
+                } catch (e) {
+                  console.error("Failed to delete draft", e);
+                } finally {
+                  isSubmittingRef.current = false;
+                }
               }
               onClose();
             }}

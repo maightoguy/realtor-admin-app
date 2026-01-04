@@ -87,6 +87,13 @@ const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
       return;
     }
 
+    if (user?.kyc_status !== "approved") {
+      window.alert(
+        "You must complete KYC verification before requesting a payout."
+      );
+      return;
+    }
+
     const parsedAmount = Number(withdrawalAmount.replace(/[^0-9.]/g, ""));
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       window.alert("Please enter a valid withdrawal amount.");

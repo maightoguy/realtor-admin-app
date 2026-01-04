@@ -667,6 +667,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
         onClose={handleCloseUploadReceipt}
         onSubmit={handleSubmitReceipt}
         isLoading={isSubmitting}
+        propertyId={property.id}
       />
     </div>
   );

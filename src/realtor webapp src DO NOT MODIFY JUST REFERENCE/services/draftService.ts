@@ -1,50 +1,69 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 
-interface DraftsDB extends DBSchema {
-  drafts: {
-    key: string;
-    value: {
-      id: string;
-      data: any;
-      updatedAt: number;
+const DB_NAME = "realtor-app-drafts";
+const STORE_NAME = "drafts";
+const DB_VERSION = 2;
+
+export const openDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (db.objectStoreNames.contains(STORE_NAME)) {
+        db.deleteObjectStore(STORE_NAME);
+      }
+      db.createObjectStore(STORE_NAME);
     };
-  };
-}
 
-const DB_NAME = 'realtor-app-drafts';
-const DB_VERSION = 1;
-const STORE_NAME = 'drafts';
+    request.onsuccess = (event) => {
+      resolve((event.target as IDBOpenDBRequest).result);
+    };
 
-class DraftService {
-  private dbPromise: Promise<IDBPDatabase<DraftsDB>>;
+    request.onerror = (event) => {
+      reject((event.target as IDBOpenDBRequest).error);
+    };
+  });
+};
 
-  constructor() {
-    this.dbPromise = openDB<DraftsDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      },
-    });
-  }
+export const saveDraft = async (key: string, data: any): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.put(data, key);
 
-  async saveDraft(id: string, data: any): Promise<void> {
-    const db = await this.dbPromise;
-    await db.put(STORE_NAME, {
-      id,
-      data,
-      updatedAt: Date.now(),
-    });
-  }
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
 
-  async getDraft(id: string): Promise<any | null> {
-    const db = await this.dbPromise;
-    const result = await db.get(STORE_NAME, id);
-    return result ? result.data : null;
-  }
+export const getDraft = async (key: string): Promise<any> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(key);
 
-  async deleteDraft(id: string): Promise<void> {
-    const db = await this.dbPromise;
-    await db.delete(STORE_NAME, id);
-  }
-}
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
 
-export const draftService = new DraftService();
+export const clearDraft = async (key: string): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.delete(key);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+// Export as a service object to maintain compatibility with existing code
+export const draftService = {
+  saveDraft,
+  getDraft,
+  deleteDraft: clearDraft, // Alias clearDraft to deleteDraft
+};
