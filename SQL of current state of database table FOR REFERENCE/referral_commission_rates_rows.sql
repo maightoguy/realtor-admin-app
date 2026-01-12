@@ -15,4 +15,3 @@ create table public.referral_commission_rates (
 ) TABLESPACE pg_default;
 
 
-Success. No rows returned  --- No RLS

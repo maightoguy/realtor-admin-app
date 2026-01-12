@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import Profile1 from "../assets/Profile 1.jpg";
 import Profile2 from "../assets/Profile 2.jpg";
 import Profile3 from "../assets/Profile 3.jpg";
@@ -33,6 +34,31 @@ const testimonials = [
 ];
 
 const Testimonials = () => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const interval = setInterval(() => {
+      if (isPaused) return;
+
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainer;
+      const maxScrollLeft = scrollWidth - clientWidth;
+
+      // Check if we're at the end (or very close)
+      if (Math.ceil(scrollLeft) >= maxScrollLeft - 10) {
+        scrollContainer.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        // Scroll by roughly one card width (300px) + gap (24px)
+        scrollContainer.scrollBy({ left: 324, behavior: "smooth" });
+      }
+    }, 3000); // 3 seconds per slide
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
   return (
     <section className="bg-[#F0E6F7] px-6 py-16 flex flex-col gap-12 md:px-20 lg:px-32">
       {/* Heading */}
@@ -48,6 +74,9 @@ const Testimonials = () => {
 
       {/* Cards: always horizontal scroll */}
       <div
+        ref={scrollRef}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
         className="
           flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4
           scrollbar-hide

@@ -402,6 +402,31 @@ export const authService = {
     },
 
     /**
+     * Sign in with Google OAuth
+     */
+    async signInWithGoogle() {
+        logger.info('🔐 [AUTH] Initiating Google Sign In');
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/dashboard`,
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                },
+            },
+        });
+
+        if (error) {
+            logger.error('❌ [AUTH] Google Sign In failed:', error);
+            return { error };
+        }
+
+        return { data, error: null };
+    },
+
+    /**
      * Sign out current user
      */
     async signOut() {

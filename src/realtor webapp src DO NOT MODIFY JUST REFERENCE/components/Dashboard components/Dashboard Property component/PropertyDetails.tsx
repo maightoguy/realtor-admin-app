@@ -370,31 +370,31 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
   return (
     <div className="w-full">
       {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-1.5 md:gap-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Properties</span>
+          <ArrowLeft className="w-3.5 h-3.5 md:w-4 md:h-4" />
+          <span className="text-xs md:text-sm">Properties</span>
         </button>
-        <span className="text-gray-400">/</span>
-        <span className="text-sm font-medium text-gray-900">
+        <span className="text-gray-400 text-xs md:text-sm">/</span>
+        <span className="text-xs md:text-sm font-medium text-gray-900">
           Property Details
         </span>
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
         {/* Left Column - Property Images and Info */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-3 md:space-y-6">
           {/* Image Gallery */}
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {/* Main Image */}
             <div className="relative">
               <button
                 onClick={() => handleImageClick(currentImageIndex)}
-                className="w-full h-64 sm:h-80 lg:h-96 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                className="w-full h-48 sm:h-80 lg:h-96 rounded-lg overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
               >
                 <img
                   src={propertyDetails.images[currentImageIndex]}
@@ -406,7 +406,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
               {/* Favorite Button */}
               <button
                 onClick={handleFavorite}
-                className={`absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center transition ${
+                className={`absolute top-3 left-3 md:top-4 md:left-4 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition ${
                   isFavorited ? "bg-[#5E17EB]" : "bg-black/50 backdrop-blur-md"
                 }`}
               >
@@ -424,7 +424,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
             </div>
 
             {/* Thumbnail Images */}
-            <div className="grid grid-cols-4 gap-2 ">
+            <div className="grid grid-cols-4 gap-1.5 md:gap-2 ">
               {propertyDetails.images.map((image, index) => (
                 <button
                   key={index}
@@ -454,20 +454,22 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
           </div>
 
           {/* Property Information */}
-          <div className="space-y-6">
+          <div className="space-y-3 md:space-y-6">
             {/* Property Title and Price */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 md:gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-lg md:text-2xl sm:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
                   {property.title}
                 </h1>
                 <div className="flex items-center text-gray-600">
-                  <MapPin className="w-4 h-4 mr-2" />
-                  <span>{property.location}</span>
+                  <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 mr-1.5 md:mr-2" />
+                  <span className="text-xs md:text-base">
+                    {property.location}
+                  </span>
                 </div>
               </div>
               <div className="text-left md:right">
-                <p className="text-xl sm:text-3xl font-bold text-[#6D00C2]">
+                <p className="text-base md:text-xl sm:text-3xl font-bold text-[#6D00C2]">
                   {property.price}
                 </p>
               </div>
@@ -475,10 +477,10 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
 
             {/* About this Property */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">
+              <h2 className="text-base md:text-xl font-semibold text-gray-900 mb-2 md:mb-3">
                 About this Property
               </h2>
-              <p className="text-gray-600 leading-relaxed mb-2">
+              <p className="text-gray-600 text-xs md:text-base leading-relaxed mb-2">
                 {displayedDescription}
               </p>
               {shouldTruncateDescription && (
@@ -486,7 +488,7 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
                   type="button"
                   onClick={() => setIsDescriptionExpanded((prev) => !prev)}
                   aria-expanded={isDescriptionExpanded}
-                  className="text-[#6D00C2] font-medium text-sm hover:underline"
+                  className="text-[#6D00C2] font-medium text-xs md:text-sm hover:underline"
                 >
                   {isDescriptionExpanded ? "Read Less" : "Read More..."}
                 </button>
@@ -495,16 +497,18 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
 
             {/* Documents for this Property */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">
+              <h2 className="text-base md:text-xl font-semibold text-gray-900 mb-2 md:mb-3">
                 Documents for this Property
               </h2>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+              <div className="bg-white border border-gray-200 rounded-lg p-2.5 md:p-4 space-y-1.5 md:space-y-3">
                 {propertyDetails.documents.map((doc, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                      <Check className="w-3 h-3 text-white" />
+                  <div key={index} className="flex items-center gap-2 md:gap-3">
+                    <div className="w-4 h-4 md:w-5 md:h-5 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" />
                     </div>
-                    <span className="text-gray-700">{doc}</span>
+                    <span className="text-gray-700 text-xs md:text-base">
+                      {doc}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -512,19 +516,26 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
 
             {/* Features */}
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">
+              <h2 className="text-base md:text-xl font-semibold text-gray-900 mb-2 md:mb-3">
                 Features
               </h2>
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-2.5 md:p-4">
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
                   {propertyDetails.features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <span className="text-2xl">{feature.icon}</span>
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 md:gap-3"
+                    >
+                      <span className="text-xl md:text-2xl">
+                        {feature.icon}
+                      </span>
                       <div>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 text-xs md:text-base">
                           {feature.value}
                         </p>
-                        <p className="text-sm text-gray-600">{feature.label}</p>
+                        <p className="text-[10px] md:text-sm text-gray-600">
+                          {feature.label}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -535,21 +546,21 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
         </div>
 
         {/* Right Column - Location and Actions */}
-        <div className="space-y-6">
+        <div className="space-y-3 md:space-y-6">
           {documentFiles.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              <h3 className="text-xs md:text-sm font-semibold text-gray-900 mb-2 md:mb-3">
                 Uploaded forms
               </h3>
               <div className="space-y-2">
                 {documentFiles.map((form, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg overflow-auto"
+                    className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg overflow-auto"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3">
                       <svg
-                        className="w-5 h-5 text-green-500 shrink-0"
+                        className="w-4 h-4 md:w-5 md:h-5 text-green-500 shrink-0"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -578,12 +589,12 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
                                 })
                                 .catch(() => window.open(form.url, "_blank"));
                             }}
-                            className="text-sm font-medium text-gray-900 truncate hover:underline block text-left w-full"
+                            className="text-xs md:text-sm font-medium text-gray-900 truncate hover:underline block text-left w-full"
                           >
                             {form.name}
                           </button>
                         ) : (
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
                             {form.name}
                           </p>
                         )}
@@ -597,9 +608,9 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
 
           {/* Location */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="flex items-center gap-2 mb-3 md:mb-4">
+              <MapPin className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
+              <h3 className="text-sm md:text-lg font-semibold text-gray-900">
                 {property.location}
               </h3>
             </div>
@@ -616,7 +627,16 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
           <div className="space-y-3">
             <button
               onClick={handleUploadReceipt}
-              className="w-full bg-[#5E17EB] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#4A14C7] transition-colors flex items-center justify-center gap-2"
+              disabled={
+                (dbProperty?.status || property.status || "").toLowerCase() ===
+                "sold"
+              }
+              className={`w-full py-2 px-3 md:py-3 md:px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-xs md:text-base ${
+                (dbProperty?.status || property.status || "").toLowerCase() ===
+                "sold"
+                  ? "bg-gray-400 cursor-not-allowed text-white"
+                  : "bg-[#5E17EB] text-white hover:bg-[#4A14C7]"
+              }`}
             >
               <svg
                 width="16"
@@ -630,7 +650,10 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
                   fill="white"
                 />
               </svg>
-              Upload Receipt
+              {(dbProperty?.status || property.status || "").toLowerCase() ===
+              "sold"
+                ? "Sold Out"
+                : "Upload Receipt"}
             </button>
 
             <button
@@ -639,13 +662,13 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
               disabled={
                 isDownloadingAllDocuments || downloadableDocuments.length === 0
               }
-              className={`w-full bg-white border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
+              className={`w-full bg-white border border-gray-300 text-gray-700 py-2 px-3 md:py-3 md:px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-xs md:text-base ${
                 isDownloadingAllDocuments || downloadableDocuments.length === 0
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:bg-gray-50"
               }`}
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-4 h-4 md:w-5 md:h-5" />
               {isDownloadingAllDocuments
                 ? "Downloading..."
                 : "Download all documents"}

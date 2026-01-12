@@ -10,6 +10,7 @@ export type CreateAccountData = {
 type Props = {
   initialData?: Partial<CreateAccountData>;
   onNext: (data: CreateAccountData) => void;
+  onGoogle?: () => void;
 };
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,6 +18,7 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const CreateAccountForm: React.FC<Props> = ({
   initialData = {},
   onNext,
+  onGoogle,
 }) => {
   const [email, setEmail] = useState(initialData.email ?? "");
   const [password, setPassword] = useState(initialData.password ?? "");
@@ -277,7 +279,8 @@ export const CreateAccountForm: React.FC<Props> = ({
       <div className="mb-8">
         <button
           type="button"
-          className="w-full border border-[#F0F1F2] rounded-lg py-4 flex items-center justify-center gap-3 bg-white"
+          onClick={onGoogle}
+          className="w-full border border-[#F0F1F2] rounded-lg py-4 flex items-center justify-center gap-3 bg-white hover:bg-gray-50 transition-colors"
         >
           {/* Google icon (inline) */}
           <svg

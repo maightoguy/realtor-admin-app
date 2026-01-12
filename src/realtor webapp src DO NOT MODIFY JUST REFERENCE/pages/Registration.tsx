@@ -12,6 +12,7 @@ import KYCReminder from "../components/registration components/KYCReminder";
 import VeriplotSvg from "../modules/HeroWorkObjects";
 import { Link, useNavigate } from "react-router-dom";
 import { registrationService } from "../services/registrationService";
+import { authService } from "../services/authService";
 import { logger } from "../utils/logger";
 import Loader from "../components/Loader";
 
@@ -85,6 +86,17 @@ const RegistrationPage: React.FC = () => {
       });
     } finally {
       setIsResending(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await authService.signInWithGoogle();
+      if (error) {
+        logger.error("Google login failed", error);
+      }
+    } catch (err) {
+      logger.error("Google login exception", err);
     }
   };
 
@@ -238,6 +250,7 @@ const RegistrationPage: React.FC = () => {
                 setCreateAccountData(data);
                 setCurrentStep(1);
               }}
+              onGoogle={handleGoogleLogin}
             />
           )}
 
@@ -245,7 +258,9 @@ const RegistrationPage: React.FC = () => {
             <PersonalInfoForm
               initialData={
                 personalInfoData ??
-                (referralCodeFromUrl ? { referral: referralCodeFromUrl } : undefined)
+                (referralCodeFromUrl
+                  ? { referral: referralCodeFromUrl }
+                  : undefined)
               }
               onNext={(data) => {
                 setPersonalInfoData(data);

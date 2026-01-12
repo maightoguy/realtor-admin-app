@@ -265,7 +265,7 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
 
           {/* Price */}
           <div className="flex flex-col gap-4">
-            <span className="font-medium text-[14px] text-[#6B7280]">
+            <span className="font-medium text-xs md:text-sm text-[#6B7280]">
               Price (₦)
             </span>
             <Range
@@ -306,10 +306,10 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
 
             {/* Min / Max Labels */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border border-[#F0F1F2] rounded-md p-4 text-sm">
+              <div className="bg-white border border-[#F0F1F2] rounded-md p-3 md:p-4 text-xs md:text-sm">
                 {formatCurrency(price[0])}
               </div>
-              <div className="bg-white border border-[#F0F1F2] rounded-md p-4 text-sm">
+              <div className="bg-white border border-[#F0F1F2] rounded-md p-3 md:p-4 text-xs md:text-sm">
                 {formatCurrency(price[1])}
               </div>
             </div>
@@ -317,29 +317,29 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
 
           {/* Active Price */}
           <div className="flex flex-col gap-2">
-            <span className="text-[14px] font-medium text-[#6B7280]">
+            <span className="text-xs md:text-sm font-medium text-[#6B7280]">
               Filter Title here
             </span>
-            <span className="text-[14px] font-medium text-[#6B7280]">
+            <span className="text-xs md:text-sm font-medium text-[#6B7280]">
               Sub-filter title
             </span>
-            <div className="border border-[#F0F1F2] bg-white rounded-md p-3 h-[56px] flex items-center text-[14px] text-black font-medium">
+            <div className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 h-[48px] md:h-[56px] flex items-center text-xs md:text-sm text-black font-medium">
               {dragged !== null ? formatCurrency(price[dragged]) : "—"}
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-6 bg-white border-t border-[#E5E7EB] shadow-[0_-4px_25px_rgba(0,0,0,0.05)] flex flex-col gap-3">
+        <div className="px-4 py-4 md:px-6 md:py-6 bg-white border-t border-[#E5E7EB] shadow-[0_-4px_25px_rgba(0,0,0,0.05)] flex flex-col gap-3">
           <button
             onClick={handleApply}
-            className="bg-[#6500AC] text-white py-3 rounded-lg font-medium text-[16px] shadow"
+            className="bg-[#6500AC] text-white py-2 md:py-3 rounded-lg font-medium text-sm md:text-base shadow"
           >
             Apply Filter
           </button>
           <button
             onClick={handleReset}
-            className="bg-white border border-[#D5D7DA] py-3 rounded-lg font-medium text-[#414651] text-[16px] shadow-sm"
+            className="bg-white border border-[#D5D7DA] py-2 md:py-3 rounded-lg font-medium text-[#414651] text-sm md:text-base shadow-sm"
           >
             Reset to default
           </button>

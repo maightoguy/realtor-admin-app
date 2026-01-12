@@ -213,7 +213,7 @@ const DashboardSettingsKYCTab = () => {
       id: "National ID",
       passport: "Passport",
       license: "Driver's License",
-      utility: "Utility Bill",
+      utility: "Voters Card",
     };
     return typeMap[docType] || docType;
   };
@@ -237,11 +237,11 @@ const DashboardSettingsKYCTab = () => {
         </div>
 
         {/* Success State */}
-        <div className="bg-white border border-[#EAECF0] rounded-lg p-4 sm:p-6">
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white border border-[#EAECF0] rounded-lg p-3 md:p-6">
+          <div className="text-center py-6 md:py-8">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
               <svg
-                className="w-8 h-8 text-green-600"
+                className="w-6 h-6 md:w-8 md:h-8 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -254,14 +254,14 @@ const DashboardSettingsKYCTab = () => {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-[#0A1B39] mb-2">
+            <h3 className="text-base md:text-lg font-semibold text-[#0A1B39] mb-1.5 md:mb-2">
               {currentUser?.kyc_status === "approved"
                 ? "KYC Verification Complete"
                 : currentUser?.kyc_status === "pending"
                 ? "KYC Submission Pending"
                 : "KYC Verification Complete"}
             </h3>
-            <p className="text-sm text-[#667085] mb-6">
+            <p className="text-xs md:text-sm text-[#667085] mb-4 md:mb-6">
               {currentUser?.kyc_status === "approved"
                 ? "Your identity has been successfully verified. You can now access all features of the platform."
                 : currentUser?.kyc_status === "pending"
@@ -415,14 +415,14 @@ const DashboardSettingsKYCTab = () => {
       )}
 
       {/* KYC Form */}
-      <div className="bg-white border border-[#EAECF0] rounded-lg p-4 sm:p-6 space-y-6">
+      <div className="bg-white border border-[#EAECF0] rounded-lg p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Select document */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-[#0A1B39]">
+          <label className="text-xs sm:text-sm font-medium text-[#0A1B39]">
             Select document
           </label>
           <select
-            className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent bg-white"
+            className="w-full px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent bg-white"
             value={document}
             onChange={(e) => setDocument(e.target.value)}
           >
@@ -430,22 +430,22 @@ const DashboardSettingsKYCTab = () => {
             <option value="id">National ID</option>
             <option value="passport">Passport</option>
             <option value="license">Driver's License</option>
-            <option value="utility">Utility bill</option>
+            <option value="utility">Voters Card</option>
           </select>
         </div>
 
         {/* Upload Document Section */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-[#0A1B39]">
+          <label className="text-xs sm:text-sm font-medium text-[#0A1B39]">
             Upload your document
           </label>
           {file ? (
             // --- File Uploaded State ---
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 border border-green-200">
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-100 border border-green-200 text-green-600">
+            <div className="flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-green-50 border border-green-200">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-green-100 border border-green-200 text-green-600">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
+                  className="h-4 w-4 sm:h-5 sm:w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -459,10 +459,10 @@ const DashboardSettingsKYCTab = () => {
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-sm text-green-700 font-medium">
+                <p className="text-xs sm:text-sm text-green-700 font-medium">
                   {file.name}
                 </p>
-                <p className="text-xs text-green-500">
+                <p className="text-[10px] sm:text-xs text-green-500">
                   Document uploaded successfully
                 </p>
               </div>
@@ -491,7 +491,7 @@ const DashboardSettingsKYCTab = () => {
             // --- No File Uploaded State (Clickable) ---
             <div
               className={`
-                flex items-center gap-3 p-4 rounded-lg bg-[#F9FAFB] border border-[#E6E7EC]
+                flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-[#F9FAFB] border border-[#E6E7EC]
                 ${
                   document !== ""
                     ? "cursor-pointer hover:bg-gray-50"
@@ -509,10 +509,10 @@ const DashboardSettingsKYCTab = () => {
                 }
               }}
             >
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-[#F0E6F7] border border-[#E6E7EC] text-[#6500AC]">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-[#F0E6F7] border border-[#E6E7EC] text-[#6500AC]">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
+                  className="h-4 w-4 sm:h-5 sm:w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -526,12 +526,12 @@ const DashboardSettingsKYCTab = () => {
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-sm text-[#0A1B39] font-medium">
+                <p className="text-xs sm:text-sm text-[#0A1B39] font-medium">
                   {document !== ""
                     ? `Upload your ${document} document`
                     : "Select document type to upload"}
                 </p>
-                <p className="text-xs text-[#667085]">
+                <p className="text-[10px] sm:text-xs text-[#667085]">
                   PDF, JPG format • Max. 5MB
                 </p>
               </div>

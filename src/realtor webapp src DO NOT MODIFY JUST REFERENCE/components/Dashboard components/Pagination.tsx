@@ -31,19 +31,19 @@ const Pagination = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:justify-between items-center border border-[#F0F1F2] rounded-[10px] px-4 py-3 mt-8 shadow-sm bg-white w-full max-w-[1104px] mx-auto">
+    <div className="flex flex-col sm:flex-row sm:justify-between items-center border border-[#F0F1F2] rounded-[10px] px-3 py-2 md:px-4 md:py-3 mt-3 md:mt-8 shadow-sm bg-white w-full max-w-[1104px] mx-auto">
       {/* Page details */}
-      <p className="text-sm text-[#344054] font-inter mb-3 sm:mb-0">
+      <p className="text-xs md:text-sm text-[#344054] font-inter mb-2 sm:mb-0">
         Page <span className="font-semibold">{currentPage}</span> of{" "}
         {totalPages}
       </p>
 
       {/* Buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 md:gap-3">
         <button
           onClick={handlePrev}
           disabled={currentPage === 1}
-          className={`flex items-center justify-center px-4 py-2 text-[#344054] text-sm font-medium font-montserrat border border-[#D0D5DD] bg-white rounded-lg shadow-sm transition 
+          className={`flex items-center justify-center px-2.5 py-1 md:px-4 md:py-2 text-[#344054] text-xs md:text-sm font-medium font-montserrat border border-[#D0D5DD] bg-white rounded-lg shadow-sm transition 
             ${
               currentPage === 1
                 ? "opacity-50 cursor-not-allowed"
@@ -56,7 +56,7 @@ const Pagination = ({
         <button
           onClick={handleNext}
           disabled={currentPage === totalPages}
-          className={`flex items-center justify-center px-4 py-2 text-[#344054] text-sm font-medium font-montserrat border border-[#D0D5DD] bg-white rounded-lg shadow-sm transition 
+          className={`flex items-center justify-center px-2.5 py-1 md:px-4 md:py-2 text-[#344054] text-xs md:text-sm font-medium font-montserrat border border-[#D0D5DD] bg-white rounded-lg shadow-sm transition 
             ${
               currentPage === totalPages
                 ? "opacity-50 cursor-not-allowed"

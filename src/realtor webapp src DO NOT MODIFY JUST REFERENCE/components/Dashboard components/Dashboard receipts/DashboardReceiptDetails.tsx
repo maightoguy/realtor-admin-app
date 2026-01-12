@@ -13,6 +13,7 @@ interface ReceiptDetailsProps {
     status: string; // Formatted status string
     date: string; // Formatted date string
     receipt_urls?: string[]; // Supabase URLs
+    rejection_reason?: string | null;
   } | null;
 }
 
@@ -92,23 +93,23 @@ const DashboardReceiptDetails: React.FC<ReceiptDetailsProps> = ({
               </svg>
             </div>
             <div>
-              <p className="text-base font-semibold text-[#101828] break-all">
+              <p className="text-sm md:text-base font-semibold text-[#101828] break-all">
                 This contains the details of the receipt
               </p>
             </div>
           </div>
 
           {/* Details Grid - Restored Spacing */}
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             <DetailRow label="Receipt ID" value={receipt.id} wrapValue />
             <DetailRow label="Client name" value={receipt.clientName} />
             <DetailRow label="Property name" value={receipt.propertyName} />
             <DetailRow label="Amount paid" value={receipt.amount} />
 
             <div className="flex justify-between items-center py-1">
-              <span className="text-[#6B7280] text-sm font-medium">Status</span>
+              <span className="text-[#6B7280] text-xs md:text-sm font-medium">Status</span>
               <span
-                className={`px-3 py-1 text-xs font-semibold rounded-full flex items-center gap-1.5 ${getStatusColor(
+                className={`px-2 py-0.5 md:px-3 md:py-1 text-[10px] md:text-xs font-semibold rounded-full flex items-center gap-1.5 ${getStatusColor(
                   receipt.status
                 )}`}
               >
@@ -119,25 +120,36 @@ const DashboardReceiptDetails: React.FC<ReceiptDetailsProps> = ({
 
             <DetailRow label="Date uploaded" value={receipt.date} />
 
+            {receipt.rejection_reason && (
+              <div className="flex flex-col gap-1">
+                <span className="text-[#6B7280] text-xs md:text-sm font-medium">
+                  Rejection Reason
+                </span>
+                <p className="text-xs md:text-sm text-red-600 bg-red-50 p-2 md:p-3 rounded-lg border border-red-100">
+                  {receipt.rejection_reason}
+                </p>
+              </div>
+            )}
+
             {/* Restored Supabase File Link Section */}
             {receipt.receipt_urls && receipt.receipt_urls.length > 0 && (
-              <div className="pt-4 border-t border-[#F3F4F6]">
-                <p className="text-[#6B7280] text-sm font-medium mb-3">
+              <div className="pt-3 md:pt-4 border-t border-[#F3F4F6]">
+                <p className="text-[#6B7280] text-xs md:text-sm font-medium mb-2 md:mb-3">
                   Attached Receipt
                 </p>
                 <a
                   href={receipt.receipt_urls[0]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 border border-[#E9EAEB] rounded-lg hover:bg-gray-50 transition-colors group"
+                  className="flex items-center justify-between p-2 md:p-3 border border-[#E9EAEB] rounded-lg hover:bg-gray-50 transition-colors group"
                 >
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-[#6B7280]" />
-                    <span className="text-sm font-medium text-[#344054]">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <FileText className="w-4 h-4 md:w-5 md:h-5 text-[#6B7280]" />
+                    <span className="text-xs md:text-sm font-medium text-[#344054]">
                       receipt_document.pdf
                     </span>
                   </div>
-                  <Download className="w-4 h-4 text-[#6B7280] group-hover:text-[#6500AC]" />
+                  <Download className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#6B7280] group-hover:text-[#6500AC]" />
                 </a>
               </div>
             )}
@@ -145,16 +157,16 @@ const DashboardReceiptDetails: React.FC<ReceiptDetailsProps> = ({
         </div>
 
         {/* Action Buttons - Restored to Original Design */}
-        <div className="p-6 border-t border-[#F3F4F6] bg-gray-50/50">
-          <div className="flex gap-3">
+        <div className="p-3 md:p-6 border-t border-[#F3F4F6] bg-gray-50/50">
+          <div className="flex gap-2 md:gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-[#D0D5DD] bg-white text-[#344054] font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+              className="flex-1 px-3 py-2 md:px-4 md:py-2.5 border border-[#D0D5DD] bg-white text-[#344054] text-xs md:text-base font-semibold rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
             >
               Close
             </button>
             {receipt.status.toLowerCase().includes("rejected") && (
-              <button className="flex-1 px-4 py-2.5 bg-[#6500AC] text-white font-semibold rounded-lg hover:bg-[#5E17EB] transition-colors shadow-sm">
+              <button className="flex-1 px-3 py-2 md:px-4 md:py-2.5 bg-[#6500AC] text-white text-xs md:text-base font-semibold rounded-lg hover:bg-[#5E17EB] transition-colors shadow-sm">
                 Re-upload Receipt
               </button>
             )}
@@ -180,11 +192,11 @@ const DetailRow = ({
       wrapValue ? "items-start" : "items-center"
     }`}
   >
-    <span className="text-[#6B7280] text-sm font-medium shrink-0 mr-2">
+    <span className="text-[#6B7280] text-xs md:text-sm font-medium shrink-0 mr-2">
       {label}
     </span>
     <span
-      className={`text-[#101828] text-sm font-semibold text-right ${
+      className={`text-[#101828] text-xs md:text-sm font-semibold text-right ${
         wrapValue ? "break-all" : "max-w-[200px] truncate"
       }`}
     >

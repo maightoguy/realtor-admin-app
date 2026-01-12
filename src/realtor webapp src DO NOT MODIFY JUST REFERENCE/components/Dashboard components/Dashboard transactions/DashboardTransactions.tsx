@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect } from "react";
 
 import SearchBar from "../SearchBar";
@@ -51,14 +50,13 @@ const MetricCard = ({
   valueTextColor: string;
 }) => (
   <div
-    className={`${bg} border border-[#F0F1F2] rounded-xl shadow-sm p-5 flex flex-col gap-4 w-full transition duration-300 hover:shadow-lg`}
+    className={`${bg} border border-[#F0F1F2] rounded-xl shadow-sm p-3 md:p-5 flex flex-col gap-2 md:gap-4 w-full transition duration-300 hover:shadow-lg`}
   >
     {/* Top Row - Icon and Title */}
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 md:gap-3">
       {/* --- DO NOT REMOVE SVG --- */}
       <svg
-        width="36"
-        height="36"
+        className="w-6 h-6 md:w-9 md:h-9"
         viewBox="0 0 36 36"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -90,7 +88,7 @@ const MetricCard = ({
       </svg>
 
       <p
-        className="text-sm font-medium truncate"
+        className="text-[10px] md:text-sm font-medium truncate"
         style={{ color: valueTextColor }}
       >
         {title}
@@ -99,11 +97,11 @@ const MetricCard = ({
 
     {/* Value + Button Row */}
     <div
-      className="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-3 min-w-0"
+      className="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-2 md:gap-3 min-w-0"
       style={{ color: valueTextColor }}
     >
       <p
-        className="text-[24px] leading-9 font-medium break-words max-w-full"
+        className="text-base md:text-2xl leading-7 md:leading-9 font-medium break-words max-w-full"
         style={{ color: valueTextColor }}
       >
         {value ?? "-"}
@@ -178,6 +176,7 @@ const DashboardTransactions = () => {
   const [isRequestPayoutOpen, setIsRequestPayoutOpen] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [metrics, setMetrics] = useState<TransactionMetrics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [appliedFilters, setAppliedFilters] = useState<Record<string, unknown>>(
     {}
   );
@@ -197,6 +196,7 @@ const DashboardTransactions = () => {
 
     const load = async () => {
       try {
+        setIsLoading(true);
         const [txs, m] = await Promise.all([
           transactionService.getTransactions(user.id),
           transactionService.getMetrics(user.id),
@@ -214,6 +214,8 @@ const DashboardTransactions = () => {
           currentBalance: 0,
           totalPending: 0,
         });
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
     };
 
@@ -314,7 +316,7 @@ const DashboardTransactions = () => {
   };
 
   return (
-    <div className="px-6 py-6 space-y-6">
+    <div className="px-3 py-3 md:px-6 md:py-6 space-y-4 md:space-y-6">
       {toast && (
         <Toast
           message={toast.message}
@@ -323,13 +325,13 @@ const DashboardTransactions = () => {
         />
       )}
       {/* Transaction Type Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide lg:flex-wrap lg:overflow-visible -mx-4 px-4 pb-2">
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide lg:flex-wrap lg:overflow-visible -mx-3 px-3 md:-mx-4 md:px-4 pb-2">
         {["All transaction", "Earnings", "Withdrawals", "Referrals"].map(
           (label) => (
             <button
               key={label}
               onClick={() => setActiveTypeFilter(label)}
-              className={`px-4 py-2 rounded-[10px] border text-sm font-medium transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 md:px-4 md:py-2 rounded-[10px] border text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
                 activeTypeFilter === label
                   ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                   : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:text-[#6500AC]"
@@ -342,229 +344,237 @@ const DashboardTransactions = () => {
       </div>
 
       {/* Header Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* 1. Current Balance (Purple Theme) */}
-        <MetricCard
-          bg={purple.bg}
-          title="Current Balance"
-          value={formatCurrency(metrics?.currentBalance ?? 0)}
-          iconBgColor={purple.iconBg}
-          iconStrokeColor={purple.iconStroke}
-          iconFgColor={purple.iconFg}
-          valueTextColor={purple.valueTextColor}
-          button={
-            <button
-              onClick={handleRequestPayout}
-              className={`px-3 py-1 md:py-3 bg-white text-[${purple.buttonText}] text-sm font-medium rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors `}
-            >
-              Request Payout
-            </button>
-          }
-        />
-
-        {/* 2. Total Earnings */}
-        <MetricCard
-          bg={gray.bg}
-          title="Total Earnings"
-          value={formatCurrency(metrics?.totalEarnings ?? 0)}
-          iconBgColor={purple.iconBg}
-          iconStrokeColor={purple.iconStroke}
-          iconFgColor={purple.iconFg}
-          valueTextColor="#101828"
-        />
-
-        {/* 3. Withdrawals */}
-        <MetricCard
-          bg={green.bg}
-          title="Withdrawals"
-          value={formatCurrency(metrics?.totalWithdrawals ?? 0)}
-          iconBgColor={green.iconBg}
-          iconStrokeColor={green.iconStroke}
-          iconFgColor={green.iconFg}
-          valueTextColor="#101828"
-        />
-
-        {/* 4. Total Pending */}
-        <MetricCard
-          bg={yellow.bg}
-          title="Total Pending"
-          value={formatCurrency(metrics?.totalPending ?? 0)}
-          iconBgColor={yellow.iconBg}
-          iconStrokeColor={yellow.iconStroke}
-          iconFgColor={yellow.iconFg}
-          valueTextColor="#101828"
-        />
-      </div>
-
-      {/* All Transactions Section */}
-      <div className="bg-white border border-[#EAECF0] rounded-lg shadow-sm">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-[#EAECF0]">
-          <div>
-            <p className="text-[18px] font-medium text-[#101828]">
-              {activeTypeFilter === "Earnings"
-                ? "Earnings"
-                : activeTypeFilter === "Withdrawals"
-                ? "Withdrawals"
-                : activeTypeFilter === "Referrals"
-                ? "Referrals"
-                : "All Transactions"}
-            </p>
-            <p className="text-sm text-[#667085]">
-              {activeTypeFilter === "Earnings"
-                ? "Keep track of your Earnings in this table"
-                : activeTypeFilter === "Withdrawals"
-                ? "Keep track of your Withdrawals in this table"
-                : activeTypeFilter === "Referrals"
-                ? "Keep track of your Referrals in this table"
-                : "Keep track of your Transactions in this table"}
-            </p>
-          </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6500AC]"></div>
         </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4">
+            {/* 1. Current Balance (Purple Theme) */}
+            <MetricCard
+              bg={purple.bg}
+              title="Current Balance"
+              value={formatCurrency(metrics?.currentBalance ?? 0)}
+              iconBgColor={purple.iconBg}
+              iconStrokeColor={purple.iconStroke}
+              iconFgColor={purple.iconFg}
+              valueTextColor={purple.valueTextColor}
+              button={
+                <button
+                  onClick={handleRequestPayout}
+                  className={`px-2 py-1.5 md:px-3 md:py-3 bg-white text-[${purple.buttonText}] text-xs md:text-sm font-medium rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors `}
+                >
+                  Request Payout
+                </button>
+              }
+            />
 
-        {/* Filter Tabs + Search */}
-        <div className="px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide lg:flex-wrap lg:overflow-visible -mx-4 px-4 pb-2">
-            {["All", "Paid", "Pending", "Failed"].map((label) => (
-              <button
-                key={label}
-                onClick={() => setActiveStatusFilter(label)}
-                className={`px-4 py-2 rounded-[10px] border text-sm font-medium transition-all whitespace-nowrap ${
-                  activeStatusFilter === label
-                    ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
-                    : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:text-[#6500AC]"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            {/* 2. Total Earnings */}
+            <MetricCard
+              bg={gray.bg}
+              title="Total Earnings"
+              value={formatCurrency(metrics?.totalEarnings ?? 0)}
+              iconBgColor={purple.iconBg}
+              iconStrokeColor={purple.iconStroke}
+              iconFgColor={purple.iconFg}
+              valueTextColor="#101828"
+            />
 
-          {/* UNIFORM SEARCH BAR WRAPPER */}
-          <div className="w-full lg:w-[350px]">
-            <SearchBar
-              className="w-full"
-              onSearch={setSearchQuery}
-              onFilterClick={() => setIsFilterOpen(true)}
+            {/* 3. Withdrawals */}
+            <MetricCard
+              bg={green.bg}
+              title="Withdrawals"
+              value={formatCurrency(metrics?.totalWithdrawals ?? 0)}
+              iconBgColor={green.iconBg}
+              iconStrokeColor={green.iconStroke}
+              iconFgColor={green.iconFg}
+              valueTextColor="#101828"
+            />
+
+            {/* 4. Total Pending */}
+            <MetricCard
+              bg={yellow.bg}
+              title="Total Pending"
+              value={formatCurrency(metrics?.totalPending ?? 0)}
+              iconBgColor={yellow.iconBg}
+              iconStrokeColor={yellow.iconStroke}
+              iconFgColor={yellow.iconFg}
+              valueTextColor="#101828"
             />
           </div>
-        </div>
 
-        {/* Divider */}
-        <div className="h-px bg-[#EAECF0]" />
+          {/* All Transactions Section */}
+          <div className="bg-white border border-[#EAECF0] rounded-lg shadow-sm">
+            {/* Header */}
+            <div className="px-3 py-3 md:px-6 md:py-5 border-b border-[#EAECF0]">
+              <div>
+                <p className="text-base md:text-[18px] font-medium text-[#101828]">
+                  {activeTypeFilter === "Earnings"
+                    ? "Earnings"
+                    : activeTypeFilter === "Withdrawals"
+                    ? "Withdrawals"
+                    : activeTypeFilter === "Referrals"
+                    ? "Referrals"
+                    : "All Transactions"}
+                </p>
+                <p className="text-xs md:text-sm text-[#667085]">
+                  {activeTypeFilter === "Earnings"
+                    ? "Keep track of your Earnings in this table"
+                    : activeTypeFilter === "Withdrawals"
+                    ? "Keep track of your Withdrawals in this table"
+                    : activeTypeFilter === "Referrals"
+                    ? "Keep track of your Referrals in this table"
+                    : "Keep track of your Transactions in this table"}
+                </p>
+              </div>
+            </div>
 
-        {/* Transactions Table or Empty */}
-        {paginatedTransactions.length === 0 ? (
-          <div className="px-6 py-10 flex flex-col items-center justify-center gap-5">
-            <img src={Plugcon} alt="Empty" className="w-[185px]" />
-            <p className="text-sm font-medium text-[#6B7280]">
-              {activeTypeFilter === "Earnings"
-                ? "You don't have any earnings yet!"
-                : activeTypeFilter === "Withdrawals"
-                ? "You don't have any withdrawals yet!"
-                : activeTypeFilter === "Referrals"
-                ? "You don't have any referrals yet!"
-                : "You don't have any transactions yet!"}
-            </p>
-            <button className="px-5 py-3 rounded-lg bg-[#6500AC] text-white text-sm font-medium shadow-sm">
-              Explore Properties
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-[#667085] text-xs border-b border-[#EAECF0] bg-[#FAFAFA]">
-                  <tr>
-                    <th className="px-6 py-3 font-medium">ID</th>
-                    <th className="px-6 py-3 font-medium">Title</th>
-                    <th className="px-6 py-3 font-medium">Amount</th>
-                    <th className="px-6 py-3 font-medium">Date</th>
-                    <th className="px-6 py-3 font-medium">Status</th>
-                    <th className="px-6 py-3 font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody>
+            {/* Filter Tabs + Search */}
+            <div className="px-3 py-2 md:px-6 md:py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide lg:flex-wrap lg:overflow-visible -mx-3 px-3 md:-mx-4 md:px-4 pb-2">
+                {["All", "Paid", "Pending", "Failed"].map((label) => (
+                  <button
+                    key={label}
+                    onClick={() => setActiveStatusFilter(label)}
+                    className={`px-2.5 py-1 md:px-4 md:py-2 rounded-[10px] border text-[10px] md:text-sm font-medium transition-all whitespace-nowrap ${
+                      activeStatusFilter === label
+                        ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                        : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:text-[#6500AC]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* UNIFORM SEARCH BAR WRAPPER */}
+              <div className="w-full lg:w-[350px]">
+                <SearchBar
+                  className="w-full"
+                  onSearch={setSearchQuery}
+                  onFilterClick={() => setIsFilterOpen(true)}
+                />
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-[#EAECF0]" />
+
+            {/* Transactions Table or Empty */}
+            {paginatedTransactions.length === 0 ? (
+              <div className="px-3 py-6 md:px-6 md:py-10 flex flex-col items-center justify-center gap-3 md:gap-5">
+                <img src={Plugcon} alt="Empty" className="w-16 md:w-[185px]" />
+                <p className="text-[10px] md:text-sm font-medium text-[#6B7280] text-center">
+                  {activeTypeFilter === "Earnings"
+                    ? "You don't have any earnings yet!"
+                    : activeTypeFilter === "Withdrawals"
+                    ? "You don't have any withdrawals yet!"
+                    : activeTypeFilter === "Referrals"
+                    ? "You don't have any referrals yet!"
+                    : "You don't have any transactions yet!"}
+                </p>
+                <button className="px-3 py-1.5 md:px-5 md:py-3 rounded-lg bg-[#6500AC] text-white text-xs md:text-sm font-medium shadow-sm">
+                  Explore Properties
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-[#667085] text-xs border-b border-[#EAECF0] bg-[#FAFAFA]">
+                      <tr>
+                        <th className="px-6 py-3 font-medium">ID</th>
+                        <th className="px-6 py-3 font-medium">Title</th>
+                        <th className="px-6 py-3 font-medium">Amount</th>
+                        <th className="px-6 py-3 font-medium">Date</th>
+                        <th className="px-6 py-3 font-medium">Status</th>
+                        <th className="px-6 py-3 font-medium"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedTransactions.map((transaction: Transaction) => (
+                        <tr
+                          key={transaction.id}
+                          className="border-b border-[#EAECF0] hover:bg-gray-50"
+                        >
+                          <td className="px-6 py-3">{transaction.id}</td>
+                          <td className="px-6 py-3 font-medium text-[#0A1B39]">
+                            {transaction.title}
+                          </td>
+                          <td className="px-6 py-3">{transaction.amount}</td>
+                          <td className="px-6 py-3">{transaction.date}</td>
+                          <td className="px-6 py-3">
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(
+                                transaction.status
+                              )}`}
+                            >
+                              ● {transaction.status}
+                            </span>
+                          </td>
+                          <td
+                            onClick={() => setSelectedTransaction(transaction)}
+                            className="px-6 py-3 text-[#6500AC] font-medium cursor-pointer hover:underline"
+                          >
+                            View details
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="md:hidden px-3 pb-3 space-y-3">
                   {paginatedTransactions.map((transaction: Transaction) => (
-                    <tr
+                    <div
                       key={transaction.id}
-                      className="border-b border-[#EAECF0] hover:bg-gray-50"
+                      className="border border-[#E9EAEB] rounded-lg p-2 bg-white shadow-sm"
                     >
-                      <td className="px-6 py-3">{transaction.id}</td>
-                      <td className="px-6 py-3 font-medium text-[#0A1B39]">
-                        {transaction.title}
-                      </td>
-                      <td className="px-6 py-3">{transaction.amount}</td>
-                      <td className="px-6 py-3">{transaction.date}</td>
-                      <td className="px-6 py-3">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <p className="font-semibold text-xs md:text-sm text-[#0A1B39]">
+                          {transaction.title}
+                        </p>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(
+                          className={`px-1.5 py-0.5 rounded-full text-[9px] md:text-xs font-medium whitespace-nowrap ${getStatusColor(
                             transaction.status
                           )}`}
                         >
                           ● {transaction.status}
                         </span>
-                      </td>
-                      <td
+                      </div>
+                      <div className="text-[10px] md:text-xs text-[#667085] space-y-0.5">
+                        <p>ID: {transaction.id}</p>
+                        <p>Amount: {transaction.amount}</p>
+                        <p>Date: {transaction.date}</p>
+                      </div>
+                      <button
                         onClick={() => setSelectedTransaction(transaction)}
-                        className="px-6 py-3 text-[#6500AC] font-medium cursor-pointer hover:underline"
+                        className="w-full mt-2 py-1 border border-[#EAECF0] rounded-lg text-[10px] md:text-xs font-medium text-[#344054] hover:bg-gray-50"
                       >
-                        View details
-                      </td>
-                    </tr>
+                        View Details
+                      </button>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile View */}
-            <div className="md:hidden px-6 pb-4 space-y-4">
-              {paginatedTransactions.map((transaction: Transaction) => (
-                <div
-                  key={transaction.id}
-                  className="border border-[#E9EAEB] rounded-lg p-4"
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="font-semibold text-[#0A1B39]">
-                      {transaction.title}
-                    </p>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(
-                        transaction.status
-                      )}`}
-                    >
-                      ● {transaction.status}
-                    </span>
-                  </div>
-                  <div className="text-sm text-[#667085] space-y-1">
-                    <p>ID: {transaction.id}</p>
-                    <p>Amount: {transaction.amount}</p>
-                    <p>Date: {transaction.date}</p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedTransaction(transaction)}
-                    className="mt-3 text-[#6500AC] font-medium text-sm hover:underline"
-                  >
-                    View details
-                  </button>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+              </>
+            )}
 
-        {/* Pagination */}
-        {totalItems > 0 && (
-          <div className="px-6 py-4 border-t border-[#E9EAEB]">
-            <Pagination
-              totalItems={totalItems}
-              itemsPerPage={itemsPerPage}
-              onPageChange={setCurrentPage}
-            />
+            {/* Pagination */}
+            {totalItems > 0 && (
+              <div className="px-3 py-2 md:px-6 md:py-4 border-t border-[#EAECF0]">
+                <Pagination
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       <GenericFilterModal
         isOpen={isFilterOpen}

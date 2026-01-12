@@ -270,7 +270,7 @@ const DashboardSettings = () => {
   const settingsTabs = ["Profile", "Bank details", "Security", "KYC", "Legal"];
 
   return (
-    <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+    <div className="px-3 py-3 md:px-6 md:py-6 space-y-4 md:space-y-6">
       {/* Settings Tabs */}
       <div className="border-b border-[#EAECF0]">
         <div className="flex overflow-x-auto scrollbar-hide">
@@ -278,7 +278,7 @@ const DashboardSettings = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+              className={`px-3 py-2 md:px-4 md:py-3 text-xs md:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab
                   ? "border-[#6500AC] text-[#6500AC]"
                   : "border-transparent text-[#667085] hover:text-[#6500AC] hover:border-[#6500AC]/30"
@@ -292,21 +292,21 @@ const DashboardSettings = () => {
 
       {/* Profile Tab Content */}
       {activeTab === "Profile" && (
-        <div className="bg-white border border-[#EAECF0] rounded-lg p-4 sm:p-6 space-y-6">
+        <div className="bg-white border border-[#EAECF0] rounded-lg p-3 md:p-6 space-y-4 md:space-y-6">
           {/* Profile Header */}
           <div>
-            <h2 className="text-xl font-semibold text-[#0A1B39] mb-2">
+            <h2 className="text-lg md:text-xl font-semibold text-[#0A1B39] mb-1 md:mb-2">
               Profile
             </h2>
-            <p className="text-[#667085] text-sm">
+            <p className="text-[#667085] text-xs md:text-sm">
               Your personal Information appears here
             </p>
           </div>
 
           {/* Avatar Section */}
-          <div className="flex flex-col items-start space-y-3">
+          <div className="flex flex-col items-start space-y-2 md:space-y-3">
             <div className="relative">
-              <div className="w-20 h-20 bg-[#F0E6F7] rounded-full flex items-center justify-center overflow-hidden">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-[#F0E6F7] rounded-full flex items-center justify-center overflow-hidden">
                 {avatarPreview ? (
                   <img
                     src={avatarPreview}
@@ -314,7 +314,7 @@ const DashboardSettings = () => {
                     className="w-full h-full object-cover rounded-full"
                   />
                 ) : (
-                  <User className="w-10 h-10 text-[#6500AC]" />
+                  <User className="w-8 h-8 md:w-10 md:h-10 text-[#6500AC]" />
                 )}
               </div>
               <button
@@ -324,7 +324,7 @@ const DashboardSettings = () => {
                 <Camera className="w-3 h-3" />
               </button>
             </div>
-            <p className="text-[#667085] text-sm">Click to change image</p>
+            <p className="text-[#667085] text-xs md:text-sm">Click to change image</p>
             <input
               ref={fileInputRef}
               type="file"

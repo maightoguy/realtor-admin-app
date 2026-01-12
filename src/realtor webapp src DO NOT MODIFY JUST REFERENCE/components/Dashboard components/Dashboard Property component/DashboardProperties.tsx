@@ -364,15 +364,15 @@ const DashboardProperties = () => {
     <div>
       {loading && <Loader text="Loading properties..." />}
       {error && (
-        <div className="mx-6 my-4 p-3 rounded-md bg-red-50 text-red-700 text-sm">
+        <div className="mx-4 md:mx-6 my-4 p-3 rounded-md bg-red-50 text-red-700 text-sm">
           {error}
         </div>
       )}
       {/* 🔔 Alert Banner */}
       {!hasBankDetails && (
-        <div className="bg-purple-50 text-purple-700 text-sm py-3 px-4 flex w-full items-center shadow-sm">
+        <div className="bg-purple-50 text-purple-700 text-xs md:text-sm py-2 px-3 md:py-3 md:px-4 flex w-full items-center shadow-sm">
           <div className="hidden lg:flex flex-grow items-center justify-center gap-2">
-            <span className="text-[14px] text-purple-700">
+            <span className="text-xs md:text-[14px] text-purple-700">
               Add bank account details to receive earnings
             </span>
           </div>
@@ -380,10 +380,10 @@ const DashboardProperties = () => {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsModalOpen(true)}
-              className="hidden lg:flex items-baseline gap-2 text-[#5E17EB] text-[12px] hover:underline"
+              className="hidden lg:flex items-baseline gap-2 text-[#5E17EB] text-[10px] md:text-[12px] hover:underline"
             >
               Add account details
-              <span className="text-lg text-gray-500">→</span>
+              <span className="text-base md:text-lg text-gray-500">→</span>
             </button>
             <BankDetailsModal
               isOpen={isModalOpen}
@@ -395,7 +395,7 @@ const DashboardProperties = () => {
       )}
 
       {/* 🔍 Filters (search bar & tabs) */}
-      <div className="p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="p-2 md:p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 md:gap-4">
         <FilterTabs onFilterChange={setFilter} />
         {/* UNIFORM SEARCH BAR WRAPPER */}
         <div className="w-full lg:w-[350px]">
@@ -408,25 +408,25 @@ const DashboardProperties = () => {
       </div>
 
       {/* 🏘 Property Section (Grid + Filter Panel) */}
-      <div className="relative px-6">
+      <div className="relative px-2 md:px-6">
         {/* Empty State for Favorites */}
         {filter === "favorite" && filteredProperties.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="flex flex-col items-center justify-center py-8 md:py-16 px-4">
             {/* Empty State Illustration */}
-            <div className="relative mb-8">
+            <div className="relative mb-4 md:mb-8">
               {/* Stack of property cards illustration */}
               <img
                 src={Allicon}
                 alt="No favorites icon"
-                className="w-[185px]"
+                className="w-16 md:w-[185px]"
               />
             </div>
 
             {/* Empty State Text */}
-            <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+            <h3 className="text-sm md:text-xl font-semibold text-gray-900 mb-1 md:mb-2 text-center">
               You haven't added any property to favourite
             </h3>
-            <p className="text-gray-500 text-center mb-6 max-w-md">
+            <p className="text-gray-500 text-[10px] md:text-sm text-center mb-4 md:mb-6 max-w-md">
               Browse through our amazing properties and add your favorites to
               keep track of them
             </p>
@@ -434,28 +434,28 @@ const DashboardProperties = () => {
             {/* Explore Button */}
             <button
               onClick={() => setFilter("all")}
-              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200"
+              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-3 py-1.5 md:px-8 md:py-3 rounded-lg font-semibold text-xs md:text-base transition-colors duration-200"
             >
               Explore Properties
             </button>
           </div>
         ) : filter === "buildings" && filteredProperties.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="flex flex-col items-center justify-center py-8 md:py-16 px-4">
             {/* Empty State Illustration */}
-            <div className="relative mb-8">
+            <div className="relative mb-4 md:mb-8">
               {/* Stack of property cards illustration */}
               <img
                 src={Allicon}
                 alt="No buildings icon"
-                className="w-[185px]"
+                className="w-16 md:w-[185px]"
               />
             </div>
 
             {/* Empty State Text */}
-            <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+            <h3 className="text-sm md:text-xl font-semibold text-gray-900 mb-1 md:mb-2 text-center">
               No buildings available
             </h3>
-            <p className="text-gray-500 text-center mb-6 max-w-md">
+            <p className="text-gray-500 text-[10px] md:text-sm text-center mb-4 md:mb-6 max-w-md">
               There are currently no building properties available. Check back
               later for new listings.
             </p>
@@ -463,28 +463,28 @@ const DashboardProperties = () => {
             {/* Explore Button */}
             <button
               onClick={() => setFilter("all")}
-              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200"
+              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-3 py-1.5 md:px-8 md:py-3 rounded-lg font-semibold text-xs md:text-base transition-colors duration-200"
             >
               View All Properties
             </button>
           </div>
         ) : filter === "sold" && filteredProperties.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="flex flex-col items-center justify-center py-8 md:py-16 px-4">
             {/* Empty State Illustration */}
-            <div className="relative mb-8">
+            <div className="relative mb-4 md:mb-8">
               {/* Stack of property cards illustration */}
               <img
                 src={Allicon}
                 alt="No sold properties icon"
-                className="w-[185px]"
+                className="w-16 md:w-[185px]"
               />
             </div>
 
             {/* Empty State Text */}
-            <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+            <h3 className="text-sm md:text-xl font-semibold text-gray-900 mb-1 md:mb-2 text-center">
               No sold properties
             </h3>
-            <p className="text-gray-500 text-center mb-6 max-w-md">
+            <p className="text-gray-500 text-[10px] md:text-sm text-center mb-4 md:mb-6 max-w-md">
               There are currently no sold properties to display. All properties
               are still available for purchase.
             </p>
@@ -492,24 +492,28 @@ const DashboardProperties = () => {
             {/* Explore Button */}
             <button
               onClick={() => setFilter("all")}
-              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200"
+              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-3 py-1.5 md:px-8 md:py-3 rounded-lg font-semibold text-xs md:text-base transition-colors duration-200"
             >
               View Available Properties
             </button>
           </div>
         ) : filter === "lands" && filteredProperties.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="flex flex-col items-center justify-center py-8 md:py-16 px-4">
             {/* Empty State Illustration */}
-            <div className="relative mb-8">
+            <div className="relative mb-4 md:mb-8">
               {/* Stack of property cards illustration */}
-              <img src={Allicon} alt="No lands icon" className="w-[185px]" />
+              <img
+                src={Allicon}
+                alt="No lands icon"
+                className="w-16 md:w-[185px]"
+              />
             </div>
 
             {/* Empty State Text */}
-            <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+            <h3 className="text-sm md:text-xl font-semibold text-gray-900 mb-1 md:mb-2 text-center">
               No land properties available
             </h3>
-            <p className="text-gray-500 text-center mb-6 max-w-md">
+            <p className="text-gray-500 text-[10px] md:text-sm text-center mb-4 md:mb-6 max-w-md">
               There are currently no land properties available. Check back later
               for new land listings.
             </p>
@@ -517,28 +521,28 @@ const DashboardProperties = () => {
             {/* Explore Button */}
             <button
               onClick={() => setFilter("all")}
-              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200"
+              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-3 py-1.5 md:px-8 md:py-3 rounded-lg font-semibold text-xs md:text-base transition-colors duration-200"
             >
               View All Properties
             </button>
           </div>
         ) : filter === "all" && filteredProperties.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
+          <div className="flex flex-col items-center justify-center py-8 md:py-16 px-4">
             {/* Empty State Illustration */}
-            <div className="relative mb-8">
+            <div className="relative mb-4 md:mb-8">
               {/* Stack of property cards illustration */}
               <img
                 src={Allicon}
                 alt="No properties icon"
-                className="w-[185px]"
+                className="w-16 md:w-[185px]"
               />
             </div>
 
             {/* Empty State Text */}
-            <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">
+            <h3 className="text-sm md:text-xl font-semibold text-gray-900 mb-1 md:mb-2 text-center">
               No properties found
             </h3>
-            <p className="text-gray-500 text-center mb-6 max-w-md">
+            <p className="text-gray-500 text-[10px] md:text-sm text-center mb-4 md:mb-6 max-w-md">
               We couldn't find any properties matching your search criteria. Try
               adjusting your filters or search terms.
             </p>
@@ -549,7 +553,7 @@ const DashboardProperties = () => {
                 setFilter("all");
                 setSearchQuery("");
               }}
-              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200"
+              className="bg-[#6500AC] hover:bg-[#5E17EB] text-white px-3 py-1.5 md:px-8 md:py-3 rounded-lg font-semibold text-xs md:text-base transition-colors duration-200"
             >
               Clear Filters
             </button>
@@ -557,7 +561,7 @@ const DashboardProperties = () => {
         ) : (
           /* Property Grid */
           <section
-            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-300 ${
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-6 transition-all duration-300 ${
               isFilterOpen ? "xl:grid-cols-3 xl:pr-[380px]" : "xl:grid-cols-4"
             }`}
           >
@@ -576,7 +580,7 @@ const DashboardProperties = () => {
 
       {/* Pagination */}
       {filteredProperties.length > 0 && (
-        <div className="mt-8 mb-12 px-6">
+        <div className="mt-3 mb-4 px-2 md:mt-8 md:mb-12 md:px-6">
           <Pagination
             totalItems={filteredProperties.length}
             itemsPerPage={itemsPerPage}

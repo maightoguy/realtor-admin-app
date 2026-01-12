@@ -1,4 +1,4 @@
-INSERT INTO "public"."referrals" ("id", "upline_id", "downline_id", "level", "commission_earned", "created_at") VALUES ('619efd20-3791-404a-9877-7f4aa0d34248', '86edf3ca-7308-49c3-9f95-85aa228e4b1d', '39e3e7d3-b89b-4c05-bc3f-034fa5e75938', '1', '0', '2025-12-31 22:27:19.170728+00'), ('69120051-6ccc-4fb3-8993-21f59e67f4d8', '24d7bbc1-651a-4a57-9258-37eb26b18008', 'd254c8d6-4223-4996-a333-6c16fd8c8d15', '1', '0', '2025-12-31 18:46:27.738921+00'), ('a79168ec-a037-4d74-9f8f-fbaeb61e92f6', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', '86edf3ca-7308-49c3-9f95-85aa228e4b1d', '1', '0', '2025-12-31 22:18:31.397909+00'), ('eb363041-55e3-436a-936a-ea174980f098', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', '86edf3ca-7308-49c3-9f95-85aa228e4b1d', '1', '0', '2025-12-31 22:18:31.37802+00');
+INSERT INTO "public"."referrals" ("id", "upline_id", "downline_id", "level", "commission_earned", "created_at") VALUES ('1d9e5114-7cb4-4702-b5e7-fab017dca49a', 'f9e51c9a-3cd8-432c-9fd6-97ea76180494', '4743d57e-789e-46c5-851d-22a8868507f2', '1', '2000.0000000000000000', '2026-01-05 12:34:46.982543+00'), ('1ee631c0-8458-46aa-97ae-bc47b1693275', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', 'f9e51c9a-3cd8-432c-9fd6-97ea76180494', '1', '600.0000000000000000', '2026-01-02 17:25:33.64714+00'), ('26e29f17-115f-43b8-a2a5-9546fa43493f', 'd781bcbe-ee0f-4950-84d9-d5ee56ef36ed', '957d85d4-77b2-40ee-b030-e565c1b1a5d2', '1', '20000.00000000000000', '2026-01-04 18:57:07.794391+00');
 
 
 create table public.referrals (
@@ -55,5 +55,27 @@ execute FUNCTION notify_upline_on_referral ();
     "applied_to": "{authenticated}",
     "using_expression": "((auth.uid() = upline_id) OR (auth.uid() = downline_id))",
     "check_expression": null
+  }
+]
+
+
+[
+  {
+    "users_table_foreign_keys": [
+      {
+        "local_table": "referrals",
+        "local_column": "downline_id",
+        "referenced_table": "users",
+        "referenced_column": "id",
+        "constraint_name": "referrals_downline_id_fkey"
+      },
+      {
+        "local_table": "referrals",
+        "local_column": "upline_id",
+        "referenced_table": "users",
+        "referenced_column": "id",
+        "constraint_name": "referrals_upline_id_fkey"
+      }
+    ]
   }
 ]

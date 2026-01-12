@@ -173,14 +173,13 @@ const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center px-4 font-poppins overflow-y-auto py-4">
-        <div className="bg-white w-full max-w-lg max-h-[90vh] rounded-2xl shadow-lg p-6 relative animate-fadeIn overflow-y-auto flex flex-col">
+        <div className="bg-white w-full max-w-lg max-h-[90vh] rounded-2xl shadow-lg p-4 md:p-6 relative animate-fadeIn overflow-y-auto flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
             <div className="flex items-center gap-3">
-              <div className="w-[50px] h-[50px] flex items-center justify-center bg-[#F9F9F9] rounded-xl">
+              <div className="w-10 h-10 md:w-[50px] md:h-[50px] flex items-center justify-center bg-[#F9F9F9] rounded-xl">
                 <svg
-                  width="24"
-                  height="24"
+                  className="w-5 h-5 md:w-6 md:h-6"
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -202,10 +201,10 @@ const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
                 </svg>
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[#0A1B39]">
+                <h2 className="text-base md:text-lg font-semibold text-[#0A1B39]">
                   Request payout
                 </h2>
-                <p className="text-sm text-[#6B7280]">
+                <p className="text-xs md:text-sm text-[#6B7280]">
                   you are about to make withdrawal from your wallet.
                 </p>
               </div>
@@ -213,39 +212,41 @@ const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-gray-100 transition"
+              className="p-1.5 md:p-2 rounded-full hover:bg-gray-100 transition"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-4 h-4 md:w-5 md:h-5 text-gray-500" />
             </button>
           </div>
 
           {/* Bank Details Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-[#6B7280]">Bank details</p>
+          <div className="mb-4 md:mb-6">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <p className="text-xs md:text-sm font-medium text-[#6B7280]">
+                Bank details
+              </p>
               <button
                 onClick={() => setIsSwitchAccountOpen(true)}
-                className="text-[#6500AC] text-sm font-medium hover:underline"
+                className="text-[#6500AC] text-xs md:text-sm font-medium hover:underline"
               >
                 Switch account
               </button>
             </div>
-            <div className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between text-sm">
+            <div className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
+              <div className="flex items-center justify-between text-xs md:text-sm">
                 <span className="text-[#6B7280]">Bank name</span>
-                <span className="text-[#0A1B39] font-medium">
+                <span className="text-[#0A1B39] font-medium text-right">
                   {selectedAccount.bankName}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs md:text-sm">
                 <span className="text-[#6B7280]">Account no:</span>
-                <span className="text-[#0A1B39] font-medium">
+                <span className="text-[#0A1B39] font-medium text-right">
                   {selectedAccount.accountNo}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs md:text-sm">
                 <span className="text-[#6B7280]">Account name:</span>
-                <span className="text-[#0A1B39] font-medium">
+                <span className="text-[#0A1B39] font-medium text-right">
                   {selectedAccount.accountName}
                 </span>
               </div>
@@ -253,36 +254,38 @@ const RequestPayoutModal: React.FC<RequestPayoutModalProps> = ({
           </div>
 
           {/* Amount Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-medium text-[#6B7280]">Amount</p>
-              <span className="px-3 py-1 bg-[#E9F9EF] text-[#22C55E] text-sm font-medium rounded-full">
+          <div className="mb-4 md:mb-6">
+            <div className="flex items-center justify-between mb-2 md:mb-3">
+              <p className="text-xs md:text-sm font-medium text-[#6B7280]">
+                Amount
+              </p>
+              <span className="px-2 py-0.5 md:px-3 md:py-1 bg-[#E9F9EF] text-[#22C55E] text-xs md:text-sm font-medium rounded-full">
                 Balance: {currentBalance}
               </span>
             </div>
-            <div className="border border-[#F0F1F2] bg-white rounded-xl p-4">
+            <div className="border border-[#F0F1F2] bg-white rounded-xl p-3 md:p-4">
               <input
                 type="text"
                 value={withdrawalAmount}
                 onChange={(e) => setWithdrawalAmount(e.target.value)}
                 placeholder="How much do you want to withdraw"
-                className="w-full text-lg font-medium text-[#0A1B39] placeholder-[#9CA3AF] border-none outline-none bg-transparent"
+                className="w-full text-base md:text-lg font-medium text-[#0A1B39] placeholder-[#9CA3AF] border-none outline-none bg-transparent"
               />
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 mt-6 flex-shrink-0">
+          <div className="flex gap-2 md:gap-3 mt-4 md:mt-6 flex-shrink-0">
             <button
               onClick={onClose}
-              className="flex-1 px-6 py-4 border border-[#D1D5DB] text-[#374151] font-medium rounded-lg hover:bg-gray-50 transition-colors min-h-[48px] flex items-center justify-center"
+              className="flex-1 px-4 py-3 md:px-6 md:py-4 border border-[#D1D5DB] text-[#374151] text-sm md:text-base font-medium rounded-lg hover:bg-gray-50 transition-colors min-h-[40px] md:min-h-[48px] flex items-center justify-center"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 px-6 py-4 bg-[#6500AC] text-white font-medium rounded-lg hover:bg-[#5E17EB] transition-colors min-h-[48px] flex items-center justify-center"
+              className="flex-1 px-4 py-3 md:px-6 md:py-4 bg-[#6500AC] text-white text-sm md:text-base font-medium rounded-lg hover:bg-[#5E17EB] transition-colors min-h-[40px] md:min-h-[48px] flex items-center justify-center"
             >
               {isSubmitting ? "Submitting..." : "Submit request"}
             </button>

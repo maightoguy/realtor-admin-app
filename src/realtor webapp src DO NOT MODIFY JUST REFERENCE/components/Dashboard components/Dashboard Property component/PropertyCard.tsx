@@ -77,7 +77,7 @@ const PropertyCard: FC<PropertyCardProps & { id: string }> = ({
       onClick={handleViewDetails}
     >
       {/* Image Section */}
-      <div className="relative h-52 w-full">
+      <div className="relative h-40 md:h-52 w-full">
         <img
           src={image}
           alt={title}
@@ -86,46 +86,46 @@ const PropertyCard: FC<PropertyCardProps & { id: string }> = ({
         />
 
         {isSoldOut && (
-          <div className="flex flex-row absolute top-3 left-1 bg-gray-700/50 backdrop-blur rounded-md p-1">
-            <SoldOutIcon color="#DC2626" className="w-4 h-4" />
-            <p className="text-[#DC2626] text-xs font-bold">Sold out</p>
+          <div className="flex flex-row absolute top-2 left-1 md:top-3 bg-gray-700/50 backdrop-blur rounded-md p-1">
+            <SoldOutIcon color="#DC2626" className="w-3.5 h-3.5 md:w-4 md:h-4" />
+            <p className="text-[#DC2626] text-[10px] md:text-xs font-bold">Sold out</p>
           </div>
         )}
 
         {/* Favorite Button */}
         <button
           onClick={handleFavorite}
-          className={`absolute top-3 right-3 rounded-lg p-1.5 transition ${
+          className={`absolute top-2 right-2 md:top-3 md:right-3 rounded-lg p-1.5 transition ${
             isFavorited ? "bg-[#5E17EB]" : "bg-black/50 backdrop-blur-md"
           }`}
         >
           <Heart
-            className={`w-5 h-5 transition-all duration-200 ${
+            className={`w-4 h-4 md:w-5 md:h-5 transition-all duration-200 ${
               isFavorited ? "fill-white text-white" : "text-white"
             }`}
           />
         </button>
 
         {/* Commission */}
-        <div className="absolute bottom-3 right-1 bg-black/60 text-white text-xs font-semibold px-3 py-1 rounded-md">
+        <div className="absolute bottom-2 right-1 md:bottom-3 bg-black/60 text-white text-[10px] md:text-xs font-semibold px-2 py-0.5 md:px-3 md:py-1 rounded-md">
           {commission}
         </div>
       </div>
 
       {/* Text Section */}
-      <div className="p-4">
-        <p className="text-[#6D00C2] font-bold text-lg">
+      <div className="p-3 md:p-4">
+        <p className="text-[#6D00C2] font-bold text-base md:text-lg">
           {typeof price === "number" ? price.toLocaleString() : price}
         </p>
 
-        <h3 className="font-semibold text-gray-900 text-base">{title}</h3>
-        <p className="text-gray-500 text-sm mt-1">
+        <h3 className="font-semibold text-gray-900 text-sm md:text-base">{title}</h3>
+        <p className="text-gray-500 text-xs md:text-sm mt-1">
           <span className="flex items-center space-x-1 min-w-0">
-            <MapPin className="w-4 h-4 shrink-0" />
+            <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
             <span className="truncate">{location}</span>
           </span>
         </p>
-        <p className="text-gray-500 text-sm mt-2 line-clamp-2 overflow-hidden break-words">
+        <p className="text-gray-500 text-[10px] md:text-sm mt-2 line-clamp-2 overflow-hidden break-words">
           {description ?? ""}
         </p>
         <button
@@ -133,7 +133,7 @@ const PropertyCard: FC<PropertyCardProps & { id: string }> = ({
             e.stopPropagation();
             handleViewDetails();
           }}
-          className="text-[#6D00C2] font-semibold text-sm mt-3 inline-block hover:underline"
+          className="text-[#6D00C2] font-semibold text-xs md:text-sm mt-2 md:mt-3 inline-block hover:underline"
         >
           View details →
         </button>

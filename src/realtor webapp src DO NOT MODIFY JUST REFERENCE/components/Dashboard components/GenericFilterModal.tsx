@@ -82,34 +82,34 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full sm:w-[400px] xl:w-[347px] h-full flex flex-col rounded-2xl shadow-xl overflow-y-auto"
+        className="bg-white w-full md:w-[400px] xl:w-[347px] h-full flex flex-col rounded-2xl shadow-xl overflow-y-auto"
       >
         {/* Header */}
-        <div className="relative border-b border-[#F0F1F2] px-6 pt-6 pb-4 bg-white">
+        <div className="relative border-b border-[#F0F1F2] px-4 md:px-6 pt-4 md:pt-6 pb-4 bg-white">
           <div className="flex flex-col gap-1">
-            <h2 className="font-poppins font-bold text-[16px] text-black">
+            <h2 className="font-poppins font-bold text-sm md:text-base text-black">
               {config.title}
             </h2>
-            <p className="text-[14px] text-[#6B7280]">{config.description}</p>
+            <p className="text-xs md:text-sm text-[#6B7280]">{config.description}</p>
           </div>
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"
+            className="absolute right-4 top-4 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"
           >
-            <span className="text-[#717680] text-2xl leading-none">×</span>
+            <span className="text-[#717680] text-xl md:text-2xl leading-none">×</span>
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-grow p-6 flex flex-col gap-6 font-poppins">
+        <div className="flex-grow p-4 md:p-6 flex flex-col gap-4 md:gap-6 font-poppins">
           {config.sections.map((section, index) => (
-            <div key={index} className="flex flex-col gap-3">
+            <div key={index} className="flex flex-col gap-2 md:gap-3">
               {section.collapsible ? (
                 <button
                   onClick={() => toggleSection(section.title)}
                   className="flex justify-between items-center w-full text-left"
                 >
-                  <span className="font-semibold text-[12px] text-[#3B3F46] uppercase">
+                  <span className="font-semibold text-xs text-[#3B3F46] uppercase">
                     {section.title}
                   </span>
                   <span
@@ -121,7 +121,7 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
                   </span>
                 </button>
               ) : (
-                <span className="font-medium text-[14px] text-[#6B7280]">
+                <span className="font-medium text-xs md:text-sm text-[#6B7280]">
                   {section.title}
                 </span>
               )}
@@ -137,7 +137,7 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
                       {section.options.map((option, optionIndex) => (
                         <label
                           key={optionIndex}
-                          className="flex justify-between items-center py-2 text-[#898E99] text-[14px]"
+                          className="flex justify-between items-center py-2 text-[#898E99] text-xs md:text-sm"
                         >
                           <span>{option.label}</span>
                           <input
@@ -158,7 +158,7 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
 
                   {section.type === "select" && (
                     <select
-                      className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+                      className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 text-xs md:text-sm text-[#6B7280] w-full focus:outline-none"
                       value={filterValues[section.title] ?? ""}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -231,14 +231,14 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
                           renderThumb={({ props }) => (
                             <div
                               {...props}
-                              className="w-6 h-6 bg-white border border-[#6500AC] rounded-full shadow focus:outline-none"
+                              className="w-5 h-5 md:w-6 md:h-6 bg-white border border-[#6500AC] rounded-full shadow focus:outline-none"
                             />
                           )}
                         />
 
                         {/* Min / Max Labels */}
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-white border border-[#F0F1F2] rounded-md p-4 text-sm">
+                          <div className="bg-white border border-[#F0F1F2] rounded-md p-3 md:p-4 text-xs md:text-sm">
                             {section.formatValue
                               ? section.formatValue(
                                   filterValues[section.title]?.[0] ||
@@ -247,7 +247,7 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
                               : filterValues[section.title]?.[0] ||
                                 section.min!}
                           </div>
-                          <div className="bg-white border border-[#F0F1F2] rounded-md p-4 text-sm">
+                          <div className="bg-white border border-[#F0F1F2] rounded-md p-3 md:p-4 text-xs md:text-sm">
                             {section.formatValue
                               ? section.formatValue(
                                   filterValues[section.title]?.[1] ||
@@ -264,7 +264,7 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
                     <input
                       type="text"
                       placeholder={section.placeholder}
-                      className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+                      className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 text-xs md:text-sm text-[#6B7280] w-full focus:outline-none"
                       value={filterValues[section.title] || ""}
                       onChange={(e) =>
                         updateFilterValue(section.title, e.target.value)
@@ -278,16 +278,16 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-6 bg-white border-t border-[#E5E7EB] shadow-[0_-4px_25px_rgba(0,0,0,0.05)] flex flex-col gap-3">
+        <div className="px-4 md:px-6 py-4 md:py-6 bg-white border-t border-[#E5E7EB] shadow-[0_-4px_25px_rgba(0,0,0,0.05)] flex flex-col gap-3">
           <button
             onClick={handleApply}
-            className="bg-[#6500AC] text-white py-3 rounded-lg font-medium text-[16px] shadow"
+            className="bg-[#6500AC] text-white py-2 md:py-3 rounded-lg font-medium text-sm md:text-base shadow"
           >
             Apply Filter
           </button>
           <button
             onClick={handleReset}
-            className="bg-white border border-[#D5D7DA] py-3 rounded-lg font-medium text-[#414651] text-[16px] shadow-sm"
+            className="bg-white border border-[#D5D7DA] py-2 md:py-3 rounded-lg font-medium text-[#414651] text-sm md:text-base shadow-sm"
           >
             Reset to default
           </button>

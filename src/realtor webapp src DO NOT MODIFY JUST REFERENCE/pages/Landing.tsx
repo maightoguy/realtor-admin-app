@@ -6,6 +6,7 @@ import Values from "../components/Values";
 import Contact from "../components/Contact";
 import About from "../components/About";
 import Footer from "../components/Footer";
+import Partnership from "../components/Partnership";
 const Landing = () => {
   return (
     <div className="font-sans">
@@ -14,6 +15,7 @@ const Landing = () => {
       <Services />
       <Values />
       <About />
+      <Partnership />
       <Contact />
       <Testimonials />
       <Footer />

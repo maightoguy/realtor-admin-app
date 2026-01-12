@@ -12,6 +12,7 @@ export interface BankAccount {
     bankName: string;
     accountNo: string;
     accountName: string;
+    created_at?: string;
 }
 
 export interface User {
@@ -88,6 +89,7 @@ export interface Commission {
     realtor_id: string;
     receipt_id?: string | null;
     created_at: string;
+    commission_type?: 'referral' | 'direct' | 'bonus';
 }
 
 export type CommissionInsert = Omit<Commission, 'id' | 'created_at'>;

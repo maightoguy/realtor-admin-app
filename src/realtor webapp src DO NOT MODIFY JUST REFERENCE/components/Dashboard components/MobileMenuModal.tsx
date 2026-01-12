@@ -64,7 +64,7 @@ const MobileMenuModal = ({
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
             <img
               src={VeriplotLogo}
               alt="Veriplot logo"
@@ -80,7 +80,7 @@ const MobileMenuModal = ({
 
           {/* Profile Section */}
 
-          <div className="flex items-center gap-3 p-4 ml-2 bg-gray-50 rounded-xl">
+          <div className="flex items-center gap-3 p-3 md:p-4 ml-2 bg-gray-50 rounded-xl">
             <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200">
               <img
                 src={user?.avatar_url || fallbackProfile} // Dynamic avatar
@@ -89,24 +89,24 @@ const MobileMenuModal = ({
               />
             </div>
             <div>
-              <p className="text-base font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-gray-900">
                 {user ? `${user.first_name} ${user.last_name}` : "John Doe"}{" "}
                 {/* Dynamic name */}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs text-gray-500">
                 {user?.email || "ookon@veriplot.com"} {/* Dynamic email */}
               </p>
             </div>
           </div>
 
           {/* Navigation */}
-          <div className="flex-1 px-6 py-6 overflow-y-auto">
+          <div className="flex-1 px-4 py-4 md:px-6 md:py-6 overflow-y-auto">
             <nav className="flex flex-col space-y-2">
               {navigationItems.map((item) => (
                 <button
                   key={item}
                   onClick={() => handleSectionClick(item)}
-                  className={`text-left px-4 py-3 rounded-lg transition-colors ${
+                  className={`text-left px-4 py-2 text-sm rounded-lg transition-colors ${
                     activeSection === item
                       ? "bg-[#F0E6F7] text-[#5E17EB] font-semibold"
                       : "text-gray-600 hover:bg-gray-50 hover:text-[#5E17EB]"
@@ -119,19 +119,22 @@ const MobileMenuModal = ({
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200 space-y-6">
+          <div className="p-4 md:p-6 border-t border-gray-200 space-y-3 md:space-y-4">
             {/* KYC Card */}
             {!user?.id_document_url && (
-              <div className="bg-[#FAFAFA] border border-[#F0F1F2] rounded-2xl px-6 py-6 text-center">
-                <p className="text-[#0A1B39] font-bold text-sm mb-2">
+              <div className="bg-[#FAFAFA] border border-[#F0F1F2] rounded-2xl px-4 py-4 text-center">
+                <p className="text-[#0A1B39] font-bold text-xs mb-1">
                   Complete your KYC
                 </p>
-                <p className="text-[#83899F] text-sm mb-4">
+                <p className="text-[#83899F] text-xs mb-3">
                   You need to complete your KYC registration
                 </p>
                 <button
-                  onClick={onKYCClick}
-                  className="w-full h-10 bg-white border border-[#E6E7EC] rounded-xl text-[#0A1B39] text-sm font-medium hover:bg-gray-50 transition"
+                  onClick={() => {
+                    if (onKYCClick) onKYCClick();
+                    onClose();
+                  }}
+                  className="w-full h-9 bg-white border border-[#E6E7EC] rounded-xl text-[#0A1B39] text-xs font-medium hover:bg-gray-50 transition"
                 >
                   Proceed
                 </button>
@@ -141,7 +144,7 @@ const MobileMenuModal = ({
             <button
               type="button"
               onClick={() => setShowLogoutConfirm(true)}
-              className="w-full h-11 bg-[#EF4444] text-white rounded-lg shadow-sm hover:bg-red-700 transition-colors font-medium text-base"
+              className="w-full h-10 bg-[#EF4444] text-white rounded-lg shadow-sm hover:bg-red-700 transition-colors font-medium text-sm"
             >
               Log out
             </button>
@@ -149,12 +152,12 @@ const MobileMenuModal = ({
             {/* Help Center */}
             <button
               onClick={onHelpCenterClick}
-              className="w-full flex items-center bg-[#FAFAFA] border border-[#F0F1F2] rounded-xl px-5 py-4 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center bg-[#FAFAFA] border border-[#F0F1F2] rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
             >
-              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow">
                 <svg
-                  width="28"
-                  height="28"
+                  width="20"
+                  height="20"
                   viewBox="0 0 28 28"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -170,10 +173,10 @@ const MobileMenuModal = ({
                 </svg>
               </div>
               <div className="flex flex-col ml-3 flex-1 text-left">
-                <p className="text-[#0A1B39] font-bold text-sm leading-[21px]">
+                <p className="text-[#0A1B39] font-bold text-xs leading-[18px]">
                   Help Center
                 </p>
-                <p className="text-[#83899F] text-sm leading-[21px]">
+                <p className="text-[#83899F] text-xs leading-[18px]">
                   Answers here
                 </p>
               </div>

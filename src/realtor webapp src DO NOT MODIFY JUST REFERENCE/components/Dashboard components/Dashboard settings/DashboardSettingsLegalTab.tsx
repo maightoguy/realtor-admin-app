@@ -42,15 +42,15 @@ const DashboardSettingsLegalTab = () => {
       </div>
 
       {/* Legal Content Container */}
-      <div className="bg-white border border-[#EAECF0] rounded-lg p-4 sm:p-6">
+      <div className="bg-white border border-[#EAECF0] rounded-lg p-3 md:p-6">
         {/* Legal Sub-tabs */}
-        <div className="border-b border-[#EAECF0] pb-4 mb-6">
+        <div className="border-b border-[#EAECF0] pb-2 md:pb-4 mb-4 md:mb-6">
           <div className="flex overflow-x-auto scrollbar-hide gap-2">
             {legalTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleSectionClick(tab.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeSection === tab.id
                     ? "bg-[#6500AC] text-white"
                     : "bg-[#F9FAFB] text-[#667085] hover:bg-[#F0E6F7] hover:text-[#6500AC]"
@@ -63,17 +63,17 @@ const DashboardSettingsLegalTab = () => {
         </div>
 
         {/* Legal Content */}
-        <div className="space-y-8 max-h-[600px] overflow-y-auto">
+        <div className="space-y-6 md:space-y-8 max-h-[600px] overflow-y-auto">
           {legalSections.map((section) => {
             const sectionRef =
               sectionRefs[section.id as keyof typeof sectionRefs];
             return (
               <div key={section.id} ref={sectionRef} className="scroll-mt-4">
-                <h3 className="text-xl font-bold text-[#0A1B39] mb-4 border-b border-[#EAECF0] pb-2">
+                <h3 className="text-lg md:text-xl font-bold text-[#0A1B39] mb-2 md:mb-4 border-b border-[#EAECF0] pb-2">
                   {section.title}
                 </h3>
                 <div className="prose prose-sm max-w-none">
-                  <div className="whitespace-pre-line text-[#667085] leading-relaxed">
+                  <div className="whitespace-pre-line text-[#667085] leading-relaxed text-xs md:text-sm">
                     {section.content.trim()}
                   </div>
                 </div>

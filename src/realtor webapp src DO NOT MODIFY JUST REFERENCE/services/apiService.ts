@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getSupabaseClient } from './supabaseClient';
 import { authService } from './authService';
 import { logger } from '../utils/logger';
@@ -242,7 +243,7 @@ export const userService = {
         const currentBankDetails = Array.isArray(currentUser.bank_details) ? currentUser.bank_details : [];
         
         // Add new bank details
-        const updatedBankDetails = [...currentBankDetails, bankData];
+        const updatedBankDetails = [...currentBankDetails, { ...bankData, created_at: new Date().toISOString() }];
 
         const updatedUser = await this.update(userId, { bank_details: updatedBankDetails });
         logger.info('✅ [API] Bank details updated successfully');
@@ -776,31 +777,79 @@ export const referralService = {
 
     // Get referral stats
     async getReferralStats(userId: string): Promise<{ totalReferrals: number; totalCommission: number }> {
-        const { data, error } = await getSupabaseClient()
+        // 1. Get total referrals count
+        const { count, error: countError } = await getSupabaseClient()
             .from('referrals')
-            .select('commission_earned')
+            .select('*', { count: 'exact', head: true })
             .eq('upline_id', userId);
 
-        if (error) throw error;
+        if (countError) throw countError;
 
-        const totalReferrals = data?.length || 0;
-        const totalCommission = data?.reduce((sum, ref) => sum + (ref.commission_earned || 0), 0) || 0;
+        // 2. Get total referral commission
+        const { data: commissionData, error: commissionError } = await getSupabaseClient()
+            .from('commissions')
+            .select('amount')
+            .eq('realtor_id', userId)
+            .eq('commission_type', 'referral')
+            .or('status.eq.approved,status.eq.paid');
 
-        return { totalReferrals, totalCommission };
+        if (commissionError) throw commissionError;
+
+        const totalCommission = commissionData?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
+
+        return { totalReferrals: count || 0, totalCommission };
     },
 
     // Get referrals by upline ID
     async getByUplineId(
         uplineId: string
     ): Promise<(Referral & { downline?: { first_name: string | null; last_name: string | null; email?: string | null; phone_number?: string | null } | null })[]> {
-        const { data, error } = await getSupabaseClient()
+        // 1. Fetch referrals with downline details
+        const { data: referrals, error } = await getSupabaseClient()
             .from('referrals')
             .select('*, downline:users!referrals_downline_id_fkey(first_name,last_name,email,phone_number)')
             .eq('upline_id', uplineId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data || [];
+        if (!referrals?.length) return [];
+
+        try {
+            // 2. Fetch all referral commissions for this upline
+            // We need to match commissions where:
+            // - realtor_id = uplineId (the person receiving the commission)
+            // - commission_type = 'referral'
+            // - downline_id matches the referral's downline_id
+            const { data: commissions } = await getSupabaseClient()
+                .from('commissions')
+                .select('amount, downline_id')
+                .eq('realtor_id', uplineId)
+                .eq('commission_type', 'referral')
+                .or('status.eq.approved,status.eq.paid');
+
+            // 3. Aggregate commissions by downline_id
+            const commissionMap = new Map<string, number>();
+            
+            if (commissions) {
+                commissions.forEach((comm: any) => {
+                    const downlineId = comm.downline_id;
+                    if (downlineId) {
+                        const current = commissionMap.get(downlineId) || 0;
+                        commissionMap.set(downlineId, current + (Number(comm.amount) || 0));
+                    }
+                });
+            }
+
+            // 4. Merge commission data into referrals
+            return referrals.map(ref => ({
+                ...ref,
+                commission_earned: commissionMap.get(ref.downline_id) || 0
+            }));
+
+        } catch (err) {
+            logger.warn('⚠️ [API] Failed to fetch calculated commissions for referrals, falling back to stored value:', err);
+            return referrals;
+        }
     },
 
     // Get referrals by downline ID

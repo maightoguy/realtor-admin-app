@@ -1,6 +1,6 @@
 // src/components/Dashboard components/Header.tsx (updated with backend integration only)
 import { useEffect, useState } from "react";
-import { Menu, Wallet, Bell } from "lucide-react";
+import { Menu, Wallet, Bell, Eye, EyeOff } from "lucide-react";
 
 import NotificationModal from "./NotificationModal";
 import MobileMenuModal from "./MobileMenuModal";
@@ -12,6 +12,7 @@ import fallbackProfile from "../../assets/Default Profile pic.png"; // Use exist
 import { transactionService } from "../../services/transactionService";
 import { notificationService } from "../../services/apiService";
 import { authService } from "../../services/authService";
+import { getSupabaseClient } from "../../services/supabaseClient";
 import { Link } from "react-router-dom";
 
 interface HeaderProps {
@@ -26,7 +27,7 @@ const Header = ({
   activeSection,
   onSectionChange,
   onHelpCenterClick,
-  // onKYCClick,
+  onKYCClick,
   onProfileClick,
 }: HeaderProps) => {
   const { user } = useUser(); // Use context for dynamic user data from Supabase
@@ -36,6 +37,7 @@ const Header = ({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [currentBalance, setCurrentBalance] = useState<number>(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [isBalanceVisible, setIsBalanceVisible] = useState(false);
 
   const formatCurrency = (value: number) => {
     if (!Number.isFinite(value)) return "₦0";
@@ -76,13 +78,57 @@ const Header = ({
     };
 
     window.addEventListener("wallet:refresh", handleRefresh);
-    // Add a custom event listener for notification refresh if needed
     window.addEventListener("notification:refresh", handleRefresh);
+
+    // Setup Realtime Subscription
+    let channel: ReturnType<
+      ReturnType<typeof getSupabaseClient>["channel"]
+    > | null = null;
+
+    if (user?.id) {
+      const supabase = getSupabaseClient();
+      channel = supabase
+        .channel(`header-updates-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => void loadData()
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "commissions",
+            filter: `realtor_id=eq.${user.id}`,
+          },
+          () => void loadData()
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "payouts",
+            filter: `realtor_id=eq.${user.id}`,
+          },
+          () => void loadData()
+        )
+        .subscribe();
+    }
 
     return () => {
       cancelled = true;
       window.removeEventListener("wallet:refresh", handleRefresh);
       window.removeEventListener("notification:refresh", handleRefresh);
+      if (channel) {
+        void getSupabaseClient().removeChannel(channel);
+      }
     };
   }, [user?.id]);
 
@@ -99,36 +145,53 @@ const Header = ({
   return (
     <>
       <header className="bg-white shadow-sm">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-3 py-1.5 md:px-6 md:py-3 flex items-center justify-between">
           {/* Page Title (Desktop) */}
-          <span className="hidden sm:inline text-lg font-semibold text-gray-900">
+          <span className="hidden lg:inline text-lg font-semibold text-gray-900">
             {activeSection}
           </span>
 
           {/* Right Side Icons */}
-          <div className="md:hidden flex items-center min-w-0">
+          <div className="lg:hidden flex items-center min-w-0">
             <Link to="/dashboard" className="flex items-center gap-2">
               <img
                 src={VeriplotLogo}
                 alt="Veriplot logo"
-                className="h-6 w-auto"
+                className="h-3.5 w-auto md:h-5"
               />
             </Link>
           </div>
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-            <button className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 bg-purple-50 text-green-700 rounded-lg hover:bg-purple-100 text-sm md:text-base">
-              <Wallet className="w-4 h-4" />
-              <span className="max-w-[92px] truncate">
-                {formatCurrency(currentBalance)}
+            <div
+              onClick={() => onSectionChange("Transactions")}
+              className="flex items-center gap-1 md:gap-2 px-2 py-1 md:px-4 md:py-2 bg-purple-50 text-green-700 rounded-lg hover:bg-purple-100 text-xs md:text-base cursor-pointer select-none transition-colors"
+            >
+              <Wallet className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="max-w-[92px] truncate font-medium">
+                {isBalanceVisible ? formatCurrency(currentBalance) : "****"}
               </span>
-            </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsBalanceVisible(!isBalanceVisible);
+                }}
+                className="ml-1 p-0.5 hover:bg-purple-200 rounded-full focus:outline-none transition-colors"
+                title={isBalanceVisible ? "Hide balance" : "Show balance"}
+              >
+                {isBalanceVisible ? (
+                  <EyeOff className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                ) : (
+                  <Eye className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                )}
+              </button>
+            </div>
             <button
               onClick={() => setIsNotificationOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded-full relative"
+              className="p-1.5 md:p-2 hover:bg-gray-100 rounded-full relative"
             >
-              <Bell className="w-5 h-5 text-gray-600" />
+              <Bell className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+                <span className="absolute top-0 right-0 w-1.5 h-1.5 md:w-2 md:h-2 bg-red-500 rounded-full" />
               )}
             </button>
 
@@ -147,9 +210,9 @@ const Header = ({
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-full"
+              className="lg:hidden p-1.5 hover:bg-gray-100 rounded-full"
             >
-              <Menu className="w-5 h-5 text-gray-600" />
+              <Menu className="w-4 h-4 text-gray-600" />
             </button>
           </div>
         </div>
@@ -168,6 +231,7 @@ const Header = ({
         onSectionChange={onSectionChange}
         onNotificationClick={() => setIsNotificationOpen(true)}
         onHelpCenterClick={onHelpCenterClick}
+        onKYCClick={onKYCClick}
         onLogout={() => {
           void authService.signOut();
         }}
@@ -188,8 +252,8 @@ const Header = ({
       />
 
       {/* Page Title (Mobile) */}
-      <div className="m-4">
-        <span className="md:hidden text-lg font-semibold text-gray-900">
+      <div className="mx-3 my-2 md:m-4">
+        <span className="md:hidden text-base font-semibold text-gray-900">
           {activeSection}
         </span>
       </div>

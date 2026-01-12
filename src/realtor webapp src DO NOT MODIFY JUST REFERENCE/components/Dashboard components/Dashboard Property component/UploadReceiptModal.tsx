@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef, type FC } from "react";
 import { X, Upload, Download, Check } from "lucide-react";
 import { trimValues } from "../../../utils/trim";
@@ -212,7 +213,7 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
         files,
       })
       .catch((err) => console.error("Failed to save draft on close:", err));
-    
+
     onClose();
   };
 
@@ -222,25 +223,24 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] max-h-[90vh] flex flex-col mx-auto">
         {/* Modal Header */}
-        <div className="relative p-6 pb-0 flex-shrink-0">
-          <div className="flex flex-col items-start gap-4">
+        <div className="relative p-4 md:p-6 pb-0 flex-shrink-0">
+          <div className="flex flex-col items-start gap-3 md:gap-4">
             {/* Close Button */}
             <button
               onClick={handleClose}
-              className="absolute right-6 top-6 w-11 h-11 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors flex-shrink-0"
+              className="absolute right-4 top-4 md:right-6 md:top-6 w-8 h-8 md:w-11 md:h-11 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors flex-shrink-0"
             >
-              <X className="w-6 h-6 text-gray-500" />
+              <X className="w-5 h-5 md:w-6 md:h-6 text-gray-500" />
             </button>
             {/* Receipt Icon */}
-            <div className="w-12 h-12 bg-white border border-gray-200 rounded-[10px] shadow-sm flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white border border-gray-200 rounded-[10px] shadow-sm flex items-center justify-center flex-shrink-0">
               <svg
-                width="24"
-                height="25"
+                className="w-5 h-5 md:w-6 md:h-6"
                 viewBox="0 0 24 25"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <g clip-path="url(#clip0_19524_39759)">
+                <g clipPath="url(#clip0_19524_39759)">
                   <path
                     d="M24 1.74C24 1.47478 23.8946 1.22043 23.7071 1.03289C23.5196 0.845355 23.2652 0.739998 23 0.739998H10.58C9.22 0.739998 8.58 2.01 8.58 3.21C8.58839 7.65483 8.29438 12.0951 7.7 16.5C7.69071 16.5575 7.66165 16.6099 7.61783 16.6482C7.57402 16.6866 7.5182 16.7084 7.46 16.71H4.46C2.46 16.71 2.24 18.78 2.12 20.01C2 21.98 1.73 22.25 1 22.25C0.734784 22.25 0.48043 22.3554 0.292893 22.5429C0.105357 22.7304 0 22.9848 0 23.25C0 23.5152 0.105357 23.7696 0.292893 23.9571C0.48043 24.1446 0.734784 24.25 1 24.25H12.5C14.88 24.25 15.22 21.89 15.42 20.49C15.59 19.31 15.72 18.75 16 18.75H16.41C16.4628 18.7493 16.5145 18.7654 16.5576 18.796C16.6008 18.8265 16.6331 18.8699 16.65 18.92C16.71 19.11 16.77 19.37 16.81 19.56C17.01 20.5 17.37 22.25 19.5 22.25C23.57 22.25 24 10.71 24 5.77V1.74ZM12.06 14C11.8611 14 11.6703 13.921 11.5297 13.7803C11.389 13.6397 11.31 13.4489 11.31 13.25C11.31 13.0511 11.389 12.8603 11.5297 12.7197C11.6703 12.579 11.8611 12.5 12.06 12.5H18.06C18.2589 12.5 18.4497 12.579 18.5903 12.7197C18.731 12.8603 18.81 13.0511 18.81 13.25C18.81 13.4489 18.731 13.6397 18.5903 13.7803C18.4497 13.921 18.2589 14 18.06 14H12.06ZM11.81 5.25C11.81 5.05109 11.889 4.86032 12.0297 4.71967C12.1703 4.57902 12.3611 4.5 12.56 4.5H14.56C14.7589 4.5 14.9497 4.57902 15.0903 4.71967C15.231 4.86032 15.31 5.05109 15.31 5.25C15.31 5.44891 15.231 5.63968 15.0903 5.78033C14.9497 5.92098 14.7589 6 14.56 6H12.56C12.3611 6 12.1703 5.92098 12.0297 5.78033C11.889 5.63968 11.81 5.44891 11.81 5.25ZM18.56 10H12.81C12.6111 10 12.4203 9.92098 12.2797 9.78033C12.139 9.63968 12.06 9.44891 12.06 9.25C12.06 9.05109 12.139 8.86032 12.2797 8.71967C12.4203 8.57902 12.6111 8.5 12.81 8.5H18.56C18.7589 8.5 18.9497 8.57902 19.0903 8.71967C19.231 8.86032 19.31 9.05109 19.31 9.25C19.31 9.44891 19.231 9.63968 19.0903 9.78033C18.9497 9.92098 18.7589 10 18.56 10ZM13.43 20.2C13.18 21.97 12.98 22.25 12.49 22.25H4.11C4.07158 22.248 4.03399 22.238 3.99958 22.2208C3.96517 22.2036 3.93468 22.1795 3.91 22.15C3.8954 22.1169 3.88786 22.0812 3.88786 22.045C3.88786 22.0088 3.8954 21.9731 3.91 21.94C4.04673 21.3851 4.13704 20.8198 4.18 20.25C4.19028 19.7413 4.2849 19.2378 4.46 18.76H13.46C13.4977 18.7604 13.5348 18.7693 13.5686 18.7861C13.6024 18.8029 13.6319 18.8271 13.655 18.8569C13.6781 18.8868 13.6941 18.9214 13.7019 18.9583C13.7097 18.9952 13.7091 19.0334 13.7 19.07C13.54 19.5 13.48 19.85 13.43 20.2Z"
                     fill="black"
@@ -261,10 +261,10 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
 
             {/* Title and Description */}
             <div className="flex-1">
-              <h2 className="text-base font-bold text-black mb-1">
+              <h2 className="text-sm md:text-base font-bold text-black mb-1">
                 Upload Receipt
               </h2>
-              <p className="text-sm text-gray-500 leading-5">
+              <p className="text-xs md:text-sm text-gray-500 leading-5">
                 Please Kindly fill the form below to to upload necessary
                 documents, that have been requested
               </p>
@@ -273,13 +273,13 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
         </div>
 
         {/* Modal Content */}
-        <div className="px-6 py-5 overflow-y-auto flex-1">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="px-4 md:px-6 py-4 md:py-5 overflow-y-auto flex-1">
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
             {/* Form Fields */}
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {/* Client Name Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-500">
+                <label className="text-xs md:text-sm font-medium text-gray-500">
                   Client name
                 </label>
                 <div className="relative">
@@ -288,7 +288,7 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
                     placeholder="Enter client's full name"
-                    className="w-full h-14 px-4 bg-gray-50 border border-gray-100 rounded-md text-sm font-medium text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full h-10 md:h-12 px-3 md:px-4 bg-gray-50 border border-gray-100 rounded-md text-xs md:text-sm font-medium text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -296,7 +296,7 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
 
               {/* Amount Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-500">
+                <label className="text-xs md:text-sm font-medium text-gray-500">
                   Amount
                 </label>
                 <div className="relative">
@@ -305,7 +305,7 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="Enter amount paid"
-                    className="w-full h-14 px-4 bg-gray-50 border border-gray-100 rounded-md text-sm font-medium text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full h-10 md:h-12 px-3 md:px-4 bg-gray-50 border border-gray-100 rounded-md text-xs md:text-sm font-medium text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     required
                   />
                 </div>
@@ -313,8 +313,8 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
             </div>
 
             {/* Upload Instructions */}
-            <div className="bg-purple-50 border border-purple-200 rounded-[10px] p-4">
-              <p className="text-sm font-medium text-purple-800">
+            <div className="bg-purple-50 border border-purple-200 rounded-[10px] p-3 md:p-4">
+              <p className="text-xs md:text-sm font-medium text-purple-800">
                 Click on upload to add all documents, you can upload more 1 at a
                 time
               </p>
@@ -322,7 +322,7 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
 
             {/* File Upload Area */}
             <div
-              className={`relative border-2 border-dashed rounded-[10px] p-4 transition-colors ${
+              className={`relative border-2 border-dashed rounded-[10px] p-3 md:p-4 transition-colors ${
                 dragActive
                   ? "border-purple-400 bg-purple-50"
                   : "border-gray-100 bg-gray-50"
@@ -332,18 +332,18 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
               onDragOver={handleDrag}
               onDrop={handleDrop}
             >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
                 {/* Upload Icon */}
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Upload className="w-6 h-6 text-gray-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Upload className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
                 </div>
 
                 {/* Upload Text */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-semibold text-black mb-1">
+                  <h3 className="text-sm md:text-base font-semibold text-black mb-1">
                     Upload your documents
                   </h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
                     <span>PDF format</span>
                     <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                     <span>Max. 5MB</span>
@@ -351,7 +351,7 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
                 </div>
 
                 {/* Upload Button */}
-                <label className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer hover:bg-purple-700 transition-colors flex-shrink-0 w-full sm:w-auto text-center">
+                <label className="bg-purple-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-semibold cursor-pointer hover:bg-purple-700 transition-colors flex-shrink-0 w-full md:w-auto text-center">
                   Upload
                   <input
                     type="file"

@@ -48,6 +48,17 @@ const LoginPage = () => {
     };
   }, [searchParams]);
 
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await authService.signInWithGoogle();
+      if (error) {
+        logger.error("Google login failed", error);
+      }
+    } catch (err) {
+      logger.error("Google login exception", err);
+    }
+  };
+
   // === STEP FLOW ===
   return (
     <AuthLayout>
@@ -55,6 +66,7 @@ const LoginPage = () => {
       {step === "login" && (
         <LoginForm
           onForgot={() => setStep("forgot")}
+          onGoogle={handleGoogleLogin}
           onSuccess={(email) => {
             logger.info(
               "✅ [LOGIN PAGE] Login successful, navigating to dashboard",

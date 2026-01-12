@@ -930,8 +930,17 @@ export const commissionService = {
   }): Promise<Commission> {
     try {
       const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error("No active session found. Please log in again.");
+      }
+
       const { data, error } = await supabase.functions.invoke("admin-update-commission-status", {
         body: { id: params.id, status: params.status },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
       if (error) throw error;
       if (!data || typeof data !== "object" || !("data" in data)) {

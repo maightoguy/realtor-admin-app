@@ -24,9 +24,11 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUser = async () => {
+  const fetchUser = async (showLoader = true) => {
     try {
-      setLoading(true);
+      if (showLoader) {
+        setLoading(true);
+      }
       setError(null);
 
       // Get current session/auth user
@@ -53,22 +55,33 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load profile";
 
+      // Only set error if we were showing loader, otherwise silent fail or toast?
+      // For now, let's keep setting error state but maybe not block if we have stale data?
+      // Actually, if session check fails, we probably should handle it.
+      // But if it's a background check and fails, maybe we shouldn't logout immediately unless it's a 401.
+
       setError(errorMessage);
-      setUser(null);
+      if (showLoader) {
+        setUser(null);
+      }
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchUser();
+    // Initial load - show loader
+    fetchUser(true);
 
     // Optional: Listen for auth changes
     const { data: authListener } = authService.onAuthStateChange(
       (event, _session) => {
         // Only refresh user data on explicit SIGNED_IN event or when session changes substantially
         if (event === "SIGNED_IN") {
-          fetchUser();
+          // Silent refresh on auth state change (e.g. tab focus)
+          fetchUser(false);
         } else if (event === "SIGNED_OUT") {
           setUser(null);
         } else if (event === "TOKEN_REFRESHED") {
@@ -88,7 +101,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 
   return (
     <UserContext.Provider
-      value={{ user, loading, error, refreshUser: fetchUser }}
+      value={{ user, loading, error, refreshUser: () => fetchUser(false) }}
     >
       {children}
     </UserContext.Provider>

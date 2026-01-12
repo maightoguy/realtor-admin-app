@@ -79,41 +79,41 @@ const ImageViewerModal: FC<ImageViewerModalProps> = ({
         <>
           <button
             onClick={prevImage}
-            className="absolute left-20 top-150 md:left-40  md:top-1/2 -translate-y-1/2 w-7 h-7 bg-neutral-500 rounded-full flex items-center justify-center shadow-lg hover:bg-white active:bg-gray-50 transition-colors z-100"
+            className="absolute left-2 top-1/2 md:left-4 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg hover:bg-white/20 transition-colors z-20"
           >
-            <ChevronLeft className="w-4 h-4 text-gray-700" />
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </button>
           <button
             onClick={nextImage}
-            className="absolute right-20 top-150 md:right-40  md:top-1/2 -translate-y-1/2 w-7 h-7 bg-neutral-500 rounded-full flex items-center justify-center shadow-lg hover:bg-white active:bg-gray-50 transition-colors"
+            className="absolute right-2 top-1/2 md:right-4 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg hover:bg-white/20 transition-colors z-20"
           >
-            <ChevronRight className="w-4 h-4 text-gray-700" />
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white" />
           </button>
         </>
       )}
-      <div className="absolute top-53 right-1 md:top-18 md:right-50 z-10">
+      <div className="absolute top-4 right-4 z-20">
         <button
           onClick={onClose}
-          className="w-7 h-7 bg-neutral-500 rounded-lg flex items-center justify-center shadow-lg hover:bg-gray-50 active:bg-gray-50 transition-colors"
+          className="w-8 h-8 md:w-10 md:h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg hover:bg-white/20 transition-colors"
         >
-          <X className="w-4 h-4 text-gray-700" />
+          <X className="w-5 h-5 md:w-6 md:h-6 text-white" />
         </button>
       </div>
-      <div className="relative w-full max-w-4xl mx-4 max-h-[90vh] rounded-2xl overflow-hidden">
+      <div className="relative w-full max-w-4xl mx-4 max-h-[90vh] rounded-2xl overflow-hidden bg-black">
         {/* Header */}
 
         {/* Main Image Container */}
-        <div className="relative">
+        <div className="relative flex items-center justify-center bg-black">
           {/* Main Image */}
-          <div className="relative h-64 sm:h-80 lg:h-96">
+          <div className="relative w-full h-64 md:h-96 lg:h-[32rem]">
             <img
               src={images[currentIndex]}
               alt={`Property image ${currentIndex + 1}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
 
             {/* Image Counter */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-sm px-3 py-1 rounded-full">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs md:text-sm px-3 py-1 rounded-full backdrop-blur-sm">
               {currentIndex + 1} / {images.length}
             </div>
           </div>

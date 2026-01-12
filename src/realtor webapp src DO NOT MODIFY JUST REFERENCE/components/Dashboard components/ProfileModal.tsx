@@ -42,7 +42,7 @@ const ProfileModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+        <div className="flex items-center justify-between p-3 md:p-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
               <img
@@ -52,11 +52,11 @@ const ProfileModal = ({
               />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-base md:text-lg font-semibold text-gray-900">
                 {user ? `${user.first_name} ${user.last_name}` : "John Doe"}{" "}
                 {/* Dynamic name */}
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs md:text-sm text-gray-500">
                 {user?.email || "ookon@veriplot.com"} {/* Dynamic email */}
               </p>
             </div>
@@ -66,7 +66,7 @@ const ProfileModal = ({
               onClose();
               if (onProfileClick) onProfileClick();
             }}
-            className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
+            className="w-full flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
           ></button>
         </div>
 
@@ -75,10 +75,10 @@ const ProfileModal = ({
           {/* My Profile */}
           <button
             onClick={onProfileClick}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 md:px-4 md:py-3 text-left hover:bg-gray-50 transition-colors"
           >
             <User className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-900">My profile</span>
+            <span className="text-sm md:text-base text-gray-900">My profile</span>
           </button>
 
           {/* Divider */}
@@ -87,10 +87,10 @@ const ProfileModal = ({
           {/* Logout */}
           <button
             onClick={() => setShowLogoutConfirm(true)}
-            className="w-full flex items-center gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
+            className="w-full flex items-center gap-3 p-3 md:p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
           >
             <LogOut className="w-5 h-5 text-gray-600" />
-            <span className="text-gray-900">Log-out</span>
+            <span className="text-sm md:text-base text-gray-900">Log-out</span>
           </button>
         </div>
       </div>

@@ -18,6 +18,7 @@ export interface ReceiptWithProperty extends Omit<Receipt, 'status'> {
     amount_paid: number;
     receipt_urls: string[]; 
     status: ReceiptStatus; // This tells TS that 'under_review' is now valid
+    rejection_reason?: string | null;
 }
 
 export interface ReceiptInsert {

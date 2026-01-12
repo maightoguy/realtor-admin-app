@@ -27,16 +27,20 @@ const MetricCard = ({
   title: string;
   value: string | number | null;
 }) => (
-  <div className="bg-[#FAFAFA] border border-[#F0F1F2] rounded-lg p-5 flex flex-col gap-3 w-full">
+  <div className="bg-[#FAFAFA] border border-[#F0F1F2] rounded-lg p-3 md:p-5 flex flex-col gap-2 md:gap-3 w-full">
     <div className="flex items-center gap-2">
       <div
-        className={`w-[30px] h-[30px] rounded-full border-[4.5px] ${ring} ${bg} relative`}
+        className={`w-[20px] h-[20px] md:w-[30px] md:h-[30px] rounded-full border-[3px] md:border-[4.5px] ${ring} ${bg} relative`}
       >
-        <span className={`absolute inset-[6px] rounded-full ${dot}`}></span>
+        <span
+          className={`absolute inset-[4px] md:inset-[6px] rounded-full ${dot}`}
+        ></span>
       </div>
-      <p className="text-sm font-medium text-[#101828]">{title}</p>
+      <p className="text-[10px] md:text-sm font-medium text-[#101828]">
+        {title}
+      </p>
     </div>
-    <p className="text-2xl leading-9 font-medium text-[#101828]">
+    <p className="text-lg md:text-2xl leading-7 md:leading-9 font-medium text-[#101828]">
       {value ?? "0"}
     </p>
   </div>
@@ -180,9 +184,9 @@ const DashboardReceipts = ({
   };
 
   return (
-    <div className="px-6 py-6 space-y-6">
+    <div className="px-3 py-3 md:px-6 md:py-6 space-y-4 md:space-y-6">
       {/* 4. Restore Metric Cards with Real Database Counts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 md:gap-4">
         <MetricCard
           bg="bg-[#CFB0E5]"
           ring="border-[#F0E6F7]"
@@ -222,24 +226,26 @@ const DashboardReceipts = ({
 
       <div className="bg-white border border-[#EAECF0] rounded-lg shadow-sm">
         {/* Restore Original Header Layout */}
-        <div className="px-6 py-5 border-b border-[#EAECF0] flex flex-col sm:flex-row justify-between gap-3">
+        <div className="px-3 py-3 md:px-6 md:py-5 border-b border-[#EAECF0] flex flex-col sm:flex-row justify-between gap-3">
           <div>
-            <p className="text-[18px] font-medium text-[#101828]">Receipts</p>
-            <p className="text-sm text-[#667085]">
+            <p className="text-base md:text-[18px] font-medium text-[#101828]">
+              Receipts
+            </p>
+            <p className="text-xs md:text-sm text-[#667085]">
               Keep track of your Receipts in this table
             </p>
           </div>
         </div>
 
         {/* Restore Filter Tabs */}
-        <div className="px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide lg:flex-wrap lg:overflow-visible -mx-4 px-4 pb-2">
+        <div className="px-3 py-3 md:px-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide lg:flex-wrap lg:overflow-visible -mx-3 px-3 md:-mx-4 md:px-4 pb-2">
             {["All", "Approved", "Rejected", "Pending", "Under review"].map(
               (label) => (
                 <button
                   key={label}
                   onClick={() => setActiveFilter(label)}
-                  className={`px-4 py-2 rounded-[10px] border text-sm font-medium transition-all whitespace-nowrap ${
+                  className={`px-2.5 py-1.5 md:px-4 md:py-2 rounded-[10px] border text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
                     activeFilter === label
                       ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                       : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA]"
@@ -264,14 +270,14 @@ const DashboardReceipts = ({
             <Loader text="Loading your receipts..." />
           </div>
         ) : filteredReceipts.length === 0 ? (
-          <div className="px-6 py-10 flex flex-col items-center justify-center gap-5">
-            <img src={Allicon} alt="Empty" className="w-[185px]" />
-            <p className="text-sm font-medium text-[#6B7280]">
+          <div className="px-4 py-8 md:px-6 md:py-10 flex flex-col items-center justify-center gap-3 md:gap-5">
+            <img src={Allicon} alt="Empty" className="w-16 md:w-[185px]" />
+            <p className="text-xs md:text-sm font-medium text-[#6B7280] text-center">
               You haven’t uploaded any Receipts yet!
             </p>
             <button
               onClick={onGoToProperties}
-              className="px-5 py-3 rounded-lg bg-[#6500AC] text-white text-sm font-medium"
+              className="px-4 py-1.5 md:px-5 md:py-3 rounded-lg bg-[#6500AC] text-white text-xs md:text-sm font-medium shadow-sm"
             >
               Explore Properties
             </button>
@@ -291,11 +297,11 @@ const DashboardReceipts = ({
                     <th className="px-6 py-3"></th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedReceipts.map((r) => (
                     <tr
                       key={r.id}
-                      className="border-b border-[#EAECF0] hover:bg-gray-50"
+                      className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-6 py-3 font-medium text-[#0A1B39]">
                         {r.property?.title}
@@ -327,32 +333,32 @@ const DashboardReceipts = ({
             </div>
 
             {/* Mobile View - Restored */}
-            <div className="md:hidden px-6 pb-4 space-y-4">
+            <div className="md:hidden px-3 pb-3 space-y-3">
               {paginatedReceipts.map((r) => (
                 <div
                   key={r.id}
-                  className="border border-[#E9EAEB] rounded-lg p-4"
+                  className="border border-[#E9EAEB] rounded-lg p-2 bg-white shadow-sm"
                 >
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="font-semibold text-[#0A1B39]">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <p className="font-semibold text-xs md:text-sm text-[#0A1B39] truncate pr-2">
                       {r.property?.title}
                     </p>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusStyles(
+                      className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusStyles(
                         r.status
                       )}`}
                     >
                       {formatStatus(r.status)}
                     </span>
                   </div>
-                  <div className="text-sm text-[#667085] space-y-1">
+                  <div className="text-[10px] md:text-xs text-[#667085] space-y-0.5">
                     <p>Client: {r.client_name}</p>
                     <p>Amount: {formatCurrency(r.amount_paid)}</p>
                     <p>Date: {formatDate(r.created_at)}</p>{" "}
                   </div>
                   <button
                     onClick={() => setSelectedReceipt(r)}
-                    className="mt-3 text-[#6500AC] font-medium text-sm hover:underline"
+                    className="w-full mt-2 py-1 border border-[#EAECF0] rounded-lg text-[10px] md:text-xs font-medium text-[#344054] hover:bg-gray-50 transition-colors"
                   >
                     View details
                   </button>

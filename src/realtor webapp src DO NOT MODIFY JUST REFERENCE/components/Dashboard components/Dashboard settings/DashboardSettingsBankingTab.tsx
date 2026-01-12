@@ -30,6 +30,22 @@ const DashboardSettingsBankingTab = () => {
 
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
+  // Helper to format date
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Recently";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Recently";
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return "Recently";
+    }
+  };
+
   // Sync bank details from user profile
   useEffect(() => {
     if (user?.bank_details && Array.isArray(user.bank_details)) {
@@ -39,7 +55,9 @@ const DashboardSettingsBankingTab = () => {
           accountName: detail.accountName || "",
           accountNumber: detail.accountNo || "",
           bankName: detail.bankName || "",
-          dateAdded: detail.dateAdded || "Recently", // Fallback since we don't store date yet
+          dateAdded: detail.created_at
+            ? formatDate(detail.created_at)
+            : detail.dateAdded || "Recently",
         })
       );
       setBankAccounts(mappedAccounts);
@@ -134,8 +152,10 @@ const DashboardSettingsBankingTab = () => {
       {/* Bank Account Header */}
       <div className="sm:flex sm:flex-row sm:justify-between space-y-4">
         <div className="flex flex-col">
-          <h2 className="text-lg font-semibold text-[#0A1B39]">Bank account</h2>
-          <p className="text-sm text-[#667085]">
+          <h2 className="text-base sm:text-lg font-semibold text-[#0A1B39]">
+            Bank account
+          </h2>
+          <p className="text-xs sm:text-sm text-[#667085]">
             Manage your bank accounts here
           </p>
         </div>
@@ -143,7 +163,7 @@ const DashboardSettingsBankingTab = () => {
         <div className="flex sm:justify-end sm:p-3">
           <button
             onClick={() => setShowBankModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#6500AC] text-white rounded-lg hover:bg-[#5C009D] transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#6500AC] text-white text-xs sm:text-sm rounded-lg hover:bg-[#5C009D] transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add bank details
@@ -210,28 +230,30 @@ const DashboardSettingsBankingTab = () => {
           </div>
 
           {/* Mobile Card View */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-2">
             {paginatedAccounts.map((account) => (
               <div
                 key={account.id}
-                className="bg-white border border-[#EAECF0] rounded-lg p-4 space-y-3"
+                className="bg-white border border-[#EAECF0] rounded-lg p-2.5 sm:p-4 space-y-2"
               >
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <h3 className="font-medium text-[#0A1B39]">
+                    <h3 className="font-medium text-sm sm:text-base text-[#0A1B39]">
                       {account.accountName}
                     </h3>
-                    <p className="text-sm text-[#667085]">
+                    <p className="text-xs sm:text-sm text-[#667085]">
                       {account.accountNumber}
                     </p>
-                    <p className="text-sm text-[#667085]">{account.bankName}</p>
-                    <p className="text-xs text-[#9CA3AF]">
+                    <p className="text-xs sm:text-sm text-[#667085]">
+                      {account.bankName}
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-[#9CA3AF]">
                       Added {account.dateAdded}
                     </p>
                   </div>
                   <button
                     onClick={() => handleRequestDeleteBankAccount(account)}
-                    className="p-2 text-[#DC2626] hover:bg-[#FEE2E2] rounded-lg transition-colors"
+                    className="p-1.5 sm:p-2 text-[#DC2626] hover:bg-[#FEE2E2] rounded-lg transition-colors"
                     title="Delete bank account"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -253,18 +275,18 @@ const DashboardSettingsBankingTab = () => {
       ) : (
         /* Empty State */
         <div className="text-center py-12">
-          <div className="w-24 h-24 mx-auto mb-4 bg-[#F9FAFB] rounded-lg flex items-center justify-center">
+          <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-[#F9FAFB] rounded-lg flex items-center justify-center">
             <img src={plugicon} alt="" />
           </div>
-          <h3 className="text-lg font-medium text-[#0A1B39] mb-2">
+          <h3 className="text-sm sm:text-lg font-medium text-[#0A1B39] mb-2">
             You haven't added any bank details yet!
           </h3>
-          <p className="text-sm text-[#667085] mb-6">
+          <p className="text-xs sm:text-sm text-[#667085] mb-6">
             Add your bank account details to start receiving payments
           </p>
           <button
             onClick={() => setShowBankModal(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#6500AC] text-white rounded-lg hover:bg-[#5C009D] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-[#6500AC] text-white text-xs sm:text-sm rounded-lg hover:bg-[#5C009D] transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add bank details

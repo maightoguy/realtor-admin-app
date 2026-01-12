@@ -137,30 +137,30 @@ const ManualLocationModal = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-white w-[480px] max-w-[90%] rounded-2xl shadow-xl p-6 font-poppins"
+        className="bg-white w-[480px] max-w-[90%] rounded-2xl shadow-xl p-4 md:p-6 font-poppins"
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="font-bold text-[16px] text-black">
+            <h2 className="font-bold text-sm md:text-base text-black">
               Select Location Manually
             </h2>
-            <p className="text-[14px] text-[#6B7280]">
+            <p className="text-xs md:text-sm text-[#6B7280]">
               Choose a state and city manually
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-2xl text-[#717680] hover:bg-gray-100 rounded-lg w-10 h-10 flex justify-center items-center"
+            className="text-xl md:text-2xl text-[#717680] hover:bg-gray-100 rounded-lg w-8 h-8 md:w-10 md:h-10 flex justify-center items-center"
           >
             ×
           </button>
         </div>
 
         {/* Form */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 md:gap-4">
           <div>
-            <label className="text-[#6B7280] text-[14px]">State</label>
+            <label className="text-[#6B7280] text-xs md:text-sm">State</label>
             <select
               value={state}
               onChange={(e) => {
@@ -169,7 +169,7 @@ const ManualLocationModal = ({
                 setCity("");
                 setLGA("");
               }}
-              className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-md p-3 text-[14px] w-full"
+              className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-md p-2 md:p-3 text-xs md:text-sm w-full"
             >
               <option value="">Select State</option>
               {availableStates.map((s) => (
@@ -181,7 +181,7 @@ const ManualLocationModal = ({
           </div>
 
           <div>
-            <label className="text-[#6B7280] text-[14px]">City</label>
+            <label className="text-[#6B7280] text-xs md:text-sm">City</label>
             <select
               value={city}
               onChange={(e) => {
@@ -189,7 +189,7 @@ const ManualLocationModal = ({
                 setCity(nextCity);
                 setLGA("");
               }}
-              className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-md p-3 text-[14px] w-full"
+              className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-md p-2 md:p-3 text-xs md:text-sm w-full"
               disabled={!state}
             >
               <option value="">Select City</option>
@@ -202,11 +202,11 @@ const ManualLocationModal = ({
           </div>
 
           <div>
-            <label className="text-[#6B7280] text-[14px]">LGA</label>
+            <label className="text-[#6B7280] text-xs md:text-sm">LGA</label>
             <select
               value={LGA}
               onChange={(e) => setLGA(e.target.value)}
-              className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-md p-3 text-[14px] w-full"
+              className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-md p-2 md:p-3 text-xs md:text-sm w-full"
               disabled={!state || !city}
             >
               <option value="">Select LGA</option>
@@ -220,16 +220,16 @@ const ManualLocationModal = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-between mt-6">
+        <div className="flex justify-between mt-4 md:mt-6">
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-white border border-[#D5D7DA] rounded-lg font-medium text-[#414651]"
+            className="px-4 py-2 md:px-6 md:py-3 bg-white border border-[#D5D7DA] rounded-lg font-medium text-[#414651] text-sm md:text-base"
           >
             Cancel
           </button>
           <button
             onClick={handleApply}
-            className="px-6 py-3 bg-[#6500AC] text-white rounded-lg font-medium"
+            className="px-4 py-2 md:px-6 md:py-3 bg-[#6500AC] text-white rounded-lg font-medium text-sm md:text-base"
           >
             Apply Location
           </button>

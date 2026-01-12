@@ -79,7 +79,7 @@ const DashboardSettingsSecurityTab = () => {
       </div>
 
       {/* Password Update Form */}
-      <div className=" bg-white border border-[#EAECF0] rounded-lg p-4 sm:p-6 space-y-6">
+      <div className=" bg-white border border-[#EAECF0] rounded-lg p-3 md:p-6 space-y-4 md:space-y-6">
         <div className="space-y-4">
           {/* New Password Field */}
           <div className="space-y-2">
@@ -94,7 +94,7 @@ const DashboardSettingsSecurityTab = () => {
                   handleInputChange("newPassword", e.target.value)
                 }
                 placeholder="Input Password"
-                className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                className="w-full px-3 py-2 md:px-4 md:py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
               <button
                 type="button"
@@ -128,7 +128,7 @@ const DashboardSettingsSecurityTab = () => {
                   handleInputChange("confirmPassword", e.target.value)
                 }
                 placeholder="Enter Password again"
-                className="w-full px-4 py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                className="w-full px-3 py-2 md:px-4 md:py-3 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
               <button
                 type="button"
@@ -150,11 +150,11 @@ const DashboardSettingsSecurityTab = () => {
         </div>
 
         {/* Update Password Button */}
-        <div className="pt-4">
+        <div className="pt-2 md:pt-4">
           <button
             onClick={handleUpdatePassword}
             disabled={!isFormValid || isLoading}
-            className={`w-full px-6 py-3 rounded-lg font-medium transition-colors ${
+            className={`w-full px-4 py-2 md:px-6 md:py-3 rounded-lg font-medium transition-colors ${
               isFormValid && !isLoading
                 ? "bg-[#6500AC] text-white hover:bg-[#5C009D]"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"

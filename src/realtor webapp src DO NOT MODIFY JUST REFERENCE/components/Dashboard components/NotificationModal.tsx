@@ -187,7 +187,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             notifications.map((item, index) => (
               <div
                 key={item.id}
-                className={`flex gap-4 p-4 ${
+                className={`flex gap-3 md:gap-4 p-3 md:p-4 ${
                   index < notifications.length - 1
                     ? "border-b border-gray-100"
                     : ""

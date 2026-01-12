@@ -1,4 +1,4 @@
-INSERT INTO "public"."favorites" ("id", "user_id", "property_id", "created_at") VALUES ('19f249c6-834a-4fae-80f4-ad48f9257ecf', '3e5b64dc-902d-4a97-888d-ebc61b873fcc', 'f6cdd2b7-d602-4724-8ad4-b92173a2f5cc', '2025-12-30 17:59:10.613432+00');
+INSERT INTO "public"."favorites" ("id", "user_id", "property_id", "created_at") VALUES ('36047fe1-3976-437b-a10d-74f55f87e3f9', 'f9e51c9a-3cd8-432c-9fd6-97ea76180494', '700dcefe-b03e-4b09-9f2a-6a525610b94e', '2026-01-02 17:41:29.947824+00');
 
 
 create table public.favorites (
@@ -34,5 +34,21 @@ create table public.favorites (
     "applied_to": "{public}",
     "using_expression": "(auth.uid() = user_id)",
     "check_expression": null
+  }
+]
+
+
+
+[
+  {
+    "users_table_foreign_keys": [
+      {
+        "local_table": "favorites",
+        "local_column": "property_id",
+        "referenced_table": "properties",
+        "referenced_column": "id",
+        "constraint_name": "favorites_property_id_fkey"
+      }
+    ]
   }
 ]

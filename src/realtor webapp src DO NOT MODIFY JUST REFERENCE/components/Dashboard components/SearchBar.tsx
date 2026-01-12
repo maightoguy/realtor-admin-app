@@ -25,10 +25,9 @@ const SearchBar = ({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {/* Input Group */}
-      <div className="flex items-center bg-[#FAFAFA] border border-[#F0F1F2] rounded-[10px] px-3 py-2 gap-2 flex-grow shadow-sm h-[40px] transition-all focus-within:border-purple-300 focus-within:ring-2 focus-within:ring-purple-100">
+      <div className="flex items-center bg-[#FAFAFA] border border-[#F0F1F2] rounded-[10px] px-2 md:px-3 py-1 md:py-2 gap-2 flex-grow shadow-sm h-8 md:h-10 transition-all focus-within:border-purple-300 focus-within:ring-2 focus-within:ring-purple-100">
         <svg
-          width="16"
-          height="16"
+          className="w-3 h-3 md:w-4 md:h-4"
           viewBox="0 0 14 14"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -43,7 +42,7 @@ const SearchBar = ({
         <input
           type="text"
           placeholder={placeholder}
-          className="flex-grow w-full outline-none bg-transparent text-[#101828] text-[14px] font-medium font-poppins placeholder:text-[#9CA3AF]"
+          className="flex-grow w-full outline-none bg-transparent text-[#101828] text-xs md:text-sm font-medium font-poppins placeholder:text-[#9CA3AF]"
           onChange={handleInputChange}
           value={query}
         />
@@ -53,11 +52,10 @@ const SearchBar = ({
       {onFilterClick && (
         <button
           onClick={onFilterClick}
-          className="flex items-center justify-center w-[40px] h-[40px] bg-[#FAFAFA] border border-[#F0F1F2] rounded-[10px] hover:bg-gray-50 active:bg-gray-100 transition-colors flex-shrink-0"
+          className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-[#FAFAFA] border border-[#F0F1F2] rounded-[10px] hover:bg-gray-50 active:bg-gray-100 transition-colors flex-shrink-0"
         >
           <svg
-            width="24"
-            height="24"
+            className="w-5 h-5 md:w-6 md:h-6"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"

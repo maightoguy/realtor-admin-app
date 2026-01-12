@@ -19,7 +19,7 @@ export default function Contact() {
         {/* Right Section (Cards) */}
         <div className="flex flex-col md:flex-row gap-6 flex-1">
           {/* Email Card */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-25 flex-1">
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-5 md:gap-25 flex-1">
             <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center">
               {/* Email icon */}
               <svg
@@ -54,7 +54,7 @@ export default function Contact() {
           </div>
 
           {/* Address Card */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-25 flex-1">
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-5 md:gap-25 flex-1">
             <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center ">
               {/* Location icon */}
               <svg
@@ -89,7 +89,7 @@ export default function Contact() {
           </div>
 
           {/* Phone Card */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-25 flex-1">
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-5 md:gap-25 flex-1">
             <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center">
               {/* Phone icon */}
               <svg
