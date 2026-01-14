@@ -37,8 +37,8 @@ const MobileMenuModal = ({
     onClose();
   };
 
-  const handleLogout = () => {
-    if (onLogout) onLogout();
+  const handleLogout = async () => {
+    if (onLogout) await onLogout();
     setShowLogoutConfirm(false);
     onClose();
     navigate("/login");

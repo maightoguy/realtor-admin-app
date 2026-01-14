@@ -46,6 +46,9 @@ const AdminDashboardPage = () => {
 
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
+  // Use idle timeout hook (15 minutes)
+  useIdleTimeout(15 * 60 * 1000);
+
   const refreshSessionAndUser = useCallback(
     async (reason: string) => {
       if (refreshInFlightRef.current) return;

@@ -3,8 +3,11 @@ import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 import LandingMobileMenuModal from "./LandingMobileMenuModal";
+import { useUser } from "../context/UserContext";
+
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useUser();
 
   return (
     <nav
@@ -17,11 +20,13 @@ const Navbar = () => {
     >
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <img
-          src={VeriplotLogo}
-          alt="Veriplot logo"
-          className="h-8 w-auto md:h-9"
-        />
+        <Link to="/">
+          <img
+            src={VeriplotLogo}
+            alt="Veriplot logo"
+            className="h-8 w-auto md:h-9"
+          />
+        </Link>
       </div>
 
       <button
@@ -40,18 +45,29 @@ const Navbar = () => {
         {/* Login + Create Account buttons */}
 
         <div className="flex items-center gap-3 ml-6">
-          <Link
-            to="/login"
-            className="px-5 py-2 border border-gray-200 rounded-lg text-gray-600 font-semibold hover:bg-gray-50"
-          >
-            Log in
-          </Link>
-          <Link
-            to="/register"
-            className="px-5 py-2 bg-purple-700 text-white rounded-lg shadow hover:bg-purple-800"
-          >
-            Create account
-          </Link>
+          {user ? (
+            <Link
+              to="/dashboard"
+              className="px-5 py-2 bg-[#6500AC] text-white rounded-lg shadow hover:bg-purple-800 font-medium transition-colors"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="px-5 py-2 border border-gray-200 rounded-lg text-gray-600 font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/register"
+                className="px-5 py-2 bg-purple-700 text-white rounded-lg shadow hover:bg-purple-800 transition-colors"
+              >
+                Create account
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

@@ -6,11 +6,21 @@ import ResetPasswordForm from "../components/auth/ResetPasswordForm";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "../utils/logger";
 import { authService } from "../services";
+import { useUser } from "../context/UserContext";
 
 const LoginPage = () => {
   const [step, setStep] = useState<"login" | "forgot" | "reset">("login");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useUser();
+
+  // If already logged in, redirect to dashboard
+  useEffect(() => {
+    if (user) {
+      logger.info("✅ [LOGIN PAGE] User already logged in, redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     // Listen for Supabase auth events (especially password recovery)

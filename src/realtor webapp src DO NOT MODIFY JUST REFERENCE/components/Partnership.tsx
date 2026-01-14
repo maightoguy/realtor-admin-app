@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   Building2,
   Handshake,
   ShieldCheck,
@@ -82,29 +81,31 @@ const Partnership = () => {
       </div>
 
       {/* CTA Section - "Why Partner With Us?" + CTA */}
-      <div className="bg-[#FBF8FD] rounded-3xl p-8 md:p-12 border border-purple-50 overflow-hidden relative">
+      <div className="bg-[#FBF8FD] rounded-3xl p-2 md:p-12 border border-purple-50 overflow-hidden relative">
         {/* Decorative background element */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-purple-100 rounded-full blur-3xl opacity-20 -mr-16 -mt-16 pointer-events-none"></div>
 
         <div className="flex flex-col lg:flex-row gap-12 items-center relative z-10">
           {/* Text Content */}
           <div className="flex-1 space-y-8">
-            <div className="space-y-4">
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">
+            <div className="space-y-8">
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 text-center">
                 Become a VeriPlot Partner
               </h3>
-              <p className="text-gray-600 leading-relaxed max-w-2xl">
-                List your properties on VeriPlot and get them marketed by a
-                network of verified realtors. We help developers increase
-                visibility, close deals faster, and track sales transparently.
+              <p className="text-gray-500 text-sm md:text-lg leading-relaxed text-center">
+                Partner with VeriPlot and leverage a trusted network of realtors
+                to market and sell your verified properties with confidence. We
+                help developers expand market reach, accelerate sales, and
+                monitor transactions through a transparent, technology-driven
+                platform.
               </p>
               <h3 className="text-gray-650 font-bold leading-relaxed max-w-2xl">
                 Why partner with us:
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6  text-center">
+              <div className="flex flex-col gap-2 items-center">
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-[#5E17EB]">
                   <Users size={20} />
                 </div>
@@ -112,31 +113,34 @@ const Partnership = () => {
                   Wider Reach
                 </h4>
                 <p className="text-xs text-gray-500">
-                  Access verified realtors ready to sell
+                  Get your properties promoted by verified realtors actively
+                  closing deals.
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 items-center">
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-[#5E17EB]">
                   <ShieldCheck size={20} />
                 </div>
                 <h4 className="font-semibold text-gray-900 text-sm">
-                  Transparent Sales
+                  Full Transaction Visibility
                 </h4>
                 <p className="text-xs text-gray-500">
-                  Track every deal in real-time
+                  Monitor listings, inquiries, inspections, and completed
+                  transactions in real time.
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 items-center">
                 <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-[#5E17EB]">
                   <Handshake size={20} />
                 </div>
                 <h4 className="font-semibold text-gray-900 text-sm">
-                  Faster Deals
+                  Faster Sales Cycles
                 </h4>
                 <p className="text-xs text-gray-500">
-                  Efficient property sales process
+                  Convert leads quicker through a streamlined referral and sales
+                  process built for efficiency.
                 </p>
               </div>
             </div>
@@ -146,10 +150,9 @@ const Partnership = () => {
                 href="https://docs.google.com/forms/d/e/1FAIpQLSepzm7741yyDMIcYl0hPNsb4DRYYrhTnjoXxTEnOCmW87WKAg/viewform?usp=header"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#5E17EB] hover:bg-[#4a11b8] text-white px-8 py-3.5 rounded-xl font-semibold transition-all shadow-lg shadow-purple-200 hover:shadow-purple-300 transform hover:-translate-y-0.5 text-sm md:text-base text-nowrap"
+                className="inline-flex items-center justify-center gap-2 bg-[#6500AC] hover:bg-[#4a11b8] text-white px-6 py-3.5 rounded-xl font-semibold transition-all shadow-lg shadow-purple-200 hover:shadow-purple-300 transform hover:-translate-y-0.5 text-sm md:text-base text-center"
               >
                 Apply to list your properties here
-                <ArrowRight size={20} />
               </a>
             </div>
           </div>

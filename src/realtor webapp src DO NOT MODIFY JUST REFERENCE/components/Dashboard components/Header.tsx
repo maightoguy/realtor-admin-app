@@ -14,6 +14,7 @@ import { notificationService } from "../../services/apiService";
 import { authService } from "../../services/authService";
 import { getSupabaseClient } from "../../services/supabaseClient";
 import { Link } from "react-router-dom";
+import { authManager } from "../../services";
 
 interface HeaderProps {
   activeSection: string;
@@ -153,7 +154,7 @@ const Header = ({
 
           {/* Right Side Icons */}
           <div className="lg:hidden flex items-center min-w-0">
-            <Link to="/dashboard" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <img
                 src={VeriplotLogo}
                 alt="Veriplot logo"
@@ -232,16 +233,20 @@ const Header = ({
         onNotificationClick={() => setIsNotificationOpen(true)}
         onHelpCenterClick={onHelpCenterClick}
         onKYCClick={onKYCClick}
-        onLogout={() => {
-          void authService.signOut();
+        onLogout={async () => {
+          await authService.signOut();
+          authManager.clearUser();
+          authManager.clearSession();
         }}
       />
 
       <ProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
-        onLogout={() => {
-          void authService.signOut();
+        onLogout={async () => {
+          await authService.signOut();
+          authManager.clearUser();
+          authManager.clearSession();
         }}
         onProfileClick={() => {
           setIsProfileOpen(false);

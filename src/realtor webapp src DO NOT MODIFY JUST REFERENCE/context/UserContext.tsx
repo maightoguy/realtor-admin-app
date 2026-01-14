@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-refresh/only-export-components */
 // src/context/UserContext.tsx
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import type { ReactNode } from "react";
 import { authService } from "../services/authService";
 import { userService } from "../services/apiService";
@@ -21,7 +27,12 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const userRef = useRef<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
   const [error, setError] = useState<string | null>(null);
 
   const fetchUser = async (showLoader = true) => {
@@ -80,8 +91,9 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       (event, _session) => {
         // Only refresh user data on explicit SIGNED_IN event or when session changes substantially
         if (event === "SIGNED_IN") {
-          // Silent refresh on auth state change (e.g. tab focus)
-          fetchUser(false);
+          // If we already have a user, don't show loader (background refresh)
+          // If we don't have a user (fresh login), show loader
+          fetchUser(!userRef.current);
         } else if (event === "SIGNED_OUT") {
           setUser(null);
         } else if (event === "TOKEN_REFRESHED") {

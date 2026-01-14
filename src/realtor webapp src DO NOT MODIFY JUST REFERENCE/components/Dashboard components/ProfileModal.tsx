@@ -24,8 +24,8 @@ const ProfileModal = ({
   if (!isOpen) return null;
   if (loading) return <div>Loading...</div>; // Or skeleton
 
-  const handleLogout = () => {
-    if (onLogout) onLogout();
+  const handleLogout = async () => {
+    if (onLogout) await onLogout();
     setShowLogoutConfirm(false);
     onClose();
     navigate("/login"); // Or wherever after logout

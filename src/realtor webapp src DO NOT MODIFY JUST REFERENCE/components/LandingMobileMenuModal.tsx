@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useUser } from "../context/UserContext";
 import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 
 interface LandingMobileMenuModalProps {
@@ -11,6 +12,8 @@ const LandingMobileMenuModal = ({
   isOpen,
   onClose,
 }: LandingMobileMenuModalProps) => {
+  const { user } = useUser();
+
   if (!isOpen) return null;
 
   const navigationItems = [
@@ -88,20 +91,32 @@ const LandingMobileMenuModal = ({
 
           {/* Footer - Auth Buttons */}
           <div className="p-6 border-t border-gray-200 space-y-4">
-            <Link
-              to="/login"
-              onClick={handleAuthClick}
-              className="w-full block px-5 py-3 border border-gray-200 rounded-lg text-gray-600 font-semibold text-center hover:bg-gray-50 transition-colors"
-            >
-              Log in
-            </Link>
-            <Link
-              to="/register"
-              onClick={handleAuthClick}
-              className="w-full block px-5 py-3 bg-purple-700 text-white rounded-lg shadow text-center hover:bg-purple-800 transition-colors"
-            >
-              Create account
-            </Link>
+            {user ? (
+              <Link
+                to="/dashboard"
+                onClick={handleAuthClick}
+                className="w-full block px-5 py-3 bg-[#6500AC] text-white rounded-lg shadow font-semibold text-center hover:bg-purple-800 transition-colors"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={handleAuthClick}
+                  className="w-full block px-5 py-3 border border-gray-200 rounded-lg text-gray-600 font-semibold text-center hover:bg-gray-50 transition-colors"
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={handleAuthClick}
+                  className="w-full block px-5 py-3 bg-purple-700 text-white rounded-lg shadow font-semibold text-center hover:bg-purple-800 transition-colors"
+                >
+                  Create account
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

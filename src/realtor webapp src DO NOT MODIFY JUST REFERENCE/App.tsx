@@ -4,28 +4,46 @@ import LandingPage from "./pages/Landing";
 import Registration from "./pages/Registration";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
-import { UserProvider } from "./context/UserContext"; // Add this import
+import { UserProvider, useUser } from "./context/UserContext"; // Add this import
 import RequireAuth from "./components/auth/RequireAuth";
 import { useIdleTimeout } from "./hooks/useIdleTimeout";
+import SessionTimeoutModal from "./components/auth/SessionTimeoutModal";
 
 function AppContent() {
-  // Use idle timeout hook (30 minutes)
-  useIdleTimeout(30 * 60 * 1000);
+  const { user } = useUser();
+
+  // Best Practice: 30 mins for standard users, 15 mins for admins
+  const timeoutDuration =
+    user?.role === "admin" ? 15 * 60 * 1000 : 30 * 60 * 1000;
+
+  const { isWarning, resetTimer, logout } = useIdleTimeout({
+    timeout: timeoutDuration,
+    warningTime: 60 * 1000, // 1 minute warning
+    enabled: !!user,
+  });
 
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/register" element={<Registration />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/dashboard"
-        element={
-          <RequireAuth>
-            <Dashboard />
-          </RequireAuth>
-        }
+    <>
+      <SessionTimeoutModal
+        isOpen={isWarning}
+        onStayLoggedIn={resetTimer}
+        onLogout={logout}
+        remainingTime={60 * 1000}
       />
-    </Routes>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/register" element={<Registration />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <Dashboard />
+            </RequireAuth>
+          }
+        />
+      </Routes>
+    </>
   );
 }
 

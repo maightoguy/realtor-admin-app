@@ -498,11 +498,12 @@ export const authService = {
      * Send password reset email (recovery link)
      */
     async resetPasswordForEmail(email: string) {
-        logger.info('📧 [AUTH] Sending password reset email', { email });
+        const redirectTo = `${window.location.origin}/login?mode=recovery`;
+        logger.info('📧 [AUTH] Sending password reset email', { email, redirectTo });
         const supabase = getSupabaseClient();
 
         const result = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/login?mode=recovery`,
+            redirectTo,
         });
 
         if (result.error) {
