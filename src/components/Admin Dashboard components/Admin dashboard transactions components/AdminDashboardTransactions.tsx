@@ -320,23 +320,44 @@ const AdminDashboardTransactionsInner = () => {
     };
   }, []);
 
-  // Calculate metrics from all transactions
+  // Calculate metrics based on active filter
   const metrics = useMemo(() => {
-    const totalAmount = transactions.reduce((sum, t) => {
-      const amount = parseFloat(t.amount.replace(/[₦,]/g, "")) || 0;
-      return sum + amount;
+    const parseAmount = (amountStr: string) =>
+      parseFloat(amountStr.replace(/[₦,]/g, "")) || 0;
+
+    let filteredForMetrics = transactions;
+    let card1Title = "Total transactions";
+    let card2Title = "Total pending transactions";
+
+    if (activeFilter === "Commission") {
+      filteredForMetrics = transactions.filter((t) => t.type === "Commission");
+      card1Title = "Total Commissions";
+      card2Title = "Total Pending Commissions";
+    } else if (activeFilter === "Withdrawals") {
+      filteredForMetrics = transactions.filter((t) => t.type === "Withdrawal");
+      card1Title = "Total Payouts";
+      card2Title = "Total Pending Payouts";
+    }
+
+    const totalAmount = filteredForMetrics.reduce((sum, t) => {
+      return sum + parseAmount(t.amount);
     }, 0);
-    const pendingPayouts = transactions.filter(
-      (t) =>
-        t.type === "Withdrawal" &&
-        (t.status === "Pending" || t.status === "Approved")
+
+    const pendingCount = filteredForMetrics.filter(
+      (t) => t.status === "Pending" || t.status === "Approved"
     ).length;
 
     return {
-      totalTransactions: `₦${totalAmount.toLocaleString()}`,
-      pendingPayouts,
+      card1: {
+        title: card1Title,
+        value: `₦${totalAmount.toLocaleString()}`,
+      },
+      card2: {
+        title: card2Title,
+        value: pendingCount,
+      },
     };
-  }, [transactions]);
+  }, [transactions, activeFilter]);
 
   // Filter transactions based on active filter and search query
   const filteredTransactions = useMemo(() => {
@@ -618,16 +639,16 @@ const AdminDashboardTransactionsInner = () => {
           {/* Metric Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <MetricCard
-              title="Total transactions"
-              value={metrics.totalTransactions}
+              title={metrics.card1.title}
+              value={metrics.card1.value}
               icon={<TransactionsIcon color="#6500AC" className="w-5 h-5" />}
               iconBgColor="#F0E6F7"
               iconStrokeColor="#F0E6F7"
               valueTextColor="#101828"
             />
             <MetricCard
-              title="Pending payouts"
-              value={metrics.pendingPayouts}
+              title={metrics.card2.title}
+              value={metrics.card2.value}
               icon={<TransactionsIcon color="#6B7280" className="w-5 h-5" />}
               iconBgColor="#F3F4F6"
               iconStrokeColor="#F3F4F6"

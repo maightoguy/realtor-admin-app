@@ -777,6 +777,31 @@ export const receiptService = {
     return count ?? 0;
   },
 
+  async listForPeriod(params: {
+    startIso: string;
+    endIsoExclusive: string;
+    status?: Receipt["status"];
+    limit?: number;
+  }): Promise<Pick<Receipt, "amount_paid" | "created_at">[]> {
+    let query = getSupabaseClient()
+      .from("receipts")
+      .select("amount_paid, created_at")
+      .gte("created_at", params.startIso)
+      .lt("created_at", params.endIsoExclusive)
+      .order("created_at", { ascending: false });
+
+    if (params.status) {
+      query = query.eq("status", params.status);
+    }
+    if (params.limit) {
+      query = query.limit(params.limit);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []) as Array<Pick<Receipt, "amount_paid" | "created_at">>;
+  },
+
   async sumAmountByStatus(status: Receipt["status"]): Promise<number> {
     const { data, error } = await getSupabaseClient()
       .from("receipts")
@@ -1560,6 +1585,29 @@ export const overviewService = {
     return totals;
   },
 
+  async getMonthlySalesTotals(params: {
+    year: number;
+    status?: Receipt["status"];
+  }): Promise<number[]> {
+    const start = startOfMonthUtc(params.year, 0);
+    const endExclusive = startOfMonthUtc(params.year + 1, 0);
+    const rows = await receiptService.listForPeriod({
+      startIso: start.toISOString(),
+      endIsoExclusive: endExclusive.toISOString(),
+      status: params.status,
+      limit: 5000,
+    });
+
+    const totals = Array.from({ length: 12 }, () => 0);
+    for (const row of rows) {
+      const d = new Date(row.created_at);
+      if (Number.isNaN(d.getTime())) continue;
+      const month = d.getUTCMonth();
+      totals[month] += Number.isFinite(row.amount_paid) ? row.amount_paid : 0;
+    }
+    return totals;
+  },
+
   async getMonthlyNewRealtors(params: { year: number }): Promise<number[]> {
     const start = startOfMonthUtc(params.year, 0);
     const endExclusive = startOfMonthUtc(params.year + 1, 0);
@@ -1672,6 +1720,7 @@ export const overviewService = {
       commissionPaid,
       totalSale,
       monthlyCommission,
+      monthlySales,
       monthlyNewRealtors,
       topRealtors,
       recentReceipts,
@@ -1682,6 +1731,7 @@ export const overviewService = {
       commissionService.sumAmountByStatus("paid"),
       receiptService.sumAmountByStatus("approved"),
       this.getMonthlyCommissionTotals({ year, statuses: ["approved", "paid"] }),
+      this.getMonthlySalesTotals({ year, status: "approved" }),
       this.getMonthlyNewRealtors({ year }),
       this.getTopRealtorsByCommission({ year, statuses: ["approved", "paid"], limit: 5 }),
       this.getRecentReceiptsEnriched({ limit: 10 }),
@@ -1694,6 +1744,7 @@ export const overviewService = {
       commissionPaid,
       totalSale,
       monthlyCommission,
+      monthlySales,
       monthlyNewRealtors,
       topRealtors,
       recentReceipts,

@@ -176,9 +176,9 @@ interface AdminDashboardOverviewProps {
 const AdminDashboardOverview = ({
   onNavigate,
 }: AdminDashboardOverviewProps) => {
-  const [chartView, setChartView] = useState<"Commission" | "Realtors">(
-    "Commission"
-  );
+  const [chartView, setChartView] = useState<
+    "Commission" | "Realtors" | "Sales"
+  >("Commission");
   //const [currentPage, setCurrentPage] = useState(1);
   const [showAllReceipts, setShowAllReceipts] = useState(false);
   const [snapshot, setSnapshot] = useState<Awaited<
@@ -247,9 +247,9 @@ const AdminDashboardOverview = ({
 
   const chartData = useMemo(() => {
     if (!snapshot) return [];
-    return chartView === "Commission"
-      ? snapshot.monthlyCommission
-      : snapshot.monthlyNewRealtors;
+    if (chartView === "Commission") return snapshot.monthlyCommission;
+    if (chartView === "Sales") return snapshot.monthlySales;
+    return snapshot.monthlyNewRealtors;
   }, [chartView, snapshot]);
 
   const chartDataFixed = useMemo(() => {
@@ -265,7 +265,7 @@ const AdminDashboardOverview = ({
   const { yAxisLabels, chartMaxValue } = useMemo(() => {
     const rawMax = Math.max(...chartDataFixed, 0);
 
-    if (chartView === "Commission") {
+    if (chartView === "Commission" || chartView === "Sales") {
       const scale =
         rawMax >= 1_000_000 ? 1_000_000 : rawMax >= 1_000 ? 1_000 : 1;
       const roundedMax = rawMax <= 0 ? 1 : Math.ceil(rawMax / scale) * scale;
@@ -481,9 +481,7 @@ const AdminDashboardOverview = ({
         {/* Commission Statistics */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Commission Statistics
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">Statistics</h3>
             <div className="flex gap-2">
               <button
                 onClick={() => setChartView("Commission")}
@@ -494,6 +492,16 @@ const AdminDashboardOverview = ({
                 }`}
               >
                 Commission
+              </button>
+              <button
+                onClick={() => setChartView("Sales")}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  chartView === "Sales"
+                    ? "bg-[#6500AC] text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Sales
               </button>
               <button
                 onClick={() => setChartView("Realtors")}
