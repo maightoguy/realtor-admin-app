@@ -208,10 +208,14 @@ interface Property {
 
 interface AdminDashboardPropertiesProps {
   onAddFormStateChange?: (isActive: boolean) => void;
+  initialSelectedPropertyId?: string | null;
+  onInitialSelectedPropertyConsumed?: () => void;
 }
 
 const AdminDashboardProperties = ({
   onAddFormStateChange,
+  initialSelectedPropertyId,
+  onInitialSelectedPropertyConsumed,
 }: AdminDashboardPropertiesProps) => {
   const [activeTab, setActiveTab] = useState<"Properties" | "Developers">(
     "Properties"
@@ -222,6 +226,8 @@ const AdminDashboardProperties = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
+  const [hasFetchedPropertiesOnce, setHasFetchedPropertiesOnce] =
+    useState(false);
   const [totalPropertiesCount, setTotalPropertiesCount] = useState(0);
   const [activePropertiesCount, setActivePropertiesCount] = useState(0);
   const [soldOutPropertiesCount, setSoldOutPropertiesCount] = useState(0);
@@ -465,8 +471,32 @@ const AdminDashboardProperties = ({
       logger.error("[ADMIN][PROPERTIES] Fetch failed", { message });
     } finally {
       setIsLoadingProperties(false);
+      setHasFetchedPropertiesOnce(true);
     }
   };
+
+  useEffect(() => {
+    if (!initialSelectedPropertyId) return;
+    if (!hasFetchedPropertiesOnce) return;
+    if (isLoadingProperties) return;
+
+    setShowAddForm(false);
+    setSelectedDeveloper(null);
+    setActiveTab("Properties");
+    setSearchQuery("");
+
+    const match = properties.find((p) => p.id === initialSelectedPropertyId);
+    if (match) {
+      setSelectedProperty(match);
+    }
+    onInitialSelectedPropertyConsumed?.();
+  }, [
+    hasFetchedPropertiesOnce,
+    initialSelectedPropertyId,
+    isLoadingProperties,
+    onInitialSelectedPropertyConsumed,
+    properties,
+  ]);
 
   useEffect(() => {
     refreshMetrics().catch(() => undefined);

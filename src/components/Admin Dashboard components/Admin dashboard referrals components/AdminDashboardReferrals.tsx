@@ -30,6 +30,7 @@ interface AdminDashboardReferralsProps {
   onNavigateToReceipts?: () => void;
   onNavigateToTransactions?: () => void;
   onNavigateToReferrals?: () => void;
+  onNavigateToPropertyDetails?: (propertyId: string) => void;
 }
 
 const AdminDashboardReferrals = ({
@@ -37,7 +38,13 @@ const AdminDashboardReferrals = ({
   onNavigateToReceipts,
   onNavigateToTransactions,
   onNavigateToReferrals,
+  onNavigateToPropertyDetails,
 }: AdminDashboardReferralsProps) => {
+  void onNavigateToProperties;
+  void onNavigateToReceipts;
+  void onNavigateToTransactions;
+  void onNavigateToReferrals;
+  void onNavigateToPropertyDetails;
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -200,10 +207,7 @@ const AdminDashboardReferrals = ({
           realtor={selectedRealtor}
           onBack={handleBackFromDetails}
           onRemoveRealtor={handleRemoveRealtor}
-          onNavigateToProperties={onNavigateToProperties}
-          onNavigateToReceipts={onNavigateToReceipts}
-          onNavigateToTransactions={onNavigateToTransactions}
-          onNavigateToReferrals={onNavigateToReferrals}
+          onNavigateToPropertyDetails={onNavigateToPropertyDetails}
         />
       </div>
     );

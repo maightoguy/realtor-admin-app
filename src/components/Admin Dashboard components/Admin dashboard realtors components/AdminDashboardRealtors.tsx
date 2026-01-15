@@ -132,6 +132,7 @@ interface AdminDashboardRealtorsProps {
   onNavigateToReceipts?: () => void;
   onNavigateToTransactions?: () => void;
   onNavigateToReferrals?: () => void;
+  onNavigateToPropertyDetails?: (propertyId: string) => void;
 }
 
 const AdminDashboardRealtors = ({
@@ -139,7 +140,13 @@ const AdminDashboardRealtors = ({
   onNavigateToReceipts,
   onNavigateToTransactions,
   onNavigateToReferrals,
+  onNavigateToPropertyDetails,
 }: AdminDashboardRealtorsProps) => {
+  void onNavigateToProperties;
+  void onNavigateToReceipts;
+  void onNavigateToTransactions;
+  void onNavigateToReferrals;
+  void onNavigateToPropertyDetails;
   const [activeFilter, setActiveFilter] = useState<
     "All Realtors" | "Top realtors" | "Approved receipts" | "Rejected receipts"
   >("All Realtors");
@@ -147,6 +154,7 @@ const AdminDashboardRealtors = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [realtors, setRealtors] = useState<AdminRealtorRow[]>([]);
   const [selectedRealtor, setSelectedRealtor] = useState<User | null>(null);
+  const [realtorStack, setRealtorStack] = useState<User[]>([]);
   const [totalRealtorsCount, setTotalRealtorsCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedRealtorId, setExpandedRealtorId] = useState<string | null>(
@@ -365,6 +373,7 @@ const AdminDashboardRealtors = ({
     const realtor = realtors.find((r) => r.id === realtorId);
     if (realtor) {
       setSelectedRealtor(realtor.user);
+      setRealtorStack([realtor.user]);
     }
   };
 
@@ -373,18 +382,33 @@ const AdminDashboardRealtors = ({
   };
 
   const handleBackFromDetails = () => {
-    setSelectedRealtor(null);
+    if (realtorStack.length > 1) {
+      const newStack = realtorStack.slice(0, -1);
+      setRealtorStack(newStack);
+      setSelectedRealtor(newStack[newStack.length - 1]);
+    } else {
+      setRealtorStack([]);
+      setSelectedRealtor(null);
+    }
+  };
+
+  const handleViewRealtor = (realtor: User) => {
+    setRealtorStack((prev) => [...prev, realtor]);
+    setSelectedRealtor(realtor);
   };
 
   const handleRemoveRealtor = async (realtorId: string) => {
     await userService.removeAsAdmin(realtorId);
     setRealtors((prev) => prev.filter((r) => r.id !== realtorId));
     setTotalRealtorsCount((prev) => Math.max(0, prev - 1));
-    setSelectedRealtor(null);
+    handleBackFromDetails();
   };
 
   const handleRealtorUpdated = (updated: User) => {
     setSelectedRealtor(updated);
+    setRealtorStack((prev) =>
+      prev.map((u) => (u.id === updated.id ? updated : u))
+    );
     setRealtors((prev) =>
       prev.map((row) => {
         if (row.id !== updated.id) return row;
@@ -414,10 +438,8 @@ const AdminDashboardRealtors = ({
           onBack={handleBackFromDetails}
           onRemoveRealtor={handleRemoveRealtor}
           onRealtorUpdated={handleRealtorUpdated}
-          onNavigateToProperties={onNavigateToProperties}
-          onNavigateToReceipts={onNavigateToReceipts}
-          onNavigateToTransactions={onNavigateToTransactions}
-          onNavigateToReferrals={onNavigateToReferrals}
+          onViewRealtor={handleViewRealtor}
+          onNavigateToPropertyDetails={onNavigateToPropertyDetails}
         />
       </div>
     );

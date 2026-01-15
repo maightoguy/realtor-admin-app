@@ -39,6 +39,9 @@ const AdminDashboardPage = () => {
   const location = useLocation();
   const [activeSection, setActiveSection] = useState("Overview");
   const [isAddPropertyFormActive, setIsAddPropertyFormActive] = useState(false);
+  const [pendingPropertyDetailsId, setPendingPropertyDetailsId] = useState<
+    string | null
+  >(null);
   const [currentUser, setCurrentUser] = useState<User | null>(() =>
     authManager.getUser()
   );
@@ -169,6 +172,11 @@ const AdminDashboardPage = () => {
     }
   };
 
+  const handleNavigateToPropertyDetails = (propertyId: string) => {
+    setPendingPropertyDetailsId(propertyId);
+    handleNavigate("Properties");
+  };
+
   const renderSection = () => {
     let content: ReactNode = null;
     switch (activeSection) {
@@ -179,6 +187,10 @@ const AdminDashboardPage = () => {
         content = (
           <AdminDashboardProperties
             onAddFormStateChange={setIsAddPropertyFormActive}
+            initialSelectedPropertyId={pendingPropertyDetailsId}
+            onInitialSelectedPropertyConsumed={() =>
+              setPendingPropertyDetailsId(null)
+            }
           />
         );
         break;
@@ -192,6 +204,7 @@ const AdminDashboardPage = () => {
             onNavigateToReceipts={() => handleNavigate("Receipts")}
             onNavigateToTransactions={() => handleNavigate("Transactions")}
             onNavigateToReferrals={() => handleNavigate("Referrals")}
+            onNavigateToPropertyDetails={handleNavigateToPropertyDetails}
           />
         );
         break;
@@ -209,6 +222,7 @@ const AdminDashboardPage = () => {
             onNavigateToReceipts={() => handleNavigate("Receipts")}
             onNavigateToTransactions={() => handleNavigate("Transactions")}
             onNavigateToReferrals={() => handleNavigate("Referrals")}
+            onNavigateToPropertyDetails={handleNavigateToPropertyDetails}
           />
         );
         break;

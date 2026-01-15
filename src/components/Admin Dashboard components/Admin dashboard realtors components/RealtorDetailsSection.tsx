@@ -9,6 +9,10 @@ import TransactionsIcon from "../../icons/TransactionsIcon";
 import ReferralsIcon from "../../icons/ReferralsIcon";
 import DefaultProfilePic from "../../../assets/Default Profile pic.png";
 import { propertyImages } from "../Admin dashboard properties components/adminDashboardPropertiesData";
+import AdminReceiptsDetailsModal from "../Admin dashboard receipts components/AdminReceiptsDetailsModal";
+import type { Transaction } from "../Admin dashboard transactions components/AdminTransactionsData";
+import TransactionDetailsModal from "../Admin dashboard transactions components/TransactionDetailsModal";
+import WithdrawalDetailsModal from "../Admin dashboard transactions components/WithdrawalDetailsModal";
 import {
   commissionService,
   payoutService,
@@ -181,10 +185,8 @@ interface RealtorDetailsSectionProps {
   onBack: () => void;
   onRemoveRealtor?: (realtorId: string) => Promise<void>;
   onRealtorUpdated?: (updated: User) => void;
-  onNavigateToProperties?: () => void;
-  onNavigateToReceipts?: () => void;
-  onNavigateToTransactions?: () => void;
-  onNavigateToReferrals?: () => void;
+  onViewRealtor?: (realtor: User) => void;
+  onNavigateToPropertyDetails?: (propertyId: string) => void;
 }
 
 interface RemoveRealtorModalProps {
@@ -589,11 +591,21 @@ const RealtorDetailsSection = ({
   onBack,
   onRemoveRealtor,
   onRealtorUpdated,
-  onNavigateToProperties,
-  onNavigateToReceipts,
-  onNavigateToTransactions,
-  onNavigateToReferrals,
+  onViewRealtor,
+  onNavigateToPropertyDetails,
 }: RealtorDetailsSectionProps) => {
+  type ReceiptDetailsItem = {
+    id: string;
+    realtorName: string;
+    clientName: string;
+    propertyName: string;
+    amountPaid: number;
+    receiptUrls: string[];
+    status: ReceiptStatus;
+    createdAt: string;
+    rejectionReason: string | null;
+  };
+
   const [activeTab, setActiveTab] = useState<
     "Properties sold" | "Receipts" | "Transactions" | "Referrals"
   >("Properties sold");
@@ -630,6 +642,11 @@ const RealtorDetailsSection = ({
   const [isRemoving, setIsRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
+  const [selectedReceipt, setSelectedReceipt] =
+    useState<ReceiptDetailsItem | null>(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
+
   const handleOpenRemoveModal = () => {
     setRemoveError(null);
     setIsRemoveModalOpen(true);
@@ -660,6 +677,184 @@ const RealtorDetailsSection = ({
     } finally {
       setIsRemoving(false);
     }
+  };
+
+  const handleReceiptStatusUpdate = (
+    receiptId: string,
+    newStatus: ReceiptStatus,
+    rejectionReason?: string
+  ) => {
+    receiptService
+      .updateStatus({
+        id: receiptId,
+        status: newStatus,
+        rejectionReason: rejectionReason ?? null,
+      })
+      .then((updated) => {
+        setReceipts((prev) =>
+          prev.map((r) =>
+            r.id === receiptId
+              ? {
+                  ...r,
+                  status: updated.status,
+                  rejection_reason: updated.rejection_reason ?? null,
+                }
+              : r
+          )
+        );
+        setSelectedReceipt((prev) =>
+          prev && prev.id === receiptId
+            ? {
+                ...prev,
+                status: updated.status,
+                rejectionReason: updated.rejection_reason ?? null,
+              }
+            : prev
+        );
+      })
+      .catch(() => {});
+  };
+
+  const formatNaira = (amount: number) =>
+    `₦${Math.round(amount).toLocaleString()}`;
+
+  const statusToUi = (
+    status: Commission["status"] | Payout["status"]
+  ): Transaction["status"] => {
+    if (status === "paid") return "Paid";
+    if (status === "approved") return "Approved";
+    if (status === "rejected") return "Rejected";
+    return "Pending";
+  };
+
+  const normalizeDbStatus = (
+    status: Commission["status"] | Payout["status"]
+  ): Transaction["dbStatus"] => {
+    if (status === "paid") return "paid";
+    if (status === "approved") return "approved";
+    if (status === "rejected") return "rejected";
+    return "pending";
+  };
+
+  const extractString = (obj: unknown, key: string) => {
+    if (!obj || typeof obj !== "object") return undefined;
+    const value = (obj as Record<string, unknown>)[key];
+    return typeof value === "string" ? value : undefined;
+  };
+
+  const handleApproveCommission = async (transactionId: string) => {
+    const updated = await commissionService.updateStatus({
+      id: transactionId,
+      status: "approved",
+    });
+    setCommissions((prev) =>
+      prev.map((c) => (c.id === updated.id ? updated : c))
+    );
+    setSelectedTransaction((prev) =>
+      prev && prev.id === updated.id
+        ? {
+            ...prev,
+            status: statusToUi(updated.status),
+            dbStatus: normalizeDbStatus(updated.status),
+          }
+        : prev
+    );
+  };
+
+  const handleMarkCommissionAsPaid = async (transactionId: string) => {
+    const updated = await commissionService.updateStatus({
+      id: transactionId,
+      status: "paid",
+    });
+    setCommissions((prev) =>
+      prev.map((c) => (c.id === updated.id ? updated : c))
+    );
+    setSelectedTransaction((prev) =>
+      prev && prev.id === updated.id
+        ? {
+            ...prev,
+            status: statusToUi(updated.status),
+            dbStatus: normalizeDbStatus(updated.status),
+          }
+        : prev
+    );
+  };
+
+  const handleRejectCommission = async (
+    transactionId: string,
+    reason: string
+  ) => {
+    const updated = await commissionService.updateStatus({
+      id: transactionId,
+      status: "rejected",
+    });
+    setCommissions((prev) =>
+      prev.map((c) => (c.id === updated.id ? updated : c))
+    );
+    setSelectedTransaction((prev) =>
+      prev && prev.id === updated.id
+        ? {
+            ...prev,
+            status: statusToUi(updated.status),
+            dbStatus: normalizeDbStatus(updated.status),
+            rejectionReason: reason,
+          }
+        : prev
+    );
+  };
+
+  const handleApprovePayout = async (transactionId: string) => {
+    const updated = await payoutService.updateStatus({
+      id: transactionId,
+      status: "approved",
+    });
+    setPayouts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setSelectedTransaction((prev) =>
+      prev && prev.id === updated.id
+        ? {
+            ...prev,
+            status: statusToUi(updated.status),
+            dbStatus: normalizeDbStatus(updated.status),
+          }
+        : prev
+    );
+  };
+
+  const handleMarkPayoutAsPaid = async (transactionId: string) => {
+    const updated = await payoutService.updateStatus({
+      id: transactionId,
+      status: "paid",
+    });
+    setPayouts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setSelectedTransaction((prev) =>
+      prev && prev.id === updated.id
+        ? {
+            ...prev,
+            status: statusToUi(updated.status),
+            dbStatus: normalizeDbStatus(updated.status),
+            date: formatDate(updated.created_at),
+          }
+        : prev
+    );
+  };
+
+  const handleRejectPayout = async (transactionId: string, reason: string) => {
+    const updated = await payoutService.updateStatus({
+      id: transactionId,
+      status: "rejected",
+    });
+    setPayouts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setSelectedTransaction((prev) =>
+      prev && prev.id === updated.id
+        ? {
+            ...prev,
+            status: statusToUi(updated.status),
+            dbStatus: normalizeDbStatus(updated.status),
+            date: formatDate(updated.created_at),
+            rejectionReason: reason,
+          }
+        : prev
+    );
   };
 
   useEffect(() => {
@@ -1458,7 +1653,11 @@ const RealtorDetailsSection = ({
                   location={property.location}
                   isSoldOut={property.isSoldOut}
                   description={property.description}
-                  onViewDetails={() => onNavigateToProperties?.()}
+                  onViewDetails={
+                    onNavigateToPropertyDetails
+                      ? () => onNavigateToPropertyDetails(property.id)
+                      : undefined
+                  }
                 />
               ))
             ) : (
@@ -1564,7 +1763,34 @@ const RealtorDetailsSection = ({
                           </td>
                           <td className="px-6 py-4">
                             <button
-                              onClick={() => onNavigateToReceipts?.()}
+                              onClick={() => {
+                                const original = receipts.find(
+                                  (r) => r.id === receipt.id
+                                );
+                                if (!original) return;
+                                const propertyName =
+                                  original.property_id &&
+                                  propertyMap.get(original.property_id)?.title
+                                    ? propertyMap.get(original.property_id!)!
+                                        .title
+                                    : "-";
+                                setSelectedReceipt({
+                                  id: original.id,
+                                  realtorName,
+                                  clientName: original.client_name ?? "-",
+                                  propertyName,
+                                  amountPaid: Number(original.amount_paid) || 0,
+                                  receiptUrls: Array.isArray(
+                                    original.receipt_urls
+                                  )
+                                    ? original.receipt_urls
+                                    : [],
+                                  status: original.status,
+                                  createdAt: original.created_at,
+                                  rejectionReason:
+                                    original.rejection_reason ?? null,
+                                });
+                              }}
                               className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                             >
                               View details
@@ -1803,7 +2029,52 @@ const RealtorDetailsSection = ({
                           </td>
                           <td className="px-6 py-4">
                             <button
-                              onClick={() => onNavigateToTransactions?.()}
+                              onClick={() => {
+                                if (transaction.type === "Commission") {
+                                  const c = commissions.find(
+                                    (row) => row.id === transaction.id
+                                  );
+                                  if (!c) return;
+                                  setSelectedTransaction({
+                                    id: c.id,
+                                    realtorId: c.realtor_id,
+                                    realtorName,
+                                    type: "Commission",
+                                    amount: formatNaira(c.amount),
+                                    date: formatDate(c.created_at),
+                                    status: statusToUi(c.status),
+                                    dbStatus: normalizeDbStatus(c.status),
+                                  });
+                                  return;
+                                }
+
+                                const p = payouts.find(
+                                  (row) => row.id === transaction.id
+                                );
+                                if (!p) return;
+                                const bankName = extractString(
+                                  p.bank_details,
+                                  "bankName"
+                                );
+                                const accountNumber =
+                                  extractString(p.bank_details, "accountNo") ??
+                                  extractString(
+                                    p.bank_details,
+                                    "accountNumber"
+                                  );
+                                setSelectedTransaction({
+                                  id: p.id,
+                                  realtorId: p.realtor_id,
+                                  realtorName,
+                                  type: "Withdrawal",
+                                  amount: formatNaira(p.amount),
+                                  date: formatDate(p.created_at),
+                                  status: statusToUi(p.status),
+                                  dbStatus: normalizeDbStatus(p.status),
+                                  bankName,
+                                  accountNumber,
+                                });
+                              }}
                               className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                             >
                               View details
@@ -2008,16 +2279,11 @@ const RealtorDetailsSection = ({
                             <button
                               className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
                               onClick={() => {
-                                // If we're in the Referrals tab, onNavigateToReferrals might navigate us
-                                // to the main referrals list, which is what we want.
-                                // But if we want to see details of THIS specific referral (the downline user),
-                                // we might need different logic.
-                                // For now, let's ensure the button works by calling the prop if it exists.
-                                if (onNavigateToReferrals) {
-                                  onNavigateToReferrals();
-                                } else {
-                                  console.warn("onNavigateToReferrals prop is missing");
-                                }
+                                const target = downlines.find(
+                                  (d) => d.id === referral.id
+                                );
+                                if (!target) return;
+                                onViewRealtor?.(target);
                               }}
                             >
                               View details
@@ -2071,6 +2337,34 @@ const RealtorDetailsSection = ({
         error={removeError}
         onClose={handleCloseRemoveModal}
         onConfirm={handleConfirmRemove}
+      />
+      <AdminReceiptsDetailsModal
+        isOpen={!!selectedReceipt}
+        onClose={() => setSelectedReceipt(null)}
+        receipt={selectedReceipt}
+        onStatusUpdate={handleReceiptStatusUpdate}
+      />
+
+      <TransactionDetailsModal
+        isOpen={
+          !!selectedTransaction && selectedTransaction.type === "Commission"
+        }
+        onClose={() => setSelectedTransaction(null)}
+        transaction={selectedTransaction}
+        onApprove={handleApproveCommission}
+        onMarkAsPaid={handleMarkCommissionAsPaid}
+        onReject={handleRejectCommission}
+      />
+
+      <WithdrawalDetailsModal
+        isOpen={
+          !!selectedTransaction && selectedTransaction.type === "Withdrawal"
+        }
+        onClose={() => setSelectedTransaction(null)}
+        transaction={selectedTransaction}
+        onApprove={handleApprovePayout}
+        onMarkAsPaid={handleMarkPayoutAsPaid}
+        onReject={handleRejectPayout}
       />
     </div>
   );
