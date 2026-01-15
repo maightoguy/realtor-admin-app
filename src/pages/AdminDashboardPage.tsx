@@ -10,6 +10,7 @@ import type { User } from "../services/types";
 import { logger } from "../utils/logger";
 import Loader from "../components/Loader";
 import { userService } from "../services/apiService";
+import { useIdleTimeout } from "../hooks/useIdleTimeout";
 
 // Icons
 import ReceiptsIcon from "../components/icons/ReceiptsIcon.tsx";
@@ -172,7 +173,7 @@ const AdminDashboardPage = () => {
     let content: ReactNode = null;
     switch (activeSection) {
       case "Overview":
-        content = <AdminDashboardOverview />;
+        content = <AdminDashboardOverview onNavigate={handleNavigate} />;
         break;
       case "Properties":
         content = (
@@ -202,7 +203,14 @@ const AdminDashboardPage = () => {
         content = <AdminDashboardNotifications />;
         break;
       case "Referrals":
-        content = <AdminDashboardReferrals />;
+        content = (
+          <AdminDashboardReferrals
+            onNavigateToProperties={() => handleNavigate("Properties")}
+            onNavigateToReceipts={() => handleNavigate("Receipts")}
+            onNavigateToTransactions={() => handleNavigate("Transactions")}
+            onNavigateToReferrals={() => handleNavigate("Referrals")}
+          />
+        );
         break;
 
       case "Settings":

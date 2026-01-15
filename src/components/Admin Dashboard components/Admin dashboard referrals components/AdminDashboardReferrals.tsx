@@ -24,7 +24,19 @@ type ReferralRow = {
   recruiter: User;
 };
 
-const AdminDashboardReferrals = () => {
+interface AdminDashboardReferralsProps {
+  onNavigateToProperties?: () => void;
+  onNavigateToReceipts?: () => void;
+  onNavigateToTransactions?: () => void;
+  onNavigateToReferrals?: () => void;
+}
+
+const AdminDashboardReferrals = ({
+  onNavigateToProperties,
+  onNavigateToReceipts,
+  onNavigateToTransactions,
+  onNavigateToReferrals,
+}: AdminDashboardReferralsProps) => {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -156,6 +168,10 @@ const AdminDashboardReferrals = () => {
           realtor={selectedRealtor}
           onBack={handleBackFromDetails}
           onRemoveRealtor={handleRemoveRealtor}
+          onNavigateToProperties={onNavigateToProperties}
+          onNavigateToReceipts={onNavigateToReceipts}
+          onNavigateToTransactions={onNavigateToTransactions}
+          onNavigateToReferrals={onNavigateToReferrals}
         />
       </div>
     );

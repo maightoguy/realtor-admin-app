@@ -2007,7 +2007,18 @@ const RealtorDetailsSection = ({
                           <td className="px-6 py-4">
                             <button
                               className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
-                              onClick={() => onNavigateToReferrals?.()}
+                              onClick={() => {
+                                // If we're in the Referrals tab, onNavigateToReferrals might navigate us
+                                // to the main referrals list, which is what we want.
+                                // But if we want to see details of THIS specific referral (the downline user),
+                                // we might need different logic.
+                                // For now, let's ensure the button works by calling the prop if it exists.
+                                if (onNavigateToReferrals) {
+                                  onNavigateToReferrals();
+                                } else {
+                                  console.warn("onNavigateToReferrals prop is missing");
+                                }
+                              }}
                             >
                               View details
                             </button>

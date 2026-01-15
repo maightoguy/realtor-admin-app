@@ -169,7 +169,13 @@ const ReceiptRow = ({
   </tr>
 );
 
-const AdminDashboardOverview = () => {
+interface AdminDashboardOverviewProps {
+  onNavigate?: (section: string) => void;
+}
+
+const AdminDashboardOverview = ({
+  onNavigate,
+}: AdminDashboardOverviewProps) => {
   const [chartView, setChartView] = useState<"Commission" | "Realtors">(
     "Commission"
   );
@@ -346,7 +352,8 @@ const AdminDashboardOverview = () => {
 
   const handleViewReceiptDetails = (receiptId: string) => {
     if (!snapshot) return;
-    const row = snapshot.recentReceipts.find((r) => r.receipt.id === receiptId) ?? null;
+    const row =
+      snapshot.recentReceipts.find((r) => r.receipt.id === receiptId) ?? null;
     if (!row) return;
 
     const amountPaid = Number(row.receipt.amount_paid);
@@ -358,7 +365,9 @@ const AdminDashboardOverview = () => {
       clientName: row.receipt.client_name ?? "-",
       propertyName: row.property?.title ?? "-",
       amountPaid: Number.isFinite(amountPaid) ? amountPaid : 0,
-      receiptUrls: Array.isArray(row.receipt.receipt_urls) ? row.receipt.receipt_urls : [],
+      receiptUrls: Array.isArray(row.receipt.receipt_urls)
+        ? row.receipt.receipt_urls
+        : [],
       status: row.receipt.status,
       createdAt: row.receipt.created_at,
       rejectionReason: row.receipt.rejection_reason ?? null,
@@ -390,56 +399,81 @@ const AdminDashboardOverview = () => {
       <Loader isOpen={isLoading} text="Loading overview..." />
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <MetricCard
-          title="Total Realtors"
-          value={hasData ? metrics.totalRealtors : "-"}
-          icon={<RealtorsIcon color="#6500AC" className="w-5 h-5" />}
-          iconBgColor="#F0E6F7"
-          iconStrokeColor="#F0E6F7"
-          iconFgColor="#6500AC"
-          valueTextColor="#101828"
-          isEmpty={!hasData}
-        />
-        <MetricCard
-          title="Total Properties"
-          value={hasData ? metrics.totalProperties : "-"}
-          icon={<IslandIcon color="#22C55E" className="w-5 h-5" />}
-          iconBgColor="#E9F9EF"
-          iconStrokeColor="#E9F9EF"
-          iconFgColor="#22C55E"
-          valueTextColor="#101828"
-          isEmpty={!hasData}
-        />
-        <MetricCard
-          title="Pending Receipts"
-          value={hasData ? metrics.pendingReceipts : "-"}
-          icon={<ReceiptsIcon color="#EF4444" className="w-5 h-5" />}
-          iconBgColor="#FAC5C5"
-          iconStrokeColor="#FAC5C5"
-          iconFgColor="#EF4444"
-          valueTextColor="#101828"
-          isEmpty={!hasData}
-        />
-        <MetricCard
-          title="Commission paid"
-          value={hasData ? metrics.commissionPaid : "-"}
-          icon={<TransactionsIcon color="#6B7280" className="w-5 h-5" />}
-          iconBgColor="#F0F1F2"
-          iconStrokeColor="#F0E6F7"
-          iconFgColor="#6B7280"
-          valueTextColor="#101828"
-          isEmpty={!hasData}
-        />
-        <MetricCard
-          title="Total sale"
-          value={hasData ? metrics.totalSale : "-"}
-          icon={<TransactionsIcon color="#DD900D" className="w-5 h-5" />}
-          iconBgColor="#F4DDB4"
-          iconStrokeColor="#F4DDB4"
-          iconFgColor="#DD900D"
-          valueTextColor="#101828"
-          isEmpty={!hasData}
-        />
+        <div
+          onClick={() => onNavigate?.("Realtors")}
+          className="cursor-pointer transition-transform hover:scale-[1.02]"
+        >
+          <MetricCard
+            title="Total Realtors"
+            value={hasData ? metrics.totalRealtors : "-"}
+            icon={<RealtorsIcon color="#6500AC" className="w-5 h-5" />}
+            iconBgColor="#F0E6F7"
+            iconStrokeColor="#F0E6F7"
+            iconFgColor="#6500AC"
+            valueTextColor="#101828"
+            isEmpty={!hasData}
+          />
+        </div>
+        <div
+          onClick={() => onNavigate?.("Properties")}
+          className="cursor-pointer transition-transform hover:scale-[1.02]"
+        >
+          <MetricCard
+            title="Total Properties"
+            value={hasData ? metrics.totalProperties : "-"}
+            icon={<IslandIcon color="#22C55E" className="w-5 h-5" />}
+            iconBgColor="#E9F9EF"
+            iconStrokeColor="#E9F9EF"
+            iconFgColor="#22C55E"
+            valueTextColor="#101828"
+            isEmpty={!hasData}
+          />
+        </div>
+        <div
+          onClick={() => onNavigate?.("Receipts")}
+          className="cursor-pointer transition-transform hover:scale-[1.02]"
+        >
+          <MetricCard
+            title="Pending Receipts"
+            value={hasData ? metrics.pendingReceipts : "-"}
+            icon={<ReceiptsIcon color="#EF4444" className="w-5 h-5" />}
+            iconBgColor="#FAC5C5"
+            iconStrokeColor="#FAC5C5"
+            iconFgColor="#EF4444"
+            valueTextColor="#101828"
+            isEmpty={!hasData}
+          />
+        </div>
+        <div
+          onClick={() => onNavigate?.("Transactions")}
+          className="cursor-pointer transition-transform hover:scale-[1.02]"
+        >
+          <MetricCard
+            title="Commission paid"
+            value={hasData ? metrics.commissionPaid : "-"}
+            icon={<TransactionsIcon color="#6B7280" className="w-5 h-5" />}
+            iconBgColor="#F0F1F2"
+            iconStrokeColor="#F0E6F7"
+            iconFgColor="#6B7280"
+            valueTextColor="#101828"
+            isEmpty={!hasData}
+          />
+        </div>
+        <div
+          onClick={() => onNavigate?.("Transactions")}
+          className="cursor-pointer transition-transform hover:scale-[1.02]"
+        >
+          <MetricCard
+            title="Total sale"
+            value={hasData ? metrics.totalSale : "-"}
+            icon={<TransactionsIcon color="#DD900D" className="w-5 h-5" />}
+            iconBgColor="#F4DDB4"
+            iconStrokeColor="#F4DDB4"
+            iconFgColor="#DD900D"
+            valueTextColor="#101828"
+            isEmpty={!hasData}
+          />
+        </div>
       </div>
 
       {/* Charts and Top Realtors Row */}
