@@ -5,6 +5,7 @@ import RealtorDetailsSection from "../Admin dashboard realtors components/Realto
 import Loader from "../../Loader";
 import type { User } from "../../../services/types";
 import { referralService, userService } from "../../../services/apiService";
+import AdminSearchFilterModal from "../../AdminSearchFilterModal";
 
 type TabType = "all" | "top";
 
@@ -45,6 +46,10 @@ const AdminDashboardReferrals = ({
   const [selectedRealtor, setSelectedRealtor] = useState<User | null>(null);
   const [expandedRealtorId, setExpandedRealtorId] = useState<string | null>(
     null
+  );
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
+    {}
   );
   const itemsPerPage = 8;
 
@@ -113,16 +118,29 @@ const AdminDashboardReferrals = ({
   }, [activeTab, rows]);
 
   const filteredReferrals = useMemo(() => {
-    if (!searchQuery.trim()) return filteredByTab;
+    let filtered = filteredByTab;
+
+    // Apply modal filters
+    const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
+    if (priceRange && priceRange.length === 2) {
+      const [min, max] = priceRange;
+      filtered = filtered.filter((r) => {
+        const amount =
+          parseFloat(r.totalReferralCommission.replace(/[₦,]/g, "")) || 0;
+        return amount >= min && amount <= max;
+      });
+    }
+
+    if (!searchQuery.trim()) return filtered;
 
     const query = searchQuery.toLowerCase();
-    return filteredByTab.filter(
+    return filtered.filter(
       (r) =>
         r.name.toLowerCase().includes(query) ||
         r.referralCode.toLowerCase().includes(query) ||
         r.id.toLowerCase().includes(query)
     );
-  }, [searchQuery, filteredByTab]);
+  }, [searchQuery, filteredByTab, activeFilters]);
 
   const totalItems = filteredReferrals.length;
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -131,10 +149,24 @@ const AdminDashboardReferrals = ({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, activeTab]);
+  }, [searchQuery, activeTab, activeFilters]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    setCurrentPage(1);
+  };
+
+  const handleFilterClick = () => {
+    setIsFilterModalOpen(true);
+  };
+
+  const handleApplyFilter = (filters: Record<string, unknown>) => {
+    setActiveFilters(filters);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilter = () => {
+    setActiveFilters({});
     setCurrentPage(1);
   };
 
@@ -216,12 +248,30 @@ const AdminDashboardReferrals = ({
         <div className="flex flex-row gap-3">
           <AdminSearchBar
             onSearch={handleSearch}
-            onFilterClick={() => console.log("Filter clicked")}
+            onFilterClick={handleFilterClick}
             className="flex-1 sm:flex-initial"
             placeholder="Search"
           />
         </div>
       </div>
+
+      <AdminSearchFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={handleApplyFilter}
+        onReset={handleResetFilter}
+        initialFilters={activeFilters}
+        config={{
+          title: "Filter Referrals",
+          description: "Filter referrals by commission earned",
+          showPrice: true,
+          showPropertyType: false,
+          showLocation: false,
+          priceMin: 0,
+          priceMax: 100_000_000,
+          priceStep: 10000,
+        }}
+      />
 
       {/* Referrals Table */}
       <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">

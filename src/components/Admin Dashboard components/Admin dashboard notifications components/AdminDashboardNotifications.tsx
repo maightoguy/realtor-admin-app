@@ -5,6 +5,7 @@ import type { Notification } from "./AdminNotificationsData";
 import NewNotificationModal from "./NewNotificationModal";
 import NotificationDetailsModal from "./NotificationDetailsModal";
 import { notificationService } from "../../../services/apiService";
+import AdminSearchFilterModal from "../../AdminSearchFilterModal";
 
 // Status badge component
 const StatusBadge = ({ status }: { status: Notification["status"] }) => {
@@ -41,6 +42,10 @@ const AdminDashboardNotifications = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
+    {}
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const itemsPerPage = 8;
@@ -92,16 +97,29 @@ const AdminDashboardNotifications = () => {
 
   // Filter notifications based on search query
   const filteredNotifications = useMemo(() => {
-    if (!searchQuery.trim()) return notifications;
+    let filtered = notifications;
+
+    // Apply modal filters
+    const status = activeFilters["Status"] as string | undefined;
+    if (status) {
+      filtered = filtered.filter((n) => n.status === status);
+    }
+
+    const userType = activeFilters["User Type"] as string | undefined;
+    if (userType) {
+      filtered = filtered.filter((n) => n.userType === userType);
+    }
+
+    if (!searchQuery.trim()) return filtered;
 
     const query = searchQuery.toLowerCase();
-    return notifications.filter(
+    return filtered.filter(
       (n) =>
         n.title.toLowerCase().includes(query) ||
         n.message.toLowerCase().includes(query) ||
         n.date.toLowerCase().includes(query)
     );
-  }, [searchQuery, notifications]);
+  }, [searchQuery, notifications, activeFilters]);
 
   // Pagination
   const totalItems = filteredNotifications.length;
@@ -115,10 +133,24 @@ const AdminDashboardNotifications = () => {
   // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, activeFilters]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    setCurrentPage(1);
+  };
+
+  const handleFilterClick = () => {
+    setIsFilterModalOpen(true);
+  };
+
+  const handleApplyFilter = (filters: Record<string, unknown>) => {
+    setActiveFilters(filters);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilter = () => {
+    setActiveFilters({});
     setCurrentPage(1);
   };
 
@@ -175,10 +207,6 @@ const AdminDashboardNotifications = () => {
       });
   };
 
-  const handleNewNotification = () => {
-    setIsNewNotificationModalOpen(true);
-  };
-
   const handleNotificationSubmit = () => {
     setIsLoading(true);
     refreshLogs();
@@ -197,25 +225,50 @@ const AdminDashboardNotifications = () => {
       <div className="mb-6 flex flex-row sm:flex-row gap-4 items-start sm:items-center justify-between">
         <p className="text-sm text-gray-600">All notifications</p>
         <div className="flex flex-row gap-3">
-          {/* New Notification Button */}
-          <button
-            onClick={handleNewNotification}
-            className=" px-4 py-2 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:bg-[#4A14C7] transition-colors whitespace-nowrap"
-          >
-            New notification
-          </button>
-
           {/* Search and Filter Controls */}
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <AdminSearchBar
               onSearch={handleSearch}
-              onFilterClick={() => console.log("Filter clicked")}
+              onFilterClick={handleFilterClick}
               className="flex-1 sm:flex-initial"
               placeholder="Search"
             />
+            <button
+              onClick={() => setIsNewNotificationModalOpen(true)}
+              className="bg-[#3D0066] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#3D0066]/90 transition-colors whitespace-nowrap"
+            >
+              <span className="text-xl">+</span>
+              New Notification
+            </button>
           </div>
         </div>
       </div>
+
+      <AdminSearchFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={handleApplyFilter}
+        onReset={handleResetFilter}
+        initialFilters={activeFilters}
+        config={{
+          title: "Filter Notifications",
+          description: "Filter notifications by status and user type",
+          showPrice: false,
+          showPropertyType: false,
+          showLocation: false,
+          showStatus: true,
+          statusOptions: ["Sent", "Failed"],
+          showUserType: true,
+          userTypeOptions: [
+            "All Users",
+            "Realtors",
+            "Admins",
+            "Developers",
+            "Clients",
+            "Selected users",
+          ],
+        }}
+      />
 
       {/* Notifications Table */}
       <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">

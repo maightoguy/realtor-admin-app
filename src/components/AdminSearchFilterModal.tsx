@@ -18,6 +18,10 @@ interface AdminSearchFilterModalProps {
     priceMin?: number;
     priceMax?: number;
     priceStep?: number;
+    showStatus?: boolean;
+    statusOptions?: string[];
+    showUserType?: boolean;
+    userTypeOptions?: string[];
   };
 }
 
@@ -76,6 +80,8 @@ const AdminSearchFilterModal = ({
 }: AdminSearchFilterModalProps) => {
   const [showPropertyType, setShowPropertyType] = useState(false);
   const [showMoreCategories, setShowMoreCategories] = useState(false);
+  const [showStatus, setShowStatus] = useState(false);
+  const [showUserType, setShowUserType] = useState(false);
   const [price, setPrice] = useState<number[]>([
     config.priceMin || MIN_PRICE,
     config.priceMax || MAX_PRICE,
@@ -84,6 +90,8 @@ const AdminSearchFilterModal = ({
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState("Select location");
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedUserType, setSelectedUserType] = useState("");
 
   const formatCurrency = (val: number) =>
     `₦${Math.round(val).toLocaleString()}`;
@@ -112,6 +120,12 @@ const AdminSearchFilterModal = ({
 
     const initialLocation = String(initialFilters?.["Location"] ?? "").trim();
     setSelectedLocation(initialLocation || "Select location");
+
+    const initialStatus = String(initialFilters?.["Status"] ?? "").trim();
+    setSelectedStatus(initialStatus);
+
+    const initialUserType = String(initialFilters?.["User Type"] ?? "").trim();
+    setSelectedUserType(initialUserType);
 
     const initialPrice = initialFilters?.["Price (₦)"];
     if (Array.isArray(initialPrice) && initialPrice.length === 2) {
@@ -148,6 +162,14 @@ const AdminSearchFilterModal = ({
       filters["Location"] = selectedLocation;
     }
 
+    if (config.showStatus && selectedStatus.trim()) {
+      filters["Status"] = selectedStatus.trim();
+    }
+
+    if (config.showUserType && selectedUserType.trim()) {
+      filters["User Type"] = selectedUserType.trim();
+    }
+
     onApply?.(filters);
     onClose();
   };
@@ -155,10 +177,14 @@ const AdminSearchFilterModal = ({
   const handleReset = () => {
     setSelectedPropertyType("");
     setSelectedLocation("Select location");
+    setSelectedStatus("");
+    setSelectedUserType("");
     setPrice([config.priceMin || MIN_PRICE, config.priceMax || MAX_PRICE]);
     setDragged(null);
     setShowMoreCategories(false);
     setShowPropertyType(false);
+    setShowStatus(false);
+    setShowUserType(false);
     onReset?.();
     onClose();
   };
@@ -293,6 +319,88 @@ const AdminSearchFilterModal = ({
                 onClose={() => setManualModalOpen(false)}
                 onApply={(loc) => setSelectedLocation(loc)}
               />
+            </div>
+          )}
+
+          {/* Status */}
+          {config.showStatus && config.statusOptions && (
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setShowStatus((v) => !v)}
+                className="flex justify-between items-center w-full text-left"
+              >
+                <span className="font-semibold text-[12px] text-[#3B3F46] uppercase">
+                  Status
+                </span>
+                <span
+                  className={`transition-transform text-[#6500AC] ${
+                    showStatus ? "rotate-180" : ""
+                  }`}
+                >
+                  ▼
+                </span>
+              </button>
+
+              {showStatus && (
+                <div className="border-t border-[#F0F1F2] mt-2">
+                  {config.statusOptions.map((status, i) => (
+                    <label
+                      key={i}
+                      className="flex justify-between items-center py-2 text-[#898E99] text-[14px]"
+                    >
+                      <span>{status}</span>
+                      <input
+                        type="radio"
+                        name="status"
+                        className="accent-[#6500AC]"
+                        checked={selectedStatus === status}
+                        onChange={() => setSelectedStatus(status)}
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* User Type */}
+          {config.showUserType && config.userTypeOptions && (
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setShowUserType((v) => !v)}
+                className="flex justify-between items-center w-full text-left"
+              >
+                <span className="font-semibold text-[12px] text-[#3B3F46] uppercase">
+                  User Type
+                </span>
+                <span
+                  className={`transition-transform text-[#6500AC] ${
+                    showUserType ? "rotate-180" : ""
+                  }`}
+                >
+                  ▼
+                </span>
+              </button>
+
+              {showUserType && (
+                <div className="border-t border-[#F0F1F2] mt-2">
+                  {config.userTypeOptions.map((type, i) => (
+                    <label
+                      key={i}
+                      className="flex justify-between items-center py-2 text-[#898E99] text-[14px]"
+                    >
+                      <span>{type}</span>
+                      <input
+                        type="radio"
+                        name="userType"
+                        className="accent-[#6500AC]"
+                        checked={selectedUserType === type}
+                        onChange={() => setSelectedUserType(type)}
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

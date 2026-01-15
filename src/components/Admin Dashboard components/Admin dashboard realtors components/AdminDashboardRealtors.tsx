@@ -7,6 +7,7 @@ import Loader from "../../Loader";
 import type { User } from "../../../services/types";
 import { receiptService, userService } from "../../../services/apiService";
 import DefaultProfilePic from "../../../assets/Default Profile pic.png";
+import AdminSearchFilterModal from "../../AdminSearchFilterModal";
 
 const formatIdMiddle = (value: string, start = 6, end = 4) => {
   if (!value) return value;
@@ -151,6 +152,10 @@ const AdminDashboardRealtors = ({
   const [expandedRealtorId, setExpandedRealtorId] = useState<string | null>(
     null
   );
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
+    {}
+  );
   const itemsPerPage = 8;
 
   const formatNaira = (amount: number) =>
@@ -274,6 +279,21 @@ const AdminDashboardRealtors = ({
   const filteredRealtors = useMemo(() => {
     let filtered = [...realtors];
 
+    // Apply modal filters
+    const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
+    if (priceRange && priceRange.length === 2) {
+      const [min, max] = priceRange;
+      filtered = filtered.filter((r) => {
+        const amount = parseFloat(r.amountSold.replace(/[₦,]/g, "")) || 0;
+        return amount >= min && amount <= max;
+      });
+    }
+
+    const status = activeFilters["Status"] as string | undefined;
+    if (status) {
+      filtered = filtered.filter((r) => r.status === status);
+    }
+
     // Apply status filter
     if (activeFilter === "Top realtors") {
       // Sort by property sold descending and take top realtors
@@ -298,7 +318,7 @@ const AdminDashboardRealtors = ({
     }
 
     return filtered;
-  }, [activeFilter, searchQuery, realtors]);
+  }, [activeFilter, searchQuery, realtors, activeFilters]);
 
   // Pagination
   const totalItems = filteredRealtors.length;
@@ -325,6 +345,20 @@ const AdminDashboardRealtors = ({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleFilterClick = () => {
+    setIsFilterModalOpen(true);
+  };
+
+  const handleApplyFilter = (filters: Record<string, unknown>) => {
+    setActiveFilters(filters);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilter = () => {
+    setActiveFilters({});
+    setCurrentPage(1);
   };
 
   const handleViewDetails = (realtorId: string) => {
@@ -469,12 +503,32 @@ const AdminDashboardRealtors = ({
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <AdminSearchBar
             onSearch={handleSearch}
-            onFilterClick={() => console.log("Filter clicked")}
+            onFilterClick={handleFilterClick}
             className="flex-1 sm:flex-initial"
             placeholder="Search"
           />
         </div>
       </div>
+
+      <AdminSearchFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={handleApplyFilter}
+        onReset={handleResetFilter}
+        initialFilters={activeFilters}
+        config={{
+          title: "Filter Realtors",
+          description: "Filter realtors by status and amount sold",
+          showPrice: true,
+          showPropertyType: false,
+          showLocation: false,
+          showStatus: true,
+          statusOptions: ["Active", "Inactive"],
+          priceMin: 0,
+          priceMax: 100_000_000,
+          priceStep: 10000,
+        }}
+      />
 
       {isLoading ? (
         <Loader text="Loading realtors..." />
