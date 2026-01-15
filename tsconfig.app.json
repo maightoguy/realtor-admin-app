@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -20,10 +19,9 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-   
-    "noFallthroughCasesInSwitch": true,
-   
+
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "exclude": ["src/realtor webapp src DO NOT MODIFY JUST REFERENCE"]
+  "include": ["src", "realtor webapp src DO NOT MODIFY JUST REFERENCE"],
+  "exclude": ["realtor webapp src DO NOT MODIFY JUST REFERENCE"]
 }

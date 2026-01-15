@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Range } from "react-range";
 import AdminManualLocationModal from "./AdminManualLocationModal";
 
@@ -57,7 +57,7 @@ const LOCATION_OPTIONS = [
   "Kano, Kano",
 ];
 
-const AdminSearchFilterModal: FC<AdminSearchFilterModalProps> = ({
+const AdminSearchFilterModal = ({
   isOpen,
   onClose,
   initialFilters,
@@ -73,7 +73,7 @@ const AdminSearchFilterModal: FC<AdminSearchFilterModalProps> = ({
     priceMax: MAX_PRICE,
     priceStep: 100000,
   },
-}) => {
+}: AdminSearchFilterModalProps) => {
   const [showPropertyType, setShowPropertyType] = useState(false);
   const [showMoreCategories, setShowMoreCategories] = useState(false);
   const [price, setPrice] = useState<number[]>([
@@ -193,7 +193,7 @@ const AdminSearchFilterModal: FC<AdminSearchFilterModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="flex-grow p-6 flex flex-col gap-6 font-poppins">
+        <div className="flex grow p-6 flex-col gap-6 font-poppins">
           {/* Property Type */}
           {config.showPropertyType && (
             <div className="flex flex-col gap-3">
@@ -362,7 +362,7 @@ const AdminSearchFilterModal: FC<AdminSearchFilterModalProps> = ({
               <span className="text-xs md:text-sm font-medium text-[#6B7280]">
                 Price Preview
               </span>
-              <div className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 h-[48px] md:h-[56px] flex items-center text-xs md:text-sm text-black font-medium">
+              <div className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 h-12 md:h-14 flex items-center text-xs md:text-sm text-black font-medium">
                 {dragged !== null ? formatCurrency(price[dragged]) : "—"}
               </div>
             </div>

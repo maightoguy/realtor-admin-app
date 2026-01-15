@@ -146,7 +146,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
       {/* Modal Panel */}
       <div className="fixed inset-0 bg-white z-50 md:inset-auto md:top-20 md:right-8 md:w-[440px] md:max-h-[80vh] md:rounded-2xl md:shadow-2xl flex flex-col">
         {/* Pointer for desktop */}
-        <div className="hidden md:block absolute -top-2 right-6 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-white" />
+        <div className="hidden md:block absolute -top-2 right-6 w-0 h-0 border-l-10 border-l-transparent border-r-10 border-r-transparent border-b-10 border-b-white" />
 
         {/* Header for Mobile */}
         <div className="flex md:hidden items-center p-4 border-b border-gray-200">
@@ -157,7 +157,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             {/* Back arrow*/}
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h2 className="text-lg font-semibold text-gray-800 text-center flex-grow -ml-9">
+          <h2 className="flex text-lg font-semibold text-gray-800 text-center grow -ml-9">
             Notifications
           </h2>
         </div>
@@ -194,15 +194,13 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                 }`}
               >
                 {!item.seen && (
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0" />
                 )}
-                <div
-                  className={`flex-shrink-0 mt-1 ${item.seen ? "ml-4" : ""}`}
-                >
+                <div className={`shrink-0 mt-1 ${item.seen ? "ml-4" : ""}`}>
                   {getNotificationIcon(item.type)}
                 </div>
 
-                <div className="flex-grow">
+                <div className="grow">
                   <p className="text-sm font-semibold text-gray-800 leading-tight">
                     {item.title}
                   </p>

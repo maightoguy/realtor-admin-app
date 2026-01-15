@@ -164,7 +164,7 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="flex-grow p-6 flex flex-col gap-6 font-poppins">
+        <div className="flex grow p-6 flex-col gap-6 font-poppins">
           {/* Property Type */}
           <div className="flex flex-col gap-3">
             <button
@@ -323,7 +323,7 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
             <span className="text-xs md:text-sm font-medium text-[#6B7280]">
               Sub-filter title
             </span>
-            <div className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 h-[48px] md:h-[56px] flex items-center text-xs md:text-sm text-black font-medium">
+            <div className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 h-12 md:h-14 flex items-center text-xs md:text-sm text-black font-medium">
               {dragged !== null ? formatCurrency(price[dragged]) : "—"}
             </div>
           </div>

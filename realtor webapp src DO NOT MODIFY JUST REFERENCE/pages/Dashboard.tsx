@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 import Header from "../components/Dashboard components/Header.tsx";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../context/UserContext.tsx";
 
 // Icons
 import PropertiesIcon from "../components/icons/PropertiesIcon.tsx";
