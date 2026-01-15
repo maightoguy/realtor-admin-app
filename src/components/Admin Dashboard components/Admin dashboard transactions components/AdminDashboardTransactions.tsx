@@ -1,6 +1,7 @@
 import { Component, useEffect, useMemo, useState } from "react";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
+import AdminSearchFilterModal from "../../AdminSearchFilterModal";
 import TransactionsIcon from "../../icons/TransactionsIcon";
 import type { Transaction } from "./AdminTransactionsData";
 import TransactionDetailsModal from "./TransactionDetailsModal";
@@ -177,6 +178,10 @@ const AdminDashboardTransactionsInner = () => {
     useState<Transaction | null>(null);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
+    {}
+  );
   const [expandedTransactionId, setExpandedTransactionId] = useState<
     string | null
   >(null);
@@ -356,8 +361,18 @@ const AdminDashboardTransactionsInner = () => {
       );
     }
 
+    // Apply modal filters
+    const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
+    if (priceRange && priceRange.length === 2) {
+      const [min, max] = priceRange;
+      filtered = filtered.filter((t) => {
+        const amount = parseFloat(t.amount.replace(/[₦,]/g, "")) || 0;
+        return amount >= min && amount <= max;
+      });
+    }
+
     return filtered;
-  }, [activeFilter, searchQuery, transactions]);
+  }, [activeFilter, searchQuery, transactions, activeFilters]);
 
   // Pagination
   const totalItems = filteredTransactions.length;
@@ -379,6 +394,20 @@ const AdminDashboardTransactionsInner = () => {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
+    setCurrentPage(1);
+  };
+
+  const handleFilterClick = () => {
+    setIsFilterModalOpen(true);
+  };
+
+  const handleApplyFilter = (filters: Record<string, unknown>) => {
+    setActiveFilters(filters);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilter = () => {
+    setActiveFilters({});
     setCurrentPage(1);
   };
 
@@ -649,7 +678,7 @@ const AdminDashboardTransactionsInner = () => {
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <AdminSearchBar
                 onSearch={handleSearch}
-                onFilterClick={() => console.log("Filter clicked")}
+                onFilterClick={handleFilterClick}
                 className="flex-1 sm:flex-initial"
                 placeholder="Search"
               />
@@ -766,6 +795,22 @@ const AdminDashboardTransactionsInner = () => {
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={handlePageChange}
+          />
+
+          {/* Filter Modal */}
+          <AdminSearchFilterModal
+            isOpen={isFilterModalOpen}
+            onClose={() => setIsFilterModalOpen(false)}
+            onApply={handleApplyFilter}
+            onReset={handleResetFilter}
+            initialFilters={activeFilters}
+            config={{
+              title: "Filter Transactions",
+              description: "Filter transactions by amount",
+              showPrice: true,
+              showPropertyType: false,
+              showLocation: false,
+            }}
           />
 
           {/* Transaction Details Modal (for Commission) */}

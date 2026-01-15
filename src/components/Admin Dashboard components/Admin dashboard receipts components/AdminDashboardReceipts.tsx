@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminSearchBar from "../../AdminSearchBar";
 import AdminPagination from "../../AdminPagination";
+import AdminSearchFilterModal from "../../AdminSearchFilterModal";
 import ReceiptsIcon from "../../icons/ReceiptsIcon";
 import AdminReceiptsDetailsModal from "./AdminReceiptsDetailsModal";
 import {
@@ -122,6 +123,8 @@ type AdminReceipt = {
   clientName: string;
   propertyId: string | null;
   propertyName: string;
+  propertyLocation: string;
+  propertyType: string;
   amountPaid: number;
   receiptUrls: string[];
   status: ReceiptStatus;
@@ -142,6 +145,8 @@ const AdminDashboardReceipts = () => {
     null
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [modalFilters, setModalFilters] = useState<Record<string, unknown>>({});
   const [receipts, setReceipts] = useState<AdminReceipt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const itemsPerPage = 8;
@@ -216,6 +221,8 @@ const AdminDashboardReceipts = () => {
             clientName: r.client_name ?? "-",
             propertyId: r.property_id ?? null,
             propertyName: property?.title ?? "-",
+            propertyLocation: property?.location ?? "-",
+            propertyType: property?.category ?? "-",
             amountPaid: Number.isFinite(amountPaid) ? amountPaid : 0,
             receiptUrls: Array.isArray(r.receipt_urls) ? r.receipt_urls : [],
             status: r.status,
@@ -287,8 +294,29 @@ const AdminDashboardReceipts = () => {
       );
     }
 
+    // Apply modal filters
+    const priceRange = modalFilters["Price (₦)"] as number[] | undefined;
+    if (priceRange && priceRange.length === 2) {
+      const [min, max] = priceRange;
+      filtered = filtered.filter(
+        (r) => r.amountPaid >= min && r.amountPaid <= max
+      );
+    }
+
+    const type = modalFilters["Property Type"] as string | undefined;
+    if (type) {
+      filtered = filtered.filter((r) => r.propertyType === type);
+    }
+
+    const location = modalFilters["Location"] as string | undefined;
+    if (location) {
+      filtered = filtered.filter((r) =>
+        r.propertyLocation.toLowerCase().includes(location.toLowerCase())
+      );
+    }
+
     return filtered;
-  }, [activeFilter, searchQuery, receipts]);
+  }, [activeFilter, searchQuery, receipts, modalFilters]);
 
   // Pagination
   const totalItems = filteredReceipts.length;
@@ -305,6 +333,20 @@ const AdminDashboardReceipts = () => {
       | "Rejected receipts"
   ) => {
     setActiveFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handleFilterClick = () => {
+    setIsFilterModalOpen(true);
+  };
+
+  const handleApplyFilter = (filters: Record<string, unknown>) => {
+    setModalFilters(filters);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilter = () => {
+    setModalFilters({});
     setCurrentPage(1);
   };
 
@@ -446,7 +488,7 @@ const AdminDashboardReceipts = () => {
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <AdminSearchBar
             onSearch={handleSearch}
-            onFilterClick={() => console.log("Filter clicked")}
+            onFilterClick={handleFilterClick}
             className="flex-1 sm:flex-initial"
             placeholder="Search"
           />
@@ -538,6 +580,22 @@ const AdminDashboardReceipts = () => {
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         onPageChange={handlePageChange}
+      />
+
+      {/* Filter Modal */}
+      <AdminSearchFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={handleApplyFilter}
+        onReset={handleResetFilter}
+        initialFilters={modalFilters}
+        config={{
+          title: "Filter Receipts",
+          description: "Filter receipts by amount, property type, or location",
+          showPrice: true,
+          showPropertyType: true,
+          showLocation: true,
+        }}
       />
 
       {/* Receipt Details Modal */}

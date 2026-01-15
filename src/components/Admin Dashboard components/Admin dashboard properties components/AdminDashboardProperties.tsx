@@ -4,6 +4,7 @@ import AdminPropertyCard from "./AdminPropertyCard.tsx";
 import AdminPropertyDeveloper from "./AdminPropertyDeveloper.tsx";
 import AdminSearchBar from "../../AdminSearchBar.tsx";
 import AdminPagination from "../../AdminPagination.tsx";
+import AdminSearchFilterModal from "../../AdminSearchFilterModal.tsx";
 import BuildingsIcon from "../../icons/BuildingsIcon.tsx";
 import IslandIcon from "../../icons/IslandIcon.tsx";
 import SoldOutIcon from "../../icons/SoldOutIcon.tsx";
@@ -248,6 +249,13 @@ const AdminDashboardProperties = ({
   const [removeDeveloperError, setRemoveDeveloperError] = useState<
     string | null
   >(null);
+
+  // Filter state
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
+    {}
+  );
+
   const itemsPerPage = 8;
 
   const developersById = useMemo(() => {
@@ -380,19 +388,40 @@ const AdminDashboardProperties = ({
     setIsLoadingProperties(true);
     setPropertiesError(null);
     setDeveloperPropertiesMessage(null);
+
+    // Extract filters
+    const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
+    const minPrice = priceRange?.[0];
+    const maxPrice = priceRange?.[1];
+    const type = activeFilters["Property Type"] as string | undefined;
+    const location = activeFilters["Location"] as string | undefined;
+
     try {
-      logger.info("[ADMIN][PROPERTIES] Fetch start", { page, q, developerId });
+      logger.info("[ADMIN][PROPERTIES] Fetch start", {
+        page,
+        q,
+        developerId,
+        activeFilters,
+      });
       let rows: DbProperty[] = [];
       if (q.trim().length > 0) {
         rows = await propertyService.search(q.trim(), {
           limit: 5000,
           developerId,
+          minPrice,
+          maxPrice,
+          type: type as any,
+          location,
         });
       } else {
         rows = await propertyService.getAll({
           limit: itemsPerPage,
           offset: (page - 1) * itemsPerPage,
           developerId,
+          minPrice,
+          maxPrice,
+          type: type as any,
+          location,
         });
       }
       setProperties(rows.map(adaptDbProperty));
@@ -475,6 +504,7 @@ const AdminDashboardProperties = ({
     showAddForm,
     selectedProperty,
     selectedDeveloper?.id,
+    activeFilters,
   ]);
 
   useEffect(() => {
@@ -490,6 +520,7 @@ const AdminDashboardProperties = ({
     showAddForm,
     selectedProperty,
     selectedDeveloper?.id,
+    activeFilters,
   ]);
 
   useEffect(() => {
@@ -537,6 +568,19 @@ const AdminDashboardProperties = ({
 
   const handleFilterClick = () => {
     logger.info("[ADMIN][PROPERTIES] Filter clicked");
+    setIsFilterModalOpen(true);
+  };
+
+  const handleApplyFilter = (filters: Record<string, unknown>) => {
+    logger.info("[ADMIN][PROPERTIES] Filter applied", { filters });
+    setActiveFilters(filters);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilter = () => {
+    logger.info("[ADMIN][PROPERTIES] Filter reset");
+    setActiveFilters({});
+    setCurrentPage(1);
   };
 
   const handleViewDetails = (propertyId: string) => {
@@ -1138,6 +1182,23 @@ const AdminDashboardProperties = ({
         }}
       />
 
+      {/* Filter Modal */}
+      <AdminSearchFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={handleApplyFilter}
+        onReset={handleResetFilter}
+        initialFilters={activeFilters}
+        config={{
+          title: "Filter Properties",
+          description: "Filter properties by price, type, or location",
+          showPrice: true,
+          showPropertyType: true,
+          showLocation: true,
+        }}
+      />
+
+      {/* Remove Developer Modal */}
       <RemoveDeveloperModal
         isOpen={isRemoveDeveloperModalOpen}
         developerName={developerToRemove?.name ?? ""}

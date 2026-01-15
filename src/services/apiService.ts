@@ -216,6 +216,9 @@ export const propertyService = {
     type?: PropertyType;
     status?: PropertyStatus;
     developerId?: string;
+    location?: string;
+    minPrice?: number;
+    maxPrice?: number;
     limit?: number;
     offset?: number;
   }): Promise<Property[]> {
@@ -233,6 +236,15 @@ export const propertyService = {
     }
     if (filters?.developerId) {
       query = query.eq("developer_id", filters.developerId);
+    }
+    if (filters?.location) {
+      query = query.ilike("location", `%${filters.location}%`);
+    }
+    if (typeof filters?.minPrice === "number") {
+      query = query.gte("price", filters.minPrice);
+    }
+    if (typeof filters?.maxPrice === "number") {
+      query = query.lte("price", filters.maxPrice);
     }
     if (filters?.limit) {
       query = query.limit(filters.limit);
@@ -257,6 +269,7 @@ export const propertyService = {
       type?: PropertyType;
       status?: PropertyStatus;
       developerId?: string;
+      location?: string;
       minPrice?: number;
       maxPrice?: number;
       limit?: number;
@@ -278,6 +291,9 @@ export const propertyService = {
     }
     if (filters?.developerId) {
       query = query.eq("developer_id", filters.developerId);
+    }
+    if (filters?.location) {
+      query = query.ilike("location", `%${filters.location}%`);
     }
     if (typeof filters?.minPrice === "number") {
       query = query.gte("price", filters.minPrice);
