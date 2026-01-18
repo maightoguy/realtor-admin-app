@@ -26,9 +26,19 @@ interface AdminSearchFilterModalProps {
     textLabel?: string;
     textPlaceholder?: string;
     textKey?: string;
+    textFields?: Array<{
+      label: string;
+      placeholder?: string;
+      key: string;
+    }>;
     showDateRange?: boolean;
     dateRangeLabel?: string;
     dateRangeKey?: string;
+    showNumberRange?: boolean;
+    numberRangeLabel?: string;
+    numberRangeKey?: string;
+    numberRangeMin?: number;
+    numberRangeMax?: number;
   };
 }
 
@@ -99,9 +109,24 @@ const AdminSearchFilterModal = ({
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedUserType, setSelectedUserType] = useState("");
-  const [textValue, setTextValue] = useState("");
+  const [textValues, setTextValues] = useState<Record<string, string>>({});
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [numberMin, setNumberMin] = useState("");
+  const [numberMax, setNumberMax] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const textFields =
+    config.textFields ??
+    (config.showText
+      ? [
+          {
+            label: config.textLabel || "Name",
+            placeholder: config.textPlaceholder || "Search",
+            key: config.textKey || "Name",
+          },
+        ]
+      : []);
 
   const formatCurrency = (val: number) =>
     `₦${Math.round(val).toLocaleString()}`;
@@ -115,9 +140,15 @@ const AdminSearchFilterModal = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const textKey = config.textKey || "Name";
-    const initialText = String(initialFilters?.[textKey] ?? "").trim();
-    setTextValue(initialText);
+    setFormError(null);
+
+    const nextTextValues: Record<string, string> = {};
+    for (const field of textFields) {
+      nextTextValues[field.key] = String(
+        initialFilters?.[field.key] ?? "",
+      ).trim();
+    }
+    setTextValues(nextTextValues);
 
     const dateRangeKey = config.dateRangeKey || "Date Range";
     const initialDateRange = initialFilters?.[dateRangeKey];
@@ -131,12 +162,28 @@ const AdminSearchFilterModal = ({
       setEndDate("");
     }
 
+    const numberRangeKey = config.numberRangeKey || "Value Range (₦)";
+    const initialNumberRange = initialFilters?.[numberRangeKey];
+    if (Array.isArray(initialNumberRange) && initialNumberRange.length === 2) {
+      const min = initialNumberRange[0];
+      const max = initialNumberRange[1];
+      setNumberMin(
+        typeof min === "number" && Number.isFinite(min) ? String(min) : "",
+      );
+      setNumberMax(
+        typeof max === "number" && Number.isFinite(max) ? String(max) : "",
+      );
+    } else {
+      setNumberMin("");
+      setNumberMax("");
+    }
+
     const initialType = String(initialFilters?.["Property Type"] ?? "").trim();
     setSelectedPropertyType(initialType);
     if (
       initialType &&
       !BASE_PROPERTY_TYPES.includes(
-        initialType as (typeof BASE_PROPERTY_TYPES)[number]
+        initialType as (typeof BASE_PROPERTY_TYPES)[number],
       )
     ) {
       setShowMoreCategories(true);
@@ -167,12 +214,12 @@ const AdminSearchFilterModal = ({
     }
 
     setDragged(null);
-  }, [isOpen, initialFilters, config]);
+  }, [isOpen, initialFilters, config, textFields]);
 
   const handleApply = () => {
     const filters: Record<string, unknown> = {};
-    const textKey = config.textKey || "Name";
     const dateRangeKey = config.dateRangeKey || "Date Range";
+    const numberRangeKey = config.numberRangeKey || "Value Range (₦)";
 
     if (config.showPrice) {
       filters["Price (₦)"] = price;
@@ -198,12 +245,61 @@ const AdminSearchFilterModal = ({
       filters["User Type"] = selectedUserType.trim();
     }
 
-    if (config.showText && textValue.trim()) {
-      filters[textKey] = textValue.trim();
+    if (textFields.length > 0) {
+      for (const field of textFields) {
+        const value = String(textValues[field.key] ?? "").trim();
+        if (value) filters[field.key] = value;
+      }
     }
 
     if (config.showDateRange && (startDate.trim() || endDate.trim())) {
-      filters[dateRangeKey] = [startDate.trim() || null, endDate.trim() || null];
+      const from = startDate.trim();
+      const to = endDate.trim();
+      if (from && to) {
+        const fromDate = new Date(`${from}T00:00:00`);
+        const toDate = new Date(`${to}T00:00:00`);
+        if (fromDate.getTime() > toDate.getTime()) {
+          setFormError("Start date must be on or before end date.");
+          return;
+        }
+      }
+      filters[dateRangeKey] = [from || null, to || null];
+    }
+
+    if (config.showNumberRange && (numberMin.trim() || numberMax.trim())) {
+      const minStr = numberMin.trim();
+      const maxStr = numberMax.trim();
+      const minValue = minStr ? Number(minStr) : null;
+      const maxValue = maxStr ? Number(maxStr) : null;
+      const minAllowed = config.numberRangeMin ?? 1;
+      const maxAllowed = config.numberRangeMax ?? 1_000_000;
+
+      if (
+        minValue !== null &&
+        (!Number.isFinite(minValue) || minValue < minAllowed)
+      ) {
+        setFormError(
+          `Minimum value must be at least ₦${minAllowed.toLocaleString()}.`,
+        );
+        return;
+      }
+      if (
+        maxValue !== null &&
+        (!Number.isFinite(maxValue) || maxValue > maxAllowed)
+      ) {
+        setFormError(
+          `Maximum value must be at most ₦${maxAllowed.toLocaleString()}.`,
+        );
+        return;
+      }
+      if (minValue !== null && maxValue !== null && minValue > maxValue) {
+        setFormError(
+          "Minimum value must be less than or equal to maximum value.",
+        );
+        return;
+      }
+
+      filters[numberRangeKey] = [minValue, maxValue];
     }
 
     onApply?.(filters);
@@ -215,9 +311,12 @@ const AdminSearchFilterModal = ({
     setSelectedLocation("Select location");
     setSelectedStatus("");
     setSelectedUserType("");
-    setTextValue("");
+    setTextValues({});
     setStartDate("");
     setEndDate("");
+    setNumberMin("");
+    setNumberMax("");
+    setFormError(null);
     setPrice([config.priceMin || MIN_PRICE, config.priceMax || MAX_PRICE]);
     setDragged(null);
     setShowMoreCategories(false);
@@ -443,19 +542,26 @@ const AdminSearchFilterModal = ({
             </div>
           )}
 
-          {config.showText && (
-            <div className="flex flex-col gap-2">
-              <span className="font-medium text-[14px] text-[#6B7280]">
-                {config.textLabel || "Name"}
-              </span>
-              <input
-                value={textValue}
-                onChange={(e) => setTextValue(e.target.value)}
-                placeholder={config.textPlaceholder || "Search"}
-                className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
-              />
-            </div>
-          )}
+          {textFields.length > 0 &&
+            textFields.map((field) => (
+              <div key={field.key} className="flex flex-col gap-2">
+                <span className="font-medium text-[14px] text-[#6B7280]">
+                  {field.label}
+                </span>
+                <input
+                  value={textValues[field.key] ?? ""}
+                  onChange={(e) => {
+                    setFormError(null);
+                    setTextValues((prev) => ({
+                      ...prev,
+                      [field.key]: e.target.value,
+                    }));
+                  }}
+                  placeholder={field.placeholder || "Search"}
+                  className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+                />
+              </div>
+            ))}
 
           {config.showDateRange && (
             <div className="flex flex-col gap-3">
@@ -468,7 +574,10 @@ const AdminSearchFilterModal = ({
                   <input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => {
+                      setFormError(null);
+                      setStartDate(e.target.value);
+                    }}
                     className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
                   />
                 </div>
@@ -477,8 +586,53 @@ const AdminSearchFilterModal = ({
                   <input
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => {
+                      setFormError(null);
+                      setEndDate(e.target.value);
+                    }}
                     className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {config.showNumberRange && (
+            <div className="flex flex-col gap-3">
+              <span className="font-medium text-[14px] text-[#6B7280]">
+                {config.numberRangeLabel || "Value Range (₦)"}
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[12px] text-[#6B7280]">Min</span>
+                  <input
+                    inputMode="numeric"
+                    type="number"
+                    min={config.numberRangeMin ?? 1}
+                    max={config.numberRangeMax ?? 1_000_000}
+                    value={numberMin}
+                    onChange={(e) => {
+                      setFormError(null);
+                      setNumberMin(e.target.value);
+                    }}
+                    className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+                    placeholder="e.g 1"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[12px] text-[#6B7280]">Max</span>
+                  <input
+                    inputMode="numeric"
+                    type="number"
+                    min={config.numberRangeMin ?? 1}
+                    max={config.numberRangeMax ?? 1_000_000}
+                    value={numberMax}
+                    onChange={(e) => {
+                      setFormError(null);
+                      setNumberMax(e.target.value);
+                    }}
+                    className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+                    placeholder="e.g 1000000"
                   />
                 </div>
               </div>
@@ -560,6 +714,11 @@ const AdminSearchFilterModal = ({
 
         {/* Footer */}
         <div className="px-4 py-4 md:px-6 md:py-6 bg-white border-t border-[#E5E7EB] shadow-[0_-4px_25px_rgba(0,0,0,0.05)] flex flex-col gap-3">
+          {formError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{formError}</p>
+            </div>
+          )}
           <button
             onClick={handleApply}
             className="bg-[#6500AC] text-white py-2 md:py-3 rounded-lg font-medium text-sm md:text-base shadow"

@@ -263,9 +263,6 @@ const AdminDashboardNotifications = () => {
             "All Users",
             "Realtors",
             "Admins",
-            "Developers",
-            "Clients",
-            "Selected users",
           ],
         }}
       />

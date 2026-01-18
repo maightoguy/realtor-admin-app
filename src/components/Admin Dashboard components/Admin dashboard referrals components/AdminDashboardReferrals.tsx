@@ -132,13 +132,18 @@ const AdminDashboardReferrals = ({
     const toDayEnd = (value: string) => new Date(`${value}T23:59:59.999`);
 
     // Apply modal filters
-    const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
-    if (priceRange && priceRange.length === 2) {
-      const [min, max] = priceRange;
+    const valueRange = activeFilters["Value Range (₦)"] as
+      | Array<number | null>
+      | undefined;
+    if (Array.isArray(valueRange) && valueRange.length === 2) {
+      const min = typeof valueRange[0] === "number" ? valueRange[0] : null;
+      const max = typeof valueRange[1] === "number" ? valueRange[1] : null;
       filtered = filtered.filter((r) => {
         const amount =
           parseFloat(r.totalReferralCommission.replace(/[₦,]/g, "")) || 0;
-        return amount >= min && amount <= max;
+        if (min !== null && amount < min) return false;
+        if (max !== null && amount > max) return false;
+        return true;
       });
     }
 
@@ -309,13 +314,15 @@ const AdminDashboardReferrals = ({
         initialFilters={activeFilters}
         config={{
           title: "Filter Referrals",
-          description: "Filter referrals by amount, date range, and name",
-          showPrice: true,
+          description: "Filter referrals by value, date range, and name",
+          showPrice: false,
           showPropertyType: false,
           showLocation: false,
-          priceMin: 0,
-          priceMax: 100_000_000,
-          priceStep: 10000,
+          showNumberRange: true,
+          numberRangeLabel: "Value Range (₦)",
+          numberRangeKey: "Value Range (₦)",
+          numberRangeMin: 1,
+          numberRangeMax: 1_000_000,
           showText: true,
           textLabel: "Name",
           textPlaceholder: "Search by name",

@@ -9,6 +9,7 @@ import WithdrawalDetailsModal from "./WithdrawalDetailsModal";
 import {
   commissionService,
   payoutService,
+  receiptService,
   notificationService,
   userService,
 } from "../../../services/apiService";
@@ -180,7 +181,7 @@ const AdminDashboardTransactionsInner = () => {
   const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
-    {}
+    {},
   );
   const [expandedTransactionId, setExpandedTransactionId] = useState<
     string | null
@@ -198,17 +199,17 @@ const AdminDashboardTransactionsInner = () => {
       day % 10 === 1 && day % 100 !== 11
         ? "st"
         : day % 10 === 2 && day % 100 !== 12
-        ? "nd"
-        : day % 10 === 3 && day % 100 !== 13
-        ? "rd"
-        : "th";
+          ? "nd"
+          : day % 10 === 3 && day % 100 !== 13
+            ? "rd"
+            : "th";
     const monthName = d.toLocaleDateString("en-US", { month: "long" });
     const year = d.getFullYear();
     return `${monthName} ${day}${suffix}, ${year}`;
   };
 
   const statusToUi = (
-    status: Commission["status"] | Payout["status"]
+    status: Commission["status"] | Payout["status"],
   ): Transaction["status"] => {
     if (status === "paid") return "Paid";
     if (status === "approved") return "Approved";
@@ -217,7 +218,7 @@ const AdminDashboardTransactionsInner = () => {
   };
 
   const normalizeDbStatus = (
-    status: Commission["status"] | Payout["status"]
+    status: Commission["status"] | Payout["status"],
   ): Transaction["dbStatus"] => {
     if (status === "paid") return "paid";
     if (status === "approved") return "approved";
@@ -247,12 +248,26 @@ const AdminDashboardTransactionsInner = () => {
             [
               ...commissions.map((c) => c.realtor_id),
               ...payouts.map((p) => p.realtor_id),
-            ].filter((id): id is string => Boolean(id))
-          )
+            ].filter((id): id is string => Boolean(id)),
+          ),
         );
 
-        const users = await userService.getByIds(realtorIds);
+        const receiptIds = Array.from(
+          new Set(
+            commissions
+              .map((c) => c.receipt_id ?? null)
+              .filter((id): id is string => Boolean(id)),
+          ),
+        );
+
+        const [users, receipts] = await Promise.all([
+          userService.getByIds(realtorIds),
+          receiptService.getByIds(receiptIds),
+        ]);
         const userById = new Map<string, User>(users.map((u) => [u.id, u]));
+        const clientNameByReceiptId = new Map(
+          receipts.map((r) => [r.id, r.client_name]),
+        );
 
         const tx: Array<Transaction & { createdAtIso: string }> = [
           ...commissions.map((c): Transaction & { createdAtIso: string } => {
@@ -261,6 +276,9 @@ const AdminDashboardTransactionsInner = () => {
               `${u?.first_name ?? ""} ${u?.last_name ?? ""}`.trim() ||
               u?.email ||
               "-";
+            const clientName = c.receipt_id
+              ? (clientNameByReceiptId.get(c.receipt_id) ?? undefined)
+              : undefined;
             return {
               id: c.id,
               realtorId: c.realtor_id,
@@ -271,6 +289,7 @@ const AdminDashboardTransactionsInner = () => {
               status: statusToUi(c.status),
               dbStatus: normalizeDbStatus(c.status),
               createdAtIso: c.created_at,
+              clientName,
             };
           }),
           ...payouts.map((p): Transaction & { createdAtIso: string } => {
@@ -303,7 +322,7 @@ const AdminDashboardTransactionsInner = () => {
         tx.sort(
           (a, b) =>
             new Date(b.createdAtIso).getTime() -
-            new Date(a.createdAtIso).getTime()
+            new Date(a.createdAtIso).getTime(),
         );
 
         setTransactions(tx);
@@ -344,7 +363,7 @@ const AdminDashboardTransactionsInner = () => {
     }, 0);
 
     const pendingCount = filteredForMetrics.filter(
-      (t) => t.status === "Pending" || t.status === "Approved"
+      (t) => t.status === "Pending" || t.status === "Approved",
     ).length;
 
     return {
@@ -365,6 +384,23 @@ const AdminDashboardTransactionsInner = () => {
 
     const toDayStart = (value: string) => new Date(`${value}T00:00:00`);
     const toDayEnd = (value: string) => new Date(`${value}T23:59:59.999`);
+    const normalize = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const matchesText = (
+      query: string,
+      ...fields: Array<string | null | undefined>
+    ) => {
+      const q = normalize(query);
+      if (!q) return true;
+      const tokens = q.split(" ").filter(Boolean);
+      const hay = normalize(fields.filter(Boolean).join(" "));
+      return tokens.every((t) => hay.includes(t));
+    };
 
     // Apply type filter
     if (activeFilter === "Commission") {
@@ -381,7 +417,7 @@ const AdminDashboardTransactionsInner = () => {
           t.id.toLowerCase().includes(query) ||
           t.realtorName.toLowerCase().includes(query) ||
           t.type.toLowerCase().includes(query) ||
-          t.amount.toLowerCase().includes(query)
+          t.amount.toLowerCase().includes(query),
       );
     }
 
@@ -397,8 +433,14 @@ const AdminDashboardTransactionsInner = () => {
 
     const realtorName = activeFilters["Realtor Name"] as string | undefined;
     if (realtorName && realtorName.trim()) {
-      const query = realtorName.trim().toLowerCase();
-      filtered = filtered.filter((t) => t.realtorName.toLowerCase().includes(query));
+      filtered = filtered.filter((t) =>
+        matchesText(realtorName, t.realtorName),
+      );
+    }
+
+    const clientName = activeFilters["Client Name"] as string | undefined;
+    if (clientName && clientName.trim()) {
+      filtered = filtered.filter((t) => matchesText(clientName, t.clientName));
     }
 
     const dateRange = activeFilters["Date Range"];
@@ -430,7 +472,7 @@ const AdminDashboardTransactionsInner = () => {
   }, [activeFilter, searchQuery]);
 
   const handleFilterChange = (
-    filter: "All Transactions" | "Commission" | "Withdrawals"
+    filter: "All Transactions" | "Commission" | "Withdrawals",
   ) => {
     setActiveFilter(filter);
     setCurrentPage(1);
@@ -470,7 +512,7 @@ const AdminDashboardTransactionsInner = () => {
 
   const handleToggleTransactionId = (transactionId: string) => {
     setExpandedTransactionId((prev) =>
-      prev === transactionId ? null : transactionId
+      prev === transactionId ? null : transactionId,
     );
   };
 
@@ -501,8 +543,8 @@ const AdminDashboardTransactionsInner = () => {
       prev.map((t) =>
         t.id === updated.id
           ? { ...t, status: "Approved", dbStatus: "approved" }
-          : t
-      )
+          : t,
+      ),
     );
   };
 
@@ -532,8 +574,8 @@ const AdminDashboardTransactionsInner = () => {
               dbStatus: "paid",
               date: formatDate(updated.created_at),
             }
-          : t
-      )
+          : t,
+      ),
     );
   };
 
@@ -564,8 +606,8 @@ const AdminDashboardTransactionsInner = () => {
               date: formatDate(updated.created_at),
               rejectionReason: reason,
             }
-          : t
-      )
+          : t,
+      ),
     );
   };
 
@@ -590,8 +632,8 @@ const AdminDashboardTransactionsInner = () => {
       prev.map((t) =>
         t.id === updated.id
           ? { ...t, status: "Approved", dbStatus: "approved" }
-          : t
-      )
+          : t,
+      ),
     );
   };
 
@@ -614,14 +656,14 @@ const AdminDashboardTransactionsInner = () => {
 
     setTransactions((prev) =>
       prev.map((t) =>
-        t.id === updated.id ? { ...t, status: "Paid", dbStatus: "paid" } : t
-      )
+        t.id === updated.id ? { ...t, status: "Paid", dbStatus: "paid" } : t,
+      ),
     );
   };
 
   const handleRejectCommission = async (
     transactionId: string,
-    reason: string
+    reason: string,
   ) => {
     const updated = await commissionService.updateStatus({
       id: transactionId,
@@ -648,8 +690,8 @@ const AdminDashboardTransactionsInner = () => {
               dbStatus: "rejected",
               rejectionReason: reason,
             }
-          : t
-      )
+          : t,
+      ),
     );
   };
 
@@ -850,14 +892,23 @@ const AdminDashboardTransactionsInner = () => {
             initialFilters={activeFilters}
             config={{
               title: "Filter Transactions",
-              description: "Filter transactions by amount, date range, and realtor",
+              description:
+                "Filter transactions by amount, date range, and realtor",
               showPrice: true,
               showPropertyType: false,
               showLocation: false,
-              showText: true,
-              textLabel: "Realtor Name",
-              textPlaceholder: "Search by realtor name",
-              textKey: "Realtor Name",
+              textFields: [
+                {
+                  label: "Realtor Name",
+                  placeholder: "Search by realtor name",
+                  key: "Realtor Name",
+                },
+                {
+                  label: "Client Name",
+                  placeholder: "Search by client name",
+                  key: "Client Name",
+                },
+              ],
               showDateRange: true,
               dateRangeLabel: "Date Range",
               dateRangeKey: "Date Range",

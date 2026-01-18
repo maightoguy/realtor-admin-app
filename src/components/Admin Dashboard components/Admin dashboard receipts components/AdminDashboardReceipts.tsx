@@ -142,7 +142,7 @@ const AdminDashboardReceipts = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReceipt, setSelectedReceipt] = useState<AdminReceipt | null>(
-    null
+    null,
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -162,10 +162,10 @@ const AdminDashboardReceipts = () => {
       day % 10 === 1 && day % 100 !== 11
         ? "st"
         : day % 10 === 2 && day % 100 !== 12
-        ? "nd"
-        : day % 10 === 3 && day % 100 !== 13
-        ? "rd"
-        : "th";
+          ? "nd"
+          : day % 10 === 3 && day % 100 !== 13
+            ? "rd"
+            : "th";
     const monthName = d.toLocaleDateString("en-US", { month: "long" });
     const year = d.getFullYear();
     return `${monthName} ${day}${suffix}, ${year}`;
@@ -184,15 +184,15 @@ const AdminDashboardReceipts = () => {
           new Set(
             rows
               .map((r) => r.realtor_id)
-              .filter((id): id is string => Boolean(id))
-          )
+              .filter((id): id is string => Boolean(id)),
+          ),
         );
         const propertyIds = Array.from(
           new Set(
             rows
               .map((r) => r.property_id)
-              .filter((id): id is string => Boolean(id))
-          )
+              .filter((id): id is string => Boolean(id)),
+          ),
         );
 
         const [realtors, properties] = await Promise.all([
@@ -205,10 +205,10 @@ const AdminDashboardReceipts = () => {
 
         const mapped: AdminReceipt[] = rows.map((r) => {
           const realtor = r.realtor_id
-            ? realtorMap.get(r.realtor_id) ?? null
+            ? (realtorMap.get(r.realtor_id) ?? null)
             : null;
           const property = r.property_id
-            ? propertyMap.get(r.property_id) ?? null
+            ? (propertyMap.get(r.property_id) ?? null)
             : null;
           const amountPaid = Number(r.amount_paid);
 
@@ -249,13 +249,13 @@ const AdminDashboardReceipts = () => {
   const metrics = useMemo(() => {
     const totalUploaded = receipts.length;
     const totalApproved = receipts.filter(
-      (r) => r.status === "approved"
+      (r) => r.status === "approved",
     ).length;
     const totalRejected = receipts.filter(
-      (r) => r.status === "rejected"
+      (r) => r.status === "rejected",
     ).length;
     const totalPending = receipts.filter(
-      (r) => r.status === "pending" || r.status === "under_review"
+      (r) => r.status === "pending" || r.status === "under_review",
     ).length;
 
     return {
@@ -272,11 +272,28 @@ const AdminDashboardReceipts = () => {
 
     const toDayStart = (value: string) => new Date(`${value}T00:00:00`);
     const toDayEnd = (value: string) => new Date(`${value}T23:59:59.999`);
+    const normalize = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const matchesText = (
+      query: string,
+      ...fields: Array<string | null | undefined>
+    ) => {
+      const q = normalize(query);
+      if (!q) return true;
+      const tokens = q.split(" ").filter(Boolean);
+      const hay = normalize(fields.filter(Boolean).join(" "));
+      return tokens.every((t) => hay.includes(t));
+    };
 
     // Apply status filter
     if (activeFilter === "Pending receipts") {
       filtered = filtered.filter(
-        (r) => r.status === "pending" || r.status === "under_review"
+        (r) => r.status === "pending" || r.status === "under_review",
       );
     } else if (activeFilter === "Approved receipts") {
       filtered = filtered.filter((r) => r.status === "approved");
@@ -293,7 +310,7 @@ const AdminDashboardReceipts = () => {
           r.propertyName.toLowerCase().includes(query) ||
           r.realtorName.toLowerCase().includes(query) ||
           r.clientName.toLowerCase().includes(query) ||
-          formatNaira(r.amountPaid).toLowerCase().includes(query)
+          formatNaira(r.amountPaid).toLowerCase().includes(query),
       );
     }
 
@@ -302,7 +319,7 @@ const AdminDashboardReceipts = () => {
     if (priceRange && priceRange.length === 2) {
       const [min, max] = priceRange;
       filtered = filtered.filter(
-        (r) => r.amountPaid >= min && r.amountPaid <= max
+        (r) => r.amountPaid >= min && r.amountPaid <= max,
       );
     }
 
@@ -311,17 +328,16 @@ const AdminDashboardReceipts = () => {
       filtered = filtered.filter((r) => r.propertyType === type);
     }
 
-    const location = modalFilters["Location"] as string | undefined;
-    if (location) {
-      filtered = filtered.filter((r) =>
-        r.propertyLocation.toLowerCase().includes(location.toLowerCase())
-      );
-    }
-
     const clientName = modalFilters["Client Name"] as string | undefined;
     if (clientName && clientName.trim()) {
-      const query = clientName.trim().toLowerCase();
-      filtered = filtered.filter((r) => r.clientName.toLowerCase().includes(query));
+      filtered = filtered.filter((r) => matchesText(clientName, r.clientName));
+    }
+
+    const realtorName = modalFilters["Realtor Name"] as string | undefined;
+    if (realtorName && realtorName.trim()) {
+      filtered = filtered.filter((r) =>
+        matchesText(realtorName, r.realtorName),
+      );
     }
 
     const dateRange = modalFilters["Date Range"];
@@ -353,7 +369,7 @@ const AdminDashboardReceipts = () => {
       | "All receipts"
       | "Pending receipts"
       | "Approved receipts"
-      | "Rejected receipts"
+      | "Rejected receipts",
   ) => {
     setActiveFilter(filter);
     setCurrentPage(1);
@@ -398,7 +414,7 @@ const AdminDashboardReceipts = () => {
   const handleStatusUpdate = (
     receiptId: string,
     newStatus: ReceiptStatus,
-    rejectionReason?: string
+    rejectionReason?: string,
   ) => {
     receiptService
       .updateStatus({
@@ -415,8 +431,8 @@ const AdminDashboardReceipts = () => {
                   status: updated.status,
                   rejectionReason: updated.rejection_reason ?? null,
                 }
-              : r
-          )
+              : r,
+          ),
         );
       })
       .catch(() => {});
@@ -617,11 +633,19 @@ const AdminDashboardReceipts = () => {
           description: "Filter receipts by amount, date range, and client name",
           showPrice: true,
           showPropertyType: true,
-          showLocation: true,
-          showText: true,
-          textLabel: "Client Name",
-          textPlaceholder: "Search by client name",
-          textKey: "Client Name",
+          showLocation: false,
+          textFields: [
+            {
+              label: "Client Name",
+              placeholder: "Search by client name",
+              key: "Client Name",
+            },
+            {
+              label: "Realtor Name",
+              placeholder: "Search by realtor name",
+              key: "Realtor Name",
+            },
+          ],
           showDateRange: true,
           dateRangeLabel: "Date Range",
           dateRangeKey: "Date Range",

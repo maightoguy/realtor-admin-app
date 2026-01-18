@@ -158,11 +158,11 @@ const AdminDashboardRealtors = ({
   const [totalRealtorsCount, setTotalRealtorsCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedRealtorId, setExpandedRealtorId] = useState<string | null>(
-    null
+    null,
   );
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
-    {}
+    {},
   );
   const itemsPerPage = 8;
 
@@ -177,10 +177,10 @@ const AdminDashboardRealtors = ({
       day % 10 === 1 && day % 100 !== 11
         ? "st"
         : day % 10 === 2 && day % 100 !== 12
-        ? "nd"
-        : day % 10 === 3 && day % 100 !== 13
-        ? "rd"
-        : "th";
+          ? "nd"
+          : day % 10 === 3 && day % 100 !== 13
+            ? "rd"
+            : "th";
     const monthName = d.toLocaleDateString("en-US", { month: "long" });
     const year = d.getFullYear();
     return `${monthName} ${day}${suffix}, ${year}`;
@@ -224,7 +224,7 @@ const AdminDashboardRealtors = ({
               prev +
                 (Number.isFinite(Number(r.amount_paid))
                   ? Number(r.amount_paid)
-                  : 0)
+                  : 0),
             );
           }
         }
@@ -289,6 +289,23 @@ const AdminDashboardRealtors = ({
 
     const toDayStart = (value: string) => new Date(`${value}T00:00:00`);
     const toDayEnd = (value: string) => new Date(`${value}T23:59:59.999`);
+    const normalize = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const matchesText = (
+      query: string,
+      ...fields: Array<string | null | undefined>
+    ) => {
+      const q = normalize(query);
+      if (!q) return true;
+      const tokens = q.split(" ").filter(Boolean);
+      const hay = normalize(fields.filter(Boolean).join(" "));
+      return tokens.every((t) => hay.includes(t));
+    };
 
     // Apply modal filters
     const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
@@ -307,8 +324,15 @@ const AdminDashboardRealtors = ({
 
     const realtorName = activeFilters["Realtor Name"] as string | undefined;
     if (realtorName && realtorName.trim()) {
-      const query = realtorName.trim().toLowerCase();
-      filtered = filtered.filter((r) => r.name.toLowerCase().includes(query));
+      filtered = filtered.filter((r) =>
+        matchesText(
+          realtorName,
+          r.user.first_name,
+          r.user.last_name,
+          r.name,
+          r.email,
+        ),
+      );
     }
 
     const dateRange = activeFilters["Date Range"];
@@ -317,11 +341,15 @@ const AdminDashboardRealtors = ({
       const to = typeof dateRange[1] === "string" ? dateRange[1].trim() : "";
       if (from) {
         const fromDate = toDayStart(from);
-        filtered = filtered.filter((r) => new Date(r.user.created_at) >= fromDate);
+        filtered = filtered.filter(
+          (r) => new Date(r.user.created_at) >= fromDate,
+        );
       }
       if (to) {
         const toDate = toDayEnd(to);
-        filtered = filtered.filter((r) => new Date(r.user.created_at) <= toDate);
+        filtered = filtered.filter(
+          (r) => new Date(r.user.created_at) <= toDate,
+        );
       }
     }
 
@@ -343,8 +371,8 @@ const AdminDashboardRealtors = ({
       filtered = filtered.filter(
         (r) =>
           r.id.toLowerCase().includes(query) ||
-          r.name.toLowerCase().includes(query) ||
-          r.email.toLowerCase().includes(query)
+          matchesText(query, r.user.first_name, r.user.last_name, r.name) ||
+          matchesText(query, r.email),
       );
     }
 
@@ -363,7 +391,7 @@ const AdminDashboardRealtors = ({
       | "All Realtors"
       | "Top realtors"
       | "Approved receipts"
-      | "Rejected receipts"
+      | "Rejected receipts",
   ) => {
     setActiveFilter(filter);
     setCurrentPage(1);
@@ -430,7 +458,7 @@ const AdminDashboardRealtors = ({
   const handleRealtorUpdated = (updated: User) => {
     setSelectedRealtor(updated);
     setRealtorStack((prev) =>
-      prev.map((u) => (u.id === updated.id ? updated : u))
+      prev.map((u) => (u.id === updated.id ? updated : u)),
     );
     setRealtors((prev) =>
       prev.map((row) => {
@@ -449,7 +477,7 @@ const AdminDashboardRealtors = ({
           status,
           user: updated,
         };
-      })
+      }),
     );
   };
 

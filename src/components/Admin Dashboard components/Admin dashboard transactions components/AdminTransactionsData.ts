@@ -6,6 +6,7 @@ export interface Transaction {
   amount: string;
   date: string;
   createdAtIso: string;
+  clientName?: string;
   status: "Paid" | "Approved" | "Pending" | "Rejected";
   dbStatus: "pending" | "approved" | "paid" | "rejected";
   bankName?: string;
