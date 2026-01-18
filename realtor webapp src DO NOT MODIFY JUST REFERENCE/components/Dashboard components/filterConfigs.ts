@@ -146,6 +146,7 @@ export const transactionFilterConfig: FilterConfig = {
             options: [
                 { label: "All", value: "all", type: "radio" },
                 { label: "Paid", value: "Paid", type: "radio" },
+                { label: "Approved", value: "Approved", type: "radio" },
                 { label: "Pending", value: "Pending", type: "radio" },
                 { label: "Failed", value: "Failed", type: "radio" }
             ]

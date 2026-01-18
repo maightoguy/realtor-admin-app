@@ -15,35 +15,38 @@ if (!API_KEY) {
     logger.error('VITE_API_KEY=your_supabase_anon_key');
 }
 
-// Initialize Supabase client with validation
 let supabase: SupabaseClient | null = null;
 
-if (API_BASE_URL && API_KEY) {
+function initSupabaseClient(): SupabaseClient | null {
+    if (supabase) return supabase;
+    if (!API_BASE_URL || !API_KEY) return null;
+
     try {
         supabase = createClient(API_BASE_URL, API_KEY, {
             auth: {
-                persistSession: true, // Persist session in localStorage
-                autoRefreshToken: true, // Automatically refresh tokens
-                detectSessionInUrl: true, // Detect session from URL (for email confirmation)
+                persistSession: true,
+                autoRefreshToken: true,
+                detectSessionInUrl: true,
                 storage: typeof window !== 'undefined' ? window.localStorage : undefined,
             },
         });
         logger.info('✅ Supabase client initialized with session persistence');
+        return supabase;
     } catch (error) {
         logger.error('❌ Failed to initialize Supabase client:', error);
+        return null;
     }
-} else {
-    logger.error('❌ Cannot initialize Supabase client: Missing required environment variables');
 }
 
 // Helper function to get supabase client or throw error
 export function getSupabaseClient(): SupabaseClient {
-    if (!supabase) {
+    const client = initSupabaseClient();
+    if (!client) {
         throw new Error(
             'Supabase client is not initialized. Please check your .env file and ensure VITE_API_BASE_URL and VITE_API_KEY are set correctly.'
         );
     }
-    return supabase;
+    return client;
 }
 
 // Export the client (will be null if initialization failed)
@@ -66,10 +69,8 @@ export async function checkSupabaseConnection(): Promise<void> {
             return;
         }
 
-        if (!supabase) {
-            logger.error('❌ Supabase client is not initialized');
-            return;
-        }
+        const supabase = initSupabaseClient();
+        if (!supabase) return;
 
         // Test connection by making a simple query to a table (try properties first, fallback to users)
         // Using properties table as it's less likely to have RLS recursion issues

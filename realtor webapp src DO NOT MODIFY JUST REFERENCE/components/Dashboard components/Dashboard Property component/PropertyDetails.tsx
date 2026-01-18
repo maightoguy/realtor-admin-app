@@ -10,6 +10,7 @@ import MapViewer from "../../MapViewer";
 import { propertyService as propertyApiService } from "../../../services/apiService";
 import type { Property as DbProperty } from "../../../services/types";
 import { storageService } from "../../../services/storageService";
+import { useSearchParams } from "react-router-dom";
 
 const lagosDefaultCenter: [number, number] = [6.5244, 3.3792];
 
@@ -26,10 +27,11 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
   isFavorited = false,
   onFavorite,
 }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
-  const [isUploadReceiptOpen, setIsUploadReceiptOpen] = useState(false);
+  const isUploadReceiptOpen = searchParams.get("receiptUpload") === "1";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDownloadingAllDocuments, setIsDownloadingAllDocuments] =
     useState(false);
@@ -307,11 +309,19 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
   };
 
   const handleUploadReceipt = () => {
-    setIsUploadReceiptOpen(true);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("receiptUpload", "1");
+      return next;
+    });
   };
 
   const handleCloseUploadReceipt = () => {
-    setIsUploadReceiptOpen(false);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("receiptUpload");
+      return next;
+    });
   };
 
   const handleSubmitReceipt = async (data: {
@@ -342,7 +352,11 @@ const PropertyDetails: FC<PropertyDetailsProps> = ({
 
       logger.info("✅ Receipt submitted successfully");
       // TODO: Show success toast/notification
-      setIsUploadReceiptOpen(false);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("receiptUpload");
+        return next;
+      });
     } catch (error) {
       logger.error("❌ Failed to submit receipt", error);
       // TODO: Show error toast/notification

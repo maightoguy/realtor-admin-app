@@ -25,7 +25,7 @@ export const openDB = (): Promise<IDBDatabase> => {
   });
 };
 
-export const saveDraft = async (key: string, data: any): Promise<void> => {
+export const saveDraft = async (key: string, data: unknown): Promise<void> => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readwrite");
@@ -37,14 +37,14 @@ export const saveDraft = async (key: string, data: any): Promise<void> => {
   });
 };
 
-export const getDraft = async (key: string): Promise<any> => {
+export const getDraft = async <T = unknown>(key: string): Promise<T | null> => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, "readonly");
     const store = transaction.objectStore(STORE_NAME);
     const request = store.get(key);
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => resolve((request.result ?? null) as T | null);
     request.onerror = () => reject(request.error);
   });
 };

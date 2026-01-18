@@ -8,6 +8,7 @@ import PropertyDetails from "./PropertyDetails";
 import type { Property } from "../../../modules/Properties";
 import SearchFilterModal from "../SearchFilterModal";
 import Allicon from "../../../assets/Stackedimg.png";
+import { useSearchParams } from "react-router-dom";
 import {
   propertyService as propertyApiService,
   userService,
@@ -20,6 +21,8 @@ import { useUser } from "../../../context/UserContext";
 import { logger } from "../../../utils/logger";
 
 const DashboardProperties = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const propertyIdParam = searchParams.get("propertyId") || "";
   const { user, refreshUser } = useUser();
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,6 +106,47 @@ const DashboardProperties = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncFromUrl = async () => {
+      if (!propertyIdParam) {
+        setActiveSection("list");
+        setSelectedProperty(null);
+        return;
+      }
+
+      setActiveSection("details");
+      if (selectedProperty?.id === propertyIdParam) return;
+
+      try {
+        const db = await propertyApiService.getById(propertyIdParam);
+        if (cancelled) return;
+        if (!db) {
+          setActiveSection("list");
+          setSelectedProperty(null);
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete("propertyId");
+            next.delete("receiptUpload");
+            return next;
+          });
+          return;
+        }
+
+        setSelectedProperty(adaptProperty(db));
+      } catch (e) {
+        if (cancelled) return;
+        logger.error("Failed to restore property details from URL", e);
+      }
+    };
+
+    void syncFromUrl();
+    return () => {
+      cancelled = true;
+    };
+  }, [propertyIdParam, adaptProperty, selectedProperty?.id, setSearchParams]);
+
   // Load favorites from Supabase
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -169,11 +213,15 @@ const DashboardProperties = () => {
       setItems([]); // items will be derived from favorites below
       return;
     }
+    if (propertyIdParam) {
+      setLoading(false);
+      return;
+    }
     fetchData();
     return () => {
       isMounted = false;
     };
-  }, [filter, searchQuery, adaptProperty]);
+  }, [filter, searchQuery, adaptProperty, propertyIdParam]);
 
   // Filter + search
   const sourceList = filter === "favorite" ? favorites : items;
@@ -311,11 +359,23 @@ const DashboardProperties = () => {
   const handleViewDetails = (property: Property) => {
     setSelectedProperty(property);
     setActiveSection("details");
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", "Properties");
+      next.set("propertyId", property.id);
+      return next;
+    });
   };
 
   const handleBackToList = () => {
     setActiveSection("list");
     setSelectedProperty(null);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("propertyId");
+      next.delete("receiptUpload");
+      return next;
+    });
   };
 
   const handleAddBankAccount = async (bankData: {

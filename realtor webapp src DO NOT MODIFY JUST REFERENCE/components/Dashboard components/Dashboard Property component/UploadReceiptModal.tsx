@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef, type FC } from "react";
 import { X, Upload, Download, Check } from "lucide-react";
 import { trimValues } from "../../../utils/trim";
@@ -22,6 +21,16 @@ interface UploadReceiptModalProps {
   propertyId: string;
 }
 
+type UploadReceiptDraft = {
+  clientName?: string;
+  amount?: string;
+  files?: Array<{
+    file: File;
+    uploadDate: string | number | Date;
+    id: string;
+  }>;
+};
+
 const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
   isOpen,
   onClose,
@@ -34,26 +43,30 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
+  const [wasResumed, setWasResumed] = useState(false);
   const isSubmittingRef = useRef(false);
 
   const DRAFT_KEY = `upload_receipt_draft_${propertyId}`;
+  const RESUME_KEY = `resume_receipt_upload_${propertyId}`;
 
   // Restore draft on mount
   useEffect(() => {
     let isMounted = true;
     const loadDraft = async () => {
       try {
-        const draft = await draftService.getDraft(DRAFT_KEY);
+        const draft = await draftService.getDraft<UploadReceiptDraft>(
+          DRAFT_KEY
+        );
         if (!isMounted) return;
 
         if (draft) {
-          setClientName(draft.clientName || "");
-          setAmount(draft.amount || "");
+          setClientName(draft.clientName ?? "");
+          setAmount(draft.amount ?? "");
 
           if (draft.files && Array.isArray(draft.files)) {
             // Reconstruct files from stored data
             setFiles(
-              draft.files.map((f: any) => ({
+              draft.files.map((f) => ({
                 ...f,
                 uploadDate: new Date(f.uploadDate), // Restore date object
               }))
@@ -72,12 +85,21 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
       }
     };
     if (isOpen) {
+      try {
+        const shouldResume = localStorage.getItem(RESUME_KEY) === "1";
+        if (shouldResume) {
+          setWasResumed(true);
+          localStorage.removeItem(RESUME_KEY);
+        }
+      } catch (e) {
+        void e;
+      }
       loadDraft();
     }
     return () => {
       isMounted = false;
     };
-  }, [isOpen, DRAFT_KEY]);
+  }, [isOpen, DRAFT_KEY, RESUME_KEY]);
 
   // Auto-save draft
   useEffect(() => {
@@ -98,6 +120,7 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
 
   const handleFileUpload = (newFiles: FileList | null) => {
     if (newFiles) {
+      setWasResumed(false);
       const fileArray = Array.from(newFiles);
       // Filter for PDF files and check size (5MB limit)
       const validFiles = fileArray.filter(
@@ -274,6 +297,12 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
 
         {/* Modal Content */}
         <div className="px-4 md:px-6 py-4 md:py-5 overflow-y-auto flex-1">
+          {wasResumed && (
+            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              Your phone reloaded the page (low memory). Please re-select your
+              receipt file(s) to continue.
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
             {/* Form Fields */}
             <div className="space-y-3 md:space-y-4">
@@ -351,7 +380,16 @@ const UploadReceiptModal: FC<UploadReceiptModalProps> = ({
                 </div>
 
                 {/* Upload Button */}
-                <label className="bg-purple-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-semibold cursor-pointer hover:bg-purple-700 transition-colors flex-shrink-0 w-full md:w-auto text-center">
+                <label
+                  onClick={() => {
+                    try {
+                      localStorage.setItem(RESUME_KEY, "1");
+                    } catch (e) {
+                      void e;
+                    }
+                  }}
+                  className="bg-purple-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-semibold cursor-pointer hover:bg-purple-700 transition-colors flex-shrink-0 w-full md:w-auto text-center"
+                >
                   Upload
                   <input
                     type="file"

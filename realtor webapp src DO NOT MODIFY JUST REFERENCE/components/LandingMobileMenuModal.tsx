@@ -43,6 +43,22 @@ const LandingMobileMenuModal = ({
     onClose();
   };
 
+  const handleLogoClick = () => {
+    onClose();
+
+    setTimeout(() => {
+      const target = document.getElementById("home");
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (window.location.hash !== "#home") {
+          window.history.replaceState(null, "", "#home");
+        }
+        return;
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 100);
+  };
+
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
       {/* Modal */}
@@ -50,11 +66,13 @@ const LandingMobileMenuModal = ({
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <img
-              src={VeriplotLogo}
-              alt="Veriplot logo"
-              className="h-8 w-auto"
-            />
+            <button type="button" onClick={handleLogoClick}>
+              <img
+                src={VeriplotLogo}
+                alt="Veriplot logo"
+                className="h-8 w-auto"
+              />
+            </button>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -84,7 +102,7 @@ const LandingMobileMenuModal = ({
                   >
                     {item.label}
                   </Link>
-                )
+                ),
               )}
             </nav>
           </div>

@@ -3,7 +3,7 @@ import { logger } from "../utils/logger";
 import type { User } from "./types";
 import { notificationService } from "./apiService";
 
-export type CommissionStatus = "pending" | "approved" | "paid";
+export type CommissionStatus = "pending" | "approved" | "paid" | "rejected";
 export type PayoutStatus = "pending" | "approved" | "paid" | "rejected";
 
 export type TransactionDirection = "credit" | "debit";

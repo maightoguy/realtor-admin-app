@@ -9,6 +9,21 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user } = useUser();
 
+  const handleLogoClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+
+    const target = document.getElementById("home");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (window.location.hash !== "#home") {
+        window.history.replaceState(null, "", "#home");
+      }
+      return;
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <nav
       className="
@@ -20,13 +35,13 @@ const Navbar = () => {
     >
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <Link to="/">
+        <a href="#home" onClick={handleLogoClick}>
           <img
             src={VeriplotLogo}
             alt="Veriplot logo"
             className="h-8 w-auto md:h-9"
           />
-        </Link>
+        </a>
       </div>
 
       <button

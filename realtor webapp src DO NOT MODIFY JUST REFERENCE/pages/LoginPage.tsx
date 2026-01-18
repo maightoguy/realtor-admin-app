@@ -2,61 +2,40 @@ import { useEffect, useState } from "react";
 import AuthLayout from "../components/auth/AuthLayout";
 import LoginForm from "../components/auth/LoginForm";
 import ForgotPasswordForm from "../components/auth/ForgotPasswordForm";
-import ResetPasswordForm from "../components/auth/ResetPasswordForm";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from "../utils/logger";
 import { authService } from "../services";
 import { useUser } from "../context/UserContext";
 
 const LoginPage = () => {
-  const [step, setStep] = useState<"login" | "forgot" | "reset">("login");
+  const [step, setStep] = useState<"login" | "forgot">("login");
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useUser();
 
   // If already logged in, redirect to dashboard
   useEffect(() => {
-    if (user) {
-      logger.info("✅ [LOGIN PAGE] User already logged in, redirecting to dashboard");
+    const isRecovery =
+      searchParams.get("mode") === "recovery" ||
+      window.location.hash.includes("type=recovery");
+
+    if (user && !isRecovery) {
+      logger.info(
+        "✅ [LOGIN PAGE] User already logged in, redirecting to dashboard",
+      );
       navigate("/dashboard", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, searchParams]);
 
   useEffect(() => {
-    // Listen for Supabase auth events (especially password recovery)
-    const {
-      data: { subscription },
-    } = authService.onAuthStateChange((event, session) => {
-      logger.info(`[LOGIN PAGE] Auth event: ${event}`, {
-        userId: session?.user?.id,
-      });
-      if (event === "PASSWORD_RECOVERY") {
-        logger.info("[LOGIN PAGE] Password recovery event detected");
-        setStep("reset");
-      }
-    });
+    const isRecovery =
+      searchParams.get("mode") === "recovery" ||
+      window.location.hash.includes("type=recovery");
 
-    // Check URL for recovery mode
-    if (searchParams.get("mode") === "recovery") {
-      logger.info("[LOGIN PAGE] Recovery mode detected in URL");
-      setStep("reset");
-
-      // Verify if we actually have a session
-      authService.getSession().then(({ data }) => {
-        if (data.session) {
-          logger.info("[LOGIN PAGE] Active session found during recovery");
-        } else {
-          logger.warn(
-            "[LOGIN PAGE] Recovery mode but no active session found yet"
-          );
-        }
-      });
+    if (isRecovery) {
+      navigate("/reset-password", { replace: true });
     }
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [searchParams]);
+  }, [navigate, searchParams]);
 
   const handleGoogleLogin = async () => {
     try {
@@ -82,7 +61,7 @@ const LoginPage = () => {
               "✅ [LOGIN PAGE] Login successful, navigating to dashboard",
               {
                 email,
-              }
+              },
             );
             // Direct navigation to dashboard after successful login
             navigate("/dashboard");
@@ -93,14 +72,6 @@ const LoginPage = () => {
       {/* FORGOT PASSWORD */}
       {step === "forgot" && (
         <ForgotPasswordForm onBack={() => setStep("login")} />
-      )}
-
-      {/* RESET PASSWORD STEP */}
-      {step === "reset" && (
-        <ResetPasswordForm
-          onBack={() => setStep("login")}
-          onDone={() => navigate("/dashboard")}
-        />
       )}
     </AuthLayout>
   );

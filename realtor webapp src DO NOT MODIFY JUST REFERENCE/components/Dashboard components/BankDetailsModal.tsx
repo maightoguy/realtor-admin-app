@@ -12,6 +12,12 @@ interface BankDetailsModalProps {
   }) => void;
 }
 
+type BankDetailsDraft = {
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+};
+
 const DRAFT_KEY = "bank_details_draft";
 
 const BankDetailsModal = ({
@@ -45,13 +51,13 @@ const BankDetailsModal = ({
     let isMounted = true;
     const loadDraft = async () => {
       try {
-        const draft = await draftService.getDraft(DRAFT_KEY);
+        const draft = await draftService.getDraft<BankDetailsDraft>(DRAFT_KEY);
         if (!isMounted) return;
 
         if (draft) {
-          setBankName(draft.bankName || "");
-          setAccountNumber(draft.accountNumber || "");
-          setAccountName(draft.accountName || "");
+          setBankName(draft.bankName ?? "");
+          setAccountNumber(draft.accountNumber ?? "");
+          setAccountName(draft.accountName ?? "");
         }
       } catch (err) {
         console.error("Failed to load draft:", err);

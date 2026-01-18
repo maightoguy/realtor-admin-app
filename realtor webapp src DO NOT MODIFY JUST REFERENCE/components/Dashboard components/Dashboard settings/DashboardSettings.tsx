@@ -17,6 +17,7 @@ import { userService } from "../../../services/apiService";
 import { storageService } from "../../../services/storageService";
 import type { Gender } from "../../../services/types";
 import { logger } from "../../../utils/logger";
+import { validateNigerianPhone } from "../../../utils/ngPhone";
 
 const DashboardSettings = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -185,8 +186,17 @@ const DashboardSettings = () => {
       const updatePayload = {
         first_name: trimmedFormData.firstName,
         last_name: trimmedFormData.lastName,
-        phone_number: trimmedFormData.phoneNumber,
-        email: trimmedFormData.email,
+        phone_number: (() => {
+          const phoneResult = validateNigerianPhone(
+            String(trimmedFormData.phoneNumber ?? "")
+          );
+          if (!phoneResult.valid) {
+            throw new Error(
+              "Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)"
+            );
+          }
+          return phoneResult.normalized;
+        })(),
         gender,
         avatar_url: avatarUrl,
       };
@@ -324,7 +334,9 @@ const DashboardSettings = () => {
                 <Camera className="w-3 h-3" />
               </button>
             </div>
-            <p className="text-[#667085] text-xs md:text-sm">Click to change image</p>
+            <p className="text-[#667085] text-xs md:text-sm">
+              Click to change image
+            </p>
             <input
               ref={fileInputRef}
               type="file"
@@ -382,6 +394,9 @@ const DashboardSettings = () => {
                 onChange={(e) =>
                   handleInputChange("phoneNumber", e.target.value)
                 }
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="e.g 08012345678"
                 className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
               />
             </div>
@@ -394,8 +409,9 @@ const DashboardSettings = () => {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                readOnly
+                aria-readonly="true"
+                className="w-full px-3 py-2 border border-[#E6E7EC] rounded-lg focus:outline-none bg-gray-50 text-gray-700"
               />
             </div>
 

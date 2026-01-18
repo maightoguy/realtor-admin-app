@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { X, ChevronRight, LogOut } from "lucide-react";
 import VeriplotLogo from "../../assets/Veriplot Primary logo 2.svg";
 import { useUser } from "../../context/UserContext"; // Add this import
@@ -65,11 +65,13 @@ const MobileMenuModal = ({
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
-            <img
-              src={VeriplotLogo}
-              alt="Veriplot logo"
-              className="h-8 w-auto"
-            />
+            <Link to="/" className="flex items-center gap-2 mb-8">
+              <img
+                src={VeriplotLogo}
+                alt="Veriplot logo"
+                className="h-8 w-auto"
+              />
+            </Link>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"

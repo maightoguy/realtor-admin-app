@@ -4,6 +4,7 @@ import { storageService } from './storageService';
 import { userService } from './apiService';
 import type { User } from './types';
 import { logger } from '../utils/logger';
+import { validateNigerianPhone } from '../utils/ngPhone';
 
 export interface RegistrationData {
     // Step 1: Create Account
@@ -48,6 +49,16 @@ export const registrationService = {
         });
 
         try {
+            const phoneResult = validateNigerianPhone(data.phone);
+            if (!phoneResult.valid) {
+                return {
+                    success: false,
+                    user: null,
+                    error:
+                        'Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)',
+                };
+            }
+
             // Step 1: Sign up user (creates auth user + user profile)
             logger.info('👤 [REGISTRATION] Step 1: Creating user account...');
             const signUpData: SignUpData = {
@@ -55,7 +66,7 @@ export const registrationService = {
                 password: data.password,
                 firstName: data.firstName,
                 lastName: data.lastName,
-                phoneNumber: data.phone,
+                phoneNumber: phoneResult.normalized,
                 gender: this.mapGender(data.gender),
                 referralCode: data.referralCode,
             };

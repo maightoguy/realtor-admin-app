@@ -119,6 +119,12 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
       }
 
       logger.info("✅ [RESET PASSWORD] Password updated successfully");
+      try {
+        localStorage.removeItem("realtor_app_recovery_mode");
+      } catch {
+        // ignore
+      }
+      await authService.signOut();
       setLoading(false);
       onDone();
     } catch (err) {

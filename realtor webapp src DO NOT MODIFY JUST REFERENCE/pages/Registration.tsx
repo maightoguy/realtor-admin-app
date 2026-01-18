@@ -197,7 +197,10 @@ const RegistrationPage: React.FC = () => {
                   <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
                     <li>Check your inbox (and spam folder)</li>
                     <li>Click the confirmation link in the email</li>
-                    <li>Return here to log in</li>
+                    <li>
+                      You’ll see an “Email confirmed” page. Close that tab and
+                      return here to log in
+                    </li>
                   </ol>
                 </div>
 

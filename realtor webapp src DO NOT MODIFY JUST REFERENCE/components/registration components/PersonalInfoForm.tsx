@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { trimValues } from "../../utils/trim";
+import { validateNigerianPhone } from "../../utils/ngPhone";
 
 export type PersonalInfoData = {
   firstName: string;
@@ -26,15 +27,35 @@ export const PersonalInfoForm: React.FC<Props> = ({
   const [phone, setPhone] = useState(initialData.phone ?? "");
   const [gender, setGender] = useState(initialData.gender ?? "");
   const [referral, setReferral] = useState(initialData.referral ?? "");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const isValid =
     firstName.trim() && lastName.trim() && phone.trim() && gender.trim();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setPhoneError(null);
     if (!isValid) return;
-    const trimmedData = trimValues({ firstName, lastName, phone, gender, referral });
-    onNext(trimmedData as PersonalInfoData);
+    const trimmedData = trimValues({
+      firstName,
+      lastName,
+      phone,
+      gender,
+      referral,
+    });
+
+    const phoneResult = validateNigerianPhone(String(trimmedData.phone ?? ""));
+    if (!phoneResult.valid) {
+      setPhoneError(
+        "Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)"
+      );
+      return;
+    }
+
+    onNext({
+      ...(trimmedData as PersonalInfoData),
+      phone: phoneResult.normalized,
+    });
   };
 
   return (
@@ -88,10 +109,17 @@ export const PersonalInfoForm: React.FC<Props> = ({
         <input
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="xxxx xxx xxxx"
+          onChange={(e) => {
+            setPhone(e.target.value);
+            if (phoneError) setPhoneError(null);
+          }}
+          placeholder="e.g 08012345678"
+          inputMode="tel"
+          autoComplete="tel"
           className="w-full bg-[#FAFAFA] border border-[#F0F1F2] rounded-lg px-4 py-3 outline-none text-gray-800 placeholder-gray-400"
+          aria-invalid={Boolean(phoneError)}
         />
+        {phoneError && <p className="mt-2 text-xs text-red-600">{phoneError}</p>}
       </div>
 
       {/* Gender */}

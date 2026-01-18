@@ -62,7 +62,7 @@ export const authService = {
                 email: data.email,
                 password: data.password,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/login`,
+                    emailRedirectTo: `${window.location.origin}/email-confirmed`,
                     data: {
                         first_name: data.firstName,
                         last_name: data.lastName,
@@ -470,7 +470,7 @@ export const authService = {
             type: 'signup',
             email,
             options: {
-                emailRedirectTo: `${window.location.origin}/login`,
+                emailRedirectTo: `${window.location.origin}/email-confirmed`,
             },
         });
 
@@ -498,7 +498,7 @@ export const authService = {
      * Send password reset email (recovery link)
      */
     async resetPasswordForEmail(email: string) {
-        const redirectTo = `${window.location.origin}/login?mode=recovery`;
+        const redirectTo = `${window.location.origin}/reset-password`;
         logger.info('📧 [AUTH] Sending password reset email', { email, redirectTo });
         const supabase = getSupabaseClient();
 
@@ -526,7 +526,7 @@ export const authService = {
             email,
             options: {
                 shouldCreateUser: false,
-                emailRedirectTo: `${window.location.origin}/dashboard?tab=Settings&settingsTab=Profile&confirmDelete=1`,
+                emailRedirectTo: `${window.location.origin}/confirm-delete`,
             },
         });
 

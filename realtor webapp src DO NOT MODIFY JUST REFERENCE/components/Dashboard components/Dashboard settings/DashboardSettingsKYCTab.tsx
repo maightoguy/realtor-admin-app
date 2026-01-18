@@ -4,6 +4,7 @@ import KYCPopupModal from "../../registration components/KYCPopupModal";
 import { authService } from "../../../services/authService";
 import { storageService } from "../../../services/storageService";
 import { userService } from "../../../services/apiService";
+import { draftService } from "../../../services/draftService";
 import type { User } from "../../../services/types";
 import { logger } from "../../../utils/logger";
 import Loader from "../../Loader";
@@ -12,6 +13,7 @@ const DashboardSettingsKYCTab = () => {
   const [document, setDocument] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [wasResumed, setWasResumed] = useState(false);
   const [isKYCVerified, setIsKYCVerified] = useState(false);
   const [verifiedDocumentType, setVerifiedDocumentType] = useState<string>("");
   const [verifiedFileName, setVerifiedFileName] = useState<string>("");
@@ -20,6 +22,8 @@ const DashboardSettingsKYCTab = () => {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [draftKey, setDraftKey] = useState<string | null>(null);
+  const [resumeKey, setResumeKey] = useState<string | null>(null);
 
   const canProceed = document !== "" && file !== null;
 
@@ -41,6 +45,8 @@ const DashboardSettingsKYCTab = () => {
         }
 
         logger.info("✅ [KYC TAB] Authenticated user found:", authUser.id);
+        setDraftKey(`kyc_draft_${authUser.id}`);
+        setResumeKey(`kyc_resume_modal_${authUser.id}`);
 
         // Fetch user profile from database
         const userProfile = await userService.getById(authUser.id);
@@ -59,7 +65,53 @@ const DashboardSettingsKYCTab = () => {
 
         setCurrentUser(userProfile);
 
-        // Check KYC status
+        if (
+          userProfile.id_document_url &&
+          (userProfile.kyc_status === "pending" ||
+            userProfile.kyc_status === "approved")
+        ) {
+          try {
+            await draftService.deleteDraft(`kyc_draft_${authUser.id}`);
+          } catch (clearError) {
+            logger.warn("⚠️ [KYC TAB] Failed to clear KYC draft:", clearError);
+          }
+        } else {
+          try {
+            const draft = await draftService.getDraft(
+              `kyc_draft_${authUser.id}`
+            );
+            if (draft && typeof draft === "object") {
+              const draftDoc =
+                typeof (draft as any).document === "string"
+                  ? String((draft as any).document)
+                  : "";
+              const draftFile = (draft as any).file as unknown;
+              if (draftDoc) {
+                setDocument((prev) => prev || draftDoc);
+              }
+              if (draftFile instanceof File) {
+                setFile((prev) => prev ?? draftFile);
+              }
+            }
+          } catch (draftError) {
+            logger.warn(
+              "⚠️ [KYC TAB] Failed to restore KYC draft:",
+              draftError
+            );
+          }
+        }
+
+        try {
+          const shouldResume =
+            localStorage.getItem(`kyc_resume_modal_${authUser.id}`) === "1";
+          if (shouldResume) {
+            setShowModal(true);
+            setWasResumed(true);
+          }
+        } catch (e) {
+          void e;
+        }
+
         if (userProfile.kyc_status === "approved") {
           setIsKYCVerified(true);
           // Extract document type from URL if available, or use a default
@@ -124,16 +176,48 @@ const DashboardSettingsKYCTab = () => {
     fetchUserData();
   }, []);
 
+  const persistDraft = async (next: {
+    document: string;
+    file: File | null;
+  }) => {
+    if (!draftKey) return;
+    try {
+      await draftService.saveDraft(draftKey, {
+        document: next.document,
+        file: next.file,
+        updatedAt: Date.now(),
+      });
+    } catch (persistError) {
+      logger.warn("⚠️ [KYC TAB] Failed to persist KYC draft:", persistError);
+    }
+  };
+
   const handleUploadDocument = () => {
     if (document !== "") {
       setShowModal(true);
+      if (resumeKey) {
+        try {
+          localStorage.setItem(resumeKey, "1");
+        } catch (e) {
+          void e;
+        }
+      }
     }
   };
 
   const handleFileSelected = (selectedFile: File) => {
     setFile(selectedFile);
     setShowModal(false);
+    setWasResumed(false);
     setError(null); // Clear any previous errors
+    void persistDraft({ document, file: selectedFile });
+    if (resumeKey) {
+      try {
+        localStorage.removeItem(resumeKey);
+      } catch (e) {
+        void e;
+      }
+    }
   };
 
   const handleKYCComplete = async () => {
@@ -181,6 +265,21 @@ const DashboardSettingsKYCTab = () => {
       // Reset form
       setDocument("");
       setFile(null);
+      setWasResumed(false);
+      if (draftKey) {
+        try {
+          await draftService.deleteDraft(draftKey);
+        } catch (deleteError) {
+          logger.warn("⚠️ [KYC TAB] Failed to delete KYC draft:", deleteError);
+        }
+      }
+      if (resumeKey) {
+        try {
+          localStorage.removeItem(resumeKey);
+        } catch (e) {
+          void e;
+        }
+      }
 
       logger.info("✅ [KYC TAB] KYC submission completed successfully");
     } catch (err: any) {
@@ -416,6 +515,12 @@ const DashboardSettingsKYCTab = () => {
 
       {/* KYC Form */}
       <div className="bg-white border border-[#EAECF0] rounded-lg p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {wasResumed && !file && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+            Your phone reloaded the page (low memory). Please select your file
+            again to continue.
+          </div>
+        )}
         {/* Select document */}
         <div className="space-y-2">
           <label className="text-xs sm:text-sm font-medium text-[#0A1B39]">
@@ -424,7 +529,11 @@ const DashboardSettingsKYCTab = () => {
           <select
             className="w-full px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm border border-[#E6E7EC] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent bg-white"
             value={document}
-            onChange={(e) => setDocument(e.target.value)}
+            onChange={(e) => {
+              const nextDoc = e.target.value;
+              setDocument(nextDoc);
+              void persistDraft({ document: nextDoc, file });
+            }}
           >
             <option value="">what document do you want to use</option>
             <option value="id">National ID</option>
@@ -467,7 +576,10 @@ const DashboardSettingsKYCTab = () => {
                 </p>
               </div>
               <button
-                onClick={() => setFile(null)}
+                onClick={() => {
+                  setFile(null);
+                  void persistDraft({ document, file: null });
+                }}
                 className="text-green-600 hover:text-green-800"
                 aria-label="Remove file"
               >
@@ -581,7 +693,17 @@ const DashboardSettingsKYCTab = () => {
       {/* KYC Modal */}
       {showModal && (
         <KYCPopupModal
-          onClose={() => setShowModal(false)}
+          onClose={() => {
+            setShowModal(false);
+            setWasResumed(false);
+            if (resumeKey) {
+              try {
+                localStorage.removeItem(resumeKey);
+              } catch (e) {
+                void e;
+              }
+            }
+          }}
           onFileSelected={handleFileSelected}
         />
       )}

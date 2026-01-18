@@ -815,6 +815,43 @@ export const referralService = {
         if (!referrals?.length) return [];
 
         try {
+            const missingDownlineIds = referrals
+                .filter((ref: any) => !ref.downline)
+                .map((ref: any) => ref.downline_id)
+                .filter((id: unknown): id is string => typeof id === "string" && Boolean(id));
+
+            if (missingDownlineIds.length) {
+                const { data: profiles, error: profilesError } = await getSupabaseClient().rpc(
+                    "get_downline_public_profiles",
+                    {
+                        p_upline_id: uplineId,
+                        p_downline_ids: missingDownlineIds,
+                    }
+                );
+
+                if (!profilesError && Array.isArray(profiles)) {
+                    const profileById = new Map<string, any>(
+                        profiles
+                            .filter((p: any) => p && typeof p === "object" && typeof p.id === "string")
+                            .map((p: any) => [p.id, p])
+                    );
+
+                    referrals.forEach((ref: any) => {
+                        if (ref.downline) return;
+                        const id = ref.downline_id;
+                        if (typeof id !== "string") return;
+                        const profile = profileById.get(id);
+                        if (profile) {
+                            ref.downline = profile;
+                        }
+                    });
+                }
+            }
+        } catch (err) {
+            logger.warn("⚠️ [API] Failed to fetch downline profiles via RPC:", err);
+        }
+
+        try {
             // 2. Fetch all referral commissions for this upline
             // We need to match commissions where:
             // - realtor_id = uplineId (the person receiving the commission)

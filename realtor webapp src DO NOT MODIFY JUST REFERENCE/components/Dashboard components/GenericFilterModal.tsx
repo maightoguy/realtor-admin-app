@@ -90,22 +90,18 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
             <h2 className="font-poppins font-bold text-sm md:text-base text-black">
               {config.title}
             </h2>
-            <p className="text-xs md:text-sm text-[#6B7280]">
-              {config.description}
-            </p>
+            <p className="text-xs md:text-sm text-[#6B7280]">{config.description}</p>
           </div>
           <button
             onClick={onClose}
             className="absolute right-4 top-4 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg hover:bg-gray-100"
           >
-            <span className="text-[#717680] text-xl md:text-2xl leading-none">
-              ×
-            </span>
+            <span className="text-[#717680] text-xl md:text-2xl leading-none">×</span>
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex grow p-4 md:p-6 flex-col gap-4 md:gap-6 font-poppins">
+        <div className="flex-grow p-4 md:p-6 flex flex-col gap-4 md:gap-6 font-poppins">
           {config.sections.map((section, index) => (
             <div key={index} className="flex flex-col gap-2 md:gap-3">
               {section.collapsible ? (
@@ -173,9 +169,7 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
                         }
                       }}
                     >
-                      <option value="">
-                        {section.placeholder || "Select option"}
-                      </option>
+                      <option value="">{section.placeholder || "Select option"}</option>
                       {section.title.toLowerCase().includes("location") && (
                         <option value="--Manually select location--">
                           --Manually select location--

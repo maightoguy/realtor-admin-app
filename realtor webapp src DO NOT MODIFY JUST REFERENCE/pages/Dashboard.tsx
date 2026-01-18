@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 import Header from "../components/Dashboard components/Header.tsx";
-import { useUser } from "../context/UserContext.tsx";
+import Loader from "../components/Loader";
+import { useUser } from "../context/UserContext";
 
 // Icons
 import PropertiesIcon from "../components/icons/PropertiesIcon.tsx";
@@ -23,12 +24,70 @@ import DashboardSettings from "../components/Dashboard components/Dashboard sett
 import HelpCenterPopup from "../components/Dashboard components/HelpCenterPopup.tsx";
 import { Link } from "react-router-dom";
 
+const LAST_DASHBOARD_SEARCH_KEY = "dashboard:lastSearch";
+
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isRestoringSearch, setIsRestoringSearch] = useState(() => {
+    try {
+      const currentHasTab = new URLSearchParams(window.location.search).has(
+        "tab"
+      );
+      if (currentHasTab) return false;
+
+      const saved = localStorage.getItem(LAST_DASHBOARD_SEARCH_KEY);
+      if (!saved) return false;
+
+      const savedParams = new URLSearchParams(saved);
+      return Boolean(savedParams.get("tab"));
+    } catch {
+      return false;
+    }
+  });
   const activeSection = searchParams.get("tab") || "Properties";
   const [showHelpCenter, setShowHelpCenter] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const { user, loading } = useUser();
+
+  const searchString = searchParams.toString();
+
+  useEffect(() => {
+    try {
+      if (searchString) {
+        localStorage.setItem(LAST_DASHBOARD_SEARCH_KEY, searchString);
+      }
+    } catch (e) {
+      void e;
+    }
+  }, [searchString]);
+
+  useEffect(() => {
+    const hasTabParam = Boolean(searchParams.get("tab"));
+    if (hasTabParam) {
+      setIsRestoringSearch(false);
+      return;
+    }
+
+    try {
+      const saved = localStorage.getItem(LAST_DASHBOARD_SEARCH_KEY);
+      if (!saved) return;
+      if (saved === searchString) return;
+
+      const savedParams = new URLSearchParams(saved);
+      if (!savedParams.get("tab")) return;
+
+      setSearchParams(savedParams);
+    } catch (e) {
+      void e;
+    } finally {
+      setIsRestoringSearch(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (isRestoringSearch) {
+    return <Loader text="Restoring your session..." />;
+  }
 
   const setActiveSection = (section: string) => {
     setSearchParams((prev) => {

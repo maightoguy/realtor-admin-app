@@ -11,6 +11,7 @@ import React, {
 import type { ReactNode } from "react";
 import { authService } from "../services/authService";
 import { userService } from "../services/apiService";
+import { authManager } from "../services/authManager";
 import { logger } from "../utils/logger";
 import type { User } from "../services/types"; // Adjust path if needed
 
@@ -26,9 +27,21 @@ const UserContext = createContext<UserContextValue | undefined>(undefined);
 export const UserProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const urlRecovery =
+        window.location.search.includes("mode=recovery") ||
+        window.location.hash.includes("type=recovery");
+      const storageRecovery =
+        localStorage.getItem("realtor_app_recovery_mode") === "1";
+      if (urlRecovery || storageRecovery) return null;
+    } catch {
+      // ignore
+    }
+    return authManager.getUser();
+  });
   const userRef = useRef<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !authManager.getUser());
 
   useEffect(() => {
     userRef.current = user;
@@ -41,6 +54,24 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
         setLoading(true);
       }
       setError(null);
+
+      const isRecovery = (() => {
+        try {
+          const urlRecovery =
+            window.location.search.includes("mode=recovery") ||
+            window.location.hash.includes("type=recovery");
+          const storageRecovery =
+            localStorage.getItem("realtor_app_recovery_mode") === "1";
+          return urlRecovery || storageRecovery;
+        } catch {
+          return false;
+        }
+      })();
+
+      if (isRecovery) {
+        setUser(null);
+        return;
+      }
 
       // Get current session/auth user
       const session = await authService.getSession();
@@ -84,18 +115,33 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
 
   useEffect(() => {
     // Initial load - show loader
-    fetchUser(true);
+    fetchUser(!userRef.current);
 
     // Optional: Listen for auth changes
     const { data: authListener } = authService.onAuthStateChange(
       (event, _session) => {
         // Only refresh user data on explicit SIGNED_IN event or when session changes substantially
-        if (event === "SIGNED_IN") {
+        if (event === "PASSWORD_RECOVERY") {
+          try {
+            localStorage.setItem("realtor_app_recovery_mode", "1");
+          } catch {
+            // ignore
+          }
+          setUser(null);
+          setLoading(false);
+          setError(null);
+        } else if (event === "SIGNED_IN") {
           // If we already have a user, don't show loader (background refresh)
           // If we don't have a user (fresh login), show loader
           fetchUser(!userRef.current);
         } else if (event === "SIGNED_OUT") {
           setUser(null);
+          setLoading(false);
+          try {
+            localStorage.removeItem("realtor_app_recovery_mode");
+          } catch {
+            // ignore
+          }
         } else if (event === "TOKEN_REFRESHED") {
           // Do NOT re-fetch user profile on token refresh to avoid UI disruptions
           // The session is valid, just the token was updated

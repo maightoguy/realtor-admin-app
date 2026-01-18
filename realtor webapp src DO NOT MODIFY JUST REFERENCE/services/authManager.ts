@@ -12,6 +12,7 @@ import type { User } from './types';
 // Storage keys
 const USER_STORAGE_KEY = 'realtor_app_user';
 const SESSION_STORAGE_KEY = 'realtor_app_session';
+const RECOVERY_MODE_STORAGE_KEY = 'realtor_app_recovery_mode';
 
 export const authManager = {
     async attachPendingReferral(userProfile: User, meta: Record<string, unknown>) {
@@ -100,8 +101,43 @@ export const authManager = {
                     hasSession: !!session,
                 });
 
+                const isRecovery = (() => {
+                    try {
+                        const urlRecovery =
+                            window.location.search.includes('mode=recovery') ||
+                            window.location.hash.includes('type=recovery');
+                        const storageRecovery = localStorage.getItem(RECOVERY_MODE_STORAGE_KEY) === '1';
+                        return urlRecovery || storageRecovery || event === 'PASSWORD_RECOVERY';
+                    } catch {
+                        return (
+                            window.location.search.includes('mode=recovery') ||
+                            window.location.hash.includes('type=recovery') ||
+                            event === 'PASSWORD_RECOVERY'
+                        );
+                    }
+                })();
+
+                if (event === 'PASSWORD_RECOVERY') {
+                    try {
+                        localStorage.setItem(RECOVERY_MODE_STORAGE_KEY, '1');
+                    } catch {
+                        // ignore
+                    }
+                    this.clearUser();
+                }
+
                 if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     if (session?.user) {
+                        if (isRecovery) {
+                            this.clearUser();
+                            this.saveSession(session);
+                            logger.info('🔐 [AUTH MANAGER] Recovery session detected, skipping profile fetch', {
+                                userId: session.user.id,
+                                event,
+                            });
+                            return;
+                        }
+
                         const meta = (session.user.user_metadata ?? {}) as Record<string, unknown>;
                         if (typeof meta.deleted_at === 'string' && meta.deleted_at.trim()) {
                             logger.warn('⚠️ [AUTH MANAGER] Deleted account signed in, signing out', {
@@ -144,6 +180,11 @@ export const authManager = {
                     logger.info('👋 [AUTH MANAGER] User signed out');
                     this.clearUser();
                     this.clearSession();
+                    try {
+                        localStorage.removeItem(RECOVERY_MODE_STORAGE_KEY);
+                    } catch {
+                        // ignore
+                    }
                 }
 
                 if (event === 'USER_UPDATED') {
@@ -184,6 +225,31 @@ export const authManager = {
             }
 
             if (session?.user) {
+                const urlRecovery =
+                    window.location.search.includes('mode=recovery') ||
+                    window.location.hash.includes('type=recovery');
+                const storageRecovery = (() => {
+                    try {
+                        return localStorage.getItem(RECOVERY_MODE_STORAGE_KEY) === '1';
+                    } catch {
+                        return false;
+                    }
+                })();
+
+                if (urlRecovery || storageRecovery) {
+                    try {
+                        localStorage.setItem(RECOVERY_MODE_STORAGE_KEY, '1');
+                    } catch {
+                        // ignore
+                    }
+                    this.clearUser();
+                    this.saveSession(session);
+                    logger.info('🔐 [AUTH MANAGER] Recovery session detected, skipping profile restore', {
+                        userId: session.user.id,
+                    });
+                    return;
+                }
+
                 logger.info('✅ [AUTH MANAGER] Existing session found:', {
                     userId: session.user.id,
                     expiresAt: new Date(session.expires_at! * 1000).toISOString(),
@@ -204,6 +270,11 @@ export const authManager = {
                 logger.info('ℹ️ [AUTH MANAGER] No existing session found');
                 this.clearUser();
                 this.clearSession();
+                try {
+                    localStorage.removeItem(RECOVERY_MODE_STORAGE_KEY);
+                } catch {
+                    // ignore
+                }
             }
         } catch (error) {
             logger.error('❌ [AUTH MANAGER] Error in checkExistingSession:', error);

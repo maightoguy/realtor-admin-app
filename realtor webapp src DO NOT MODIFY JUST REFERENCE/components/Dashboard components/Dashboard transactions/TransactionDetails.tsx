@@ -39,6 +39,8 @@ const TransactionDetails: React.FC<TransactionDetailsProps> = ({
     switch (status) {
       case "Paid":
         return "text-[#22C55E] bg-[#E9F9EF]";
+      case "Approved":
+        return "text-[#6500AC] bg-[#F0E6F7]";
       case "Pending":
         return "text-[#6B7280] bg-[#F5F5F5]";
       case "Failed":

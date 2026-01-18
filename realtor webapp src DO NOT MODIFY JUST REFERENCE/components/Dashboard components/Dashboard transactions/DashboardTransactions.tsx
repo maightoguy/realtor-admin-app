@@ -18,7 +18,7 @@ import type {
 import Toast from "../../Toast";
 import type { ToastType } from "../../Toast";
 
-type TransactionStatus = "Paid" | "Pending" | "Failed";
+type TransactionStatus = "Paid" | "Approved" | "Pending" | "Failed";
 type TransactionType = "Commission" | "Withdrawal" | "Referral";
 
 interface Transaction {
@@ -144,15 +144,14 @@ const formatTransactionDate = (isoDate: string) => {
 const mapUnifiedToUI = (tx: UnifiedTransaction): Transaction => {
   const isCredit = tx.type === "credit";
 
-  const uiStatus: Transaction["status"] = isCredit
-    ? tx.status === "pending"
-      ? "Pending"
-      : "Paid"
-    : tx.status === "paid"
-    ? "Paid"
-    : tx.status === "rejected"
-    ? "Failed"
-    : "Pending";
+  const uiStatus: Transaction["status"] =
+    tx.status === "paid"
+      ? "Paid"
+      : tx.status === "approved"
+      ? "Approved"
+      : tx.status === "rejected"
+      ? "Failed"
+      : "Pending";
 
   return {
     id: tx.id,
@@ -281,6 +280,8 @@ const DashboardTransactions = () => {
     switch (status) {
       case "Paid":
         return "bg-[#E9F9EF] text-[#22C55E]";
+      case "Approved":
+        return "bg-[#F0E6F7] text-[#6500AC]";
       case "Pending":
         return "bg-[#F5F5F5] text-[#6B7280]";
       case "Failed":
@@ -433,19 +434,21 @@ const DashboardTransactions = () => {
             {/* Filter Tabs + Search */}
             <div className="px-3 py-2 md:px-6 md:py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
               <div className="flex gap-2 overflow-x-auto scrollbar-hide lg:flex-wrap lg:overflow-visible -mx-3 px-3 md:-mx-4 md:px-4 pb-2">
-                {["All", "Paid", "Pending", "Failed"].map((label) => (
-                  <button
-                    key={label}
-                    onClick={() => setActiveStatusFilter(label)}
-                    className={`px-2.5 py-1 md:px-4 md:py-2 rounded-[10px] border text-[10px] md:text-sm font-medium transition-all whitespace-nowrap ${
-                      activeStatusFilter === label
-                        ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
-                        : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:text-[#6500AC]"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+                {["All", "Paid", "Approved", "Pending", "Failed"].map(
+                  (label) => (
+                    <button
+                      key={label}
+                      onClick={() => setActiveStatusFilter(label)}
+                      className={`px-2.5 py-1 md:px-4 md:py-2 rounded-[10px] border text-[10px] md:text-sm font-medium transition-all whitespace-nowrap ${
+                        activeStatusFilter === label
+                          ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
+                          : "bg-[#FAFAFA] border-[#F0F1F2] text-[#9CA1AA] hover:text-[#6500AC]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                )}
               </div>
 
               {/* UNIFORM SEARCH BAR WRAPPER */}

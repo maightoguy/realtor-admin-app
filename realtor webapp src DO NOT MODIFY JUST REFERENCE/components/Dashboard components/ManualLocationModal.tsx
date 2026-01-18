@@ -132,7 +132,7 @@ const ManualLocationModal = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex justify-center items-center z-9999"
+      className="fixed inset-0 bg-black/40 flex justify-center items-center z-[9999]"
       onClick={onClose}
     >
       <div

@@ -144,15 +144,11 @@ const DashboardReferrals = () => {
           const firstName = downline?.first_name ?? "";
           const lastName = downline?.last_name ?? "";
           const fullName = `${firstName} ${lastName}`.trim();
-          const email = downline?.email ?? "";
-          const phoneNumber = downline?.phone_number ?? "";
           const fallbackId =
             typeof ref.downline_id === "string" ? ref.downline_id : "";
 
           const displayName =
             fullName ||
-            email ||
-            phoneNumber ||
             (fallbackId ? `User ${fallbackId.slice(0, 8)}` : "Unknown User");
 
           return {
