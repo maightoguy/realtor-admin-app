@@ -59,9 +59,9 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
         </div>
 
         <p className="text-gray-500 text-sm text-left">
-          Don’t have an account?{" "}
-          <Link to="/register" className="text-purple-700 font-medium">
-            Sign Up
+          Remember your password?{" "}
+          <Link to="/login" className="text-purple-700 font-medium">
+            Log in
           </Link>
         </p>
 

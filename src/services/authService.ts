@@ -65,7 +65,7 @@ export const authService = {
       type: "signup",
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/login`,
+        emailRedirectTo: `${window.location.origin}/email-confirmed`,
       },
     });
   },

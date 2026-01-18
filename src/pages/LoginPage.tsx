@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import AuthLayout from "../components/auth components/AuthLayout";
 import LoginForm from "../components/auth components/LoginForm";
 import ForgotPasswordForm from "../components/auth components/ForgotPasswordForm";
@@ -13,7 +13,11 @@ type AuthStep = "login" | "forgot" | "confirm" | "reset";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const isRecoveryNow =
+    searchParams.get("mode") === "recovery" ||
+    location.hash.includes("type=recovery");
   const [currentStep, setCurrentStep] = useState<AuthStep>("login");
   const [userEmail, setUserEmail] = useState<string>("");
   const [pageError, setPageError] = useState<string | null>(null);
@@ -65,11 +69,15 @@ const LoginPage = () => {
   useEffect(() => {
     let cancelled = false;
 
+    if (isRecoveryNow) {
+      setCurrentStep("reset");
+    }
+
     authService
       .getSession()
       .then(async ({ data }) => {
         const userId = data.session?.user?.id;
-        if (!cancelled && userId) {
+        if (!cancelled && userId && !isRecoveryNow) {
           await finalizeLogin(userId);
         }
       })
@@ -88,7 +96,7 @@ const LoginPage = () => {
       }
       if (event === "SIGNED_IN") {
         const userId = session?.user?.id;
-        if (userId) {
+        if (userId && !isRecoveryNow) {
           finalizeLogin(userId).catch((e) => {
             const message =
               e instanceof Error ? e.message : "Unable to sign in.";
@@ -98,15 +106,11 @@ const LoginPage = () => {
       }
     });
 
-    if (searchParams.get("mode") === "recovery") {
-      setCurrentStep("reset");
-    }
-
     return () => {
       cancelled = true;
       data.subscription.unsubscribe();
     };
-  }, [searchParams]);
+  }, [isRecoveryNow, searchParams]);
 
   const renderStepComponent = () => {
     switch (currentStep) {
@@ -149,7 +153,7 @@ const LoginPage = () => {
 
               const result = await authService.signInWithPassword(
                 pendingCredentials.email,
-                pendingCredentials.password
+                pendingCredentials.password,
               );
 
               if (result.error) throw result.error;
@@ -164,15 +168,7 @@ const LoginPage = () => {
         return (
           <ResetPasswordForm
             onBack={handleBackToLogin}
-            onDone={async () => {
-              const { data } = await authService.getSession();
-              const userId = data.session?.user?.id;
-              if (userId) {
-                await finalizeLogin(userId);
-                return;
-              }
-              handleBackToLogin();
-            }}
+            onDone={handleBackToLogin}
           />
         );
       default:

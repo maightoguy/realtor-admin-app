@@ -1,5 +1,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { authService } from "../../services/authService";
+import { authManager } from "../../services/authManager";
 
 interface ResetPasswordFormProps {
   onBack: () => void;
@@ -14,21 +16,39 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!password || !confirm) {
-      alert("Please fill out both fields");
+      setError("Please fill out both fields.");
       return;
     }
     if (password !== confirm) {
-      alert("Passwords do not match");
+      setError("Passwords do not match.");
       return;
     }
 
-    // Simulate success (since backend is not ready yet)
-    alert("Password reset successful (mock)");
-    onDone();
+    setIsSaving(true);
+    setError(null);
+    try {
+      const { error: updateError } = await authService.updatePassword(password);
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      await authService.signOut();
+      authManager.clearUser();
+      onDone();
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Failed to reset password.";
+      setError(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -38,6 +58,7 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
         <button
           type="button"
           onClick={onBack}
+          disabled={isSaving}
           className="text-2xl text-gray-700 hover:text-purple-700 "
         >
           ←
@@ -53,6 +74,12 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
         onSubmit={handleSubmit}
         className="w-full max-w-sm mx-auto space-y-6"
       >
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
         {/* Password */}
         <div>
           <label className="block text-gray-600 font-medium mb-2">
@@ -69,6 +96,7 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              disabled={isSaving}
               className="absolute inset-y-0 right-3 flex items-center text-gray-500"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -92,6 +120,7 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
             <button
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
+              disabled={isSaving}
               className="absolute inset-y-0 right-3 flex items-center text-gray-500"
             >
               {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -102,14 +131,14 @@ const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({
         {/* Done Button */}
         <button
           type="submit"
-          disabled={!password || !confirm}
+          disabled={!password || !confirm || isSaving}
           className={`w-full py-3 rounded-xl font-semibold text-white transition ${
-            password && confirm
+            password && confirm && !isSaving
               ? "bg-purple-700 hover:bg-purple-800"
               : "bg-gray-300 cursor-not-allowed"
           }`}
         >
-          Done
+          {isSaving ? "Saving..." : "Done"}
         </button>
       </form>
     </div>
