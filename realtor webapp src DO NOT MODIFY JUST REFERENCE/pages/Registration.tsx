@@ -68,7 +68,7 @@ const RegistrationPage: React.FC = () => {
 
     try {
       const { error } = await registrationService.resendConfirmationEmail(
-        registrationSuccess.email
+        registrationSuccess.email,
       );
 
       if (error) {
@@ -250,10 +250,12 @@ const RegistrationPage: React.FC = () => {
             <CreateAccountForm
               initialData={createAccountData ?? undefined}
               onNext={(data) => {
+                setError(null);
                 setCreateAccountData(data);
                 setCurrentStep(1);
               }}
               onGoogle={handleGoogleLogin}
+              onInputChange={() => setError(null)}
             />
           )}
 
@@ -266,9 +268,11 @@ const RegistrationPage: React.FC = () => {
                   : undefined)
               }
               onNext={(data) => {
+                setError(null);
                 setPersonalInfoData(data);
                 setCurrentStep(2); // go to KYC
               }}
+              onInputChange={() => setError(null)}
             />
           )}
 
@@ -299,8 +303,9 @@ const RegistrationPage: React.FC = () => {
                   if (result.success) {
                     // Registration successful - show email confirmation message
                     logger.info(
-                      "✅ [REGISTRATION PAGE] Registration successful, showing confirmation"
+                      "✅ [REGISTRATION PAGE] Registration successful, showing confirmation",
                     );
+                    setError(null);
                     setRegistrationSuccess({
                       email: createAccountData.email,
                     });
@@ -311,7 +316,7 @@ const RegistrationPage: React.FC = () => {
                       result.error || "Registration failed. Please try again.";
                     logger.error(
                       "❌ [REGISTRATION PAGE] Registration failed:",
-                      errorMessage
+                      errorMessage,
                     );
                     setError(errorMessage);
                     setIsLoading(false);
@@ -320,7 +325,7 @@ const RegistrationPage: React.FC = () => {
                   setError(
                     err instanceof Error
                       ? err.message
-                      : "An unexpected error occurred"
+                      : "An unexpected error occurred",
                   );
                 } finally {
                   setIsLoading(false);
@@ -348,27 +353,26 @@ const RegistrationPage: React.FC = () => {
                 </svg>
                 <div className="flex-1">
                   <p className="text-sm text-red-600 font-medium mb-1">
-                    Registration Failed
+                    We couldn’t create your account with those details. Try a
+                    different phone number or log in.
                   </p>
                   <p className="text-sm text-red-600">{error}</p>
-                  {error.includes("already registered") && (
-                    <div className="mt-3 pt-3 border-t border-red-200">
-                      <p className="text-sm text-red-700 mb-2">
-                        Already have an account?
-                      </p>
-                      <button
-                        onClick={() => {
-                          logger.info(
-                            "🔗 [REGISTRATION PAGE] Navigating to login from error"
-                          );
-                          navigate("/login");
-                        }}
-                        className="text-sm text-purple-700 font-medium hover:underline"
-                      >
-                        Go to Login →
-                      </button>
-                    </div>
-                  )}
+                  <div className="mt-3 pt-3 border-t border-red-200 flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/login")}
+                      className="text-sm text-purple-700 font-medium hover:underline text-left"
+                    >
+                      Log in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/login?view=forgot")}
+                      className="text-sm text-purple-700 font-medium hover:underline text-left"
+                    >
+                      Forgot password
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

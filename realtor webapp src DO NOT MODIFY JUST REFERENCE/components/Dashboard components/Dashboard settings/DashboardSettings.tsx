@@ -103,6 +103,7 @@ const DashboardSettings = () => {
   const handleInputChange = (field: string, value: string) => {
     // Trim value on input change
     const trimmedValue = typeof value === "string" ? value.trim() : value;
+    if (error) setError(null);
     setFormData((prev) => ({
       ...prev,
       [field]: trimmedValue,

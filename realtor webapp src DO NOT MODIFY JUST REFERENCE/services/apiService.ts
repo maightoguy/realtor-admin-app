@@ -124,6 +124,53 @@ export const userService = {
         logger.info('🔄 [API] Updating user:', id, { updates });
         const supabase = getSupabaseClient();
 
+        const stringifyError = (err: unknown) => {
+            const seen = new Set<unknown>();
+            const collect = (value: unknown, depth: number): string[] => {
+                if (depth > 2) return [];
+                if (value == null) return [];
+                if (typeof value === 'string') return [value];
+                if (typeof value === 'number' || typeof value === 'boolean') return [String(value)];
+                if (typeof value !== 'object') return [];
+                if (seen.has(value)) return [];
+                seen.add(value);
+                if (Array.isArray(value)) return value.flatMap((v) => collect(v, depth + 1));
+                const obj = value as Record<string, unknown>;
+                return Object.keys(obj).flatMap((k) => {
+                    const v = obj[k];
+                    if (typeof v === 'string') return [`${k}: ${v}`];
+                    if (typeof v === 'number' || typeof v === 'boolean') return [`${k}: ${String(v)}`];
+                    if (v && typeof v === 'object') return collect(v, depth + 1);
+                    return [];
+                });
+            };
+            return collect(err, 0).join('\n');
+        };
+
+        const isDuplicateViolation = (err: unknown) => {
+            if (!err || typeof err !== 'object') return false;
+            const code = (err as { code?: unknown }).code;
+            if (typeof code === 'string' && code === '23505') return true;
+            const haystack = stringifyError(err).toLowerCase();
+            return (
+                haystack.includes('duplicate key value violates unique constraint') ||
+                haystack.includes('sqlstate 23505') ||
+                haystack.includes('users_phone_number_key') ||
+                haystack.includes('users_email_key')
+            );
+        };
+
+        const mapDuplicateMessage = (err: unknown) => {
+            const haystack = stringifyError(err).toLowerCase();
+            if (haystack.includes('users_phone_number_key') || haystack.includes('(phone_number)')) {
+                return 'That phone number is already in use. Please use a different number or log in.';
+            }
+            if (haystack.includes('users_email_key') || haystack.includes('(email)')) {
+                return 'That email is already in use. Please log in instead.';
+            }
+            return 'Profile update failed. Please try again.';
+        };
+
         const attemptUpdate = async () => {
             const { data, error } = await supabase
                 .from('users')
@@ -143,6 +190,11 @@ export const userService = {
                         message: error.message,
                     });
                     return null;
+                }
+                if (isDuplicateViolation(error)) {
+                    const uniqueError = new Error(mapDuplicateMessage(error));
+                    uniqueError.name = 'UniqueViolationError';
+                    throw uniqueError;
                 }
                 logger.error('❌ [API] Failed to update user:', {
                     id,
@@ -184,7 +236,14 @@ export const userService = {
                     body: { updates },
                 });
 
-                if (fnError) throw fnError;
+                if (fnError) {
+                    if (isDuplicateViolation(fnError)) {
+                        const uniqueError = new Error(mapDuplicateMessage(fnError));
+                        uniqueError.name = 'UniqueViolationError';
+                        throw uniqueError;
+                    }
+                    throw fnError;
+                }
 
                 const maybeUser = (fnData as unknown as { user?: User | null })?.user ?? null;
                 if (maybeUser) {

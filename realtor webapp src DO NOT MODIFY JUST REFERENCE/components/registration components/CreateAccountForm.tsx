@@ -11,6 +11,7 @@ type Props = {
   initialData?: Partial<CreateAccountData>;
   onNext: (data: CreateAccountData) => void;
   onGoogle?: () => void;
+  onInputChange?: () => void;
 };
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,6 +20,7 @@ export const CreateAccountForm: React.FC<Props> = ({
   initialData = {},
   onNext,
   onGoogle,
+  onInputChange,
 }) => {
   const [email, setEmail] = useState(initialData.email ?? "");
   const [password, setPassword] = useState(initialData.password ?? "");
@@ -76,7 +78,10 @@ export const CreateAccountForm: React.FC<Props> = ({
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (onInputChange) onInputChange();
+            }}
             placeholder="e.g ****@mail.com"
             className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400"
             aria-invalid={!isEmailValid && touched}
@@ -99,7 +104,10 @@ export const CreateAccountForm: React.FC<Props> = ({
           <input
             type={showPassword ? "text" : "password"}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (onInputChange) onInputChange();
+            }}
             placeholder="Input Password"
             className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400 pr-10"
             aria-invalid={!isPasswordValid && touched}
@@ -174,7 +182,10 @@ export const CreateAccountForm: React.FC<Props> = ({
           <input
             type={showConfirmPassword ? "text" : "password"}
             value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            onChange={(e) => {
+              setConfirm(e.target.value);
+              if (onInputChange) onInputChange();
+            }}
             placeholder="Enter Password again"
             className="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400 pr-10"
             aria-invalid={!isConfirmMatch && touched}

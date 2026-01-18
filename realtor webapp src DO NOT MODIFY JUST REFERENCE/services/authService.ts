@@ -54,6 +54,72 @@ export const authService = {
         try {
             const supabase = getSupabaseClient();
 
+            const stringifyError = (err: unknown) => {
+                const seen = new Set<unknown>();
+                const collect = (value: unknown, depth: number): string[] => {
+                    if (depth > 2) return [];
+                    if (value == null) return [];
+                    if (typeof value === 'string') return [value];
+                    if (typeof value === 'number' || typeof value === 'boolean') return [String(value)];
+                    if (typeof value !== 'object') return [];
+                    if (seen.has(value)) return [];
+                    seen.add(value);
+
+                    if (Array.isArray(value)) {
+                        return value.flatMap((v) => collect(v, depth + 1));
+                    }
+
+                    const obj = value as Record<string, unknown>;
+                    return Object.keys(obj).flatMap((k) => {
+                        const v = obj[k];
+                        if (typeof v === 'string') return [`${k}: ${v}`];
+                        if (typeof v === 'number' || typeof v === 'boolean') return [`${k}: ${String(v)}`];
+                        if (v && typeof v === 'object') return collect(v, depth + 1);
+                        return [];
+                    });
+                };
+
+                return collect(err, 0).join('\n');
+            };
+
+            const isDuplicateViolation = (err: unknown) => {
+                if (!err || typeof err !== 'object') return false;
+                const anyErr = err as { code?: unknown };
+                const code = typeof anyErr.code === 'string' ? anyErr.code : undefined;
+                if (code === '23505') return true;
+
+                const haystack = stringifyError(err).toLowerCase();
+                return (
+                    haystack.includes('duplicate key value violates unique constraint') ||
+                    haystack.includes('sqlstate 23505') ||
+                    haystack.includes('users_phone_number_key') ||
+                    haystack.includes('users_email_key')
+                );
+            };
+
+            const getUniqueViolationMessage = (err: unknown) => {
+                if (!err || typeof err !== 'object') return 'Registration failed. Please try again.';
+                const haystack = stringifyError(err).toLowerCase();
+
+                if (haystack.includes('users_phone_number_key')) {
+                    return 'That phone number is already in use. Please use a different number or log in.';
+                }
+
+                if (haystack.includes('users_email_key')) {
+                    return 'That email is already in use. Please log in instead.';
+                }
+
+                if (haystack.includes('(phone_number)')) {
+                    return 'That phone number is already in use. Please use a different number or log in.';
+                }
+
+                if (haystack.includes('(email)')) {
+                    return 'That email is already in use. Please log in instead.';
+                }
+
+                return 'Registration failed. Please try again.';
+            };
+
             const referralCode = `REF-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
 
             // Step 1: Create auth user
@@ -91,9 +157,15 @@ export const authService = {
                     authError.message.includes('email address is already registered') ||
                     authError.status === 422
                 ) {
-                    const emailExistsError = new Error('This email address is already registered. Please use a different email or try logging in.');
+                    const emailExistsError = new Error('That email is already in use. Please log in instead.');
                     emailExistsError.name = 'EmailExistsError';
                     return { user: null, error: emailExistsError };
+                }
+
+                if (isDuplicateViolation(authError)) {
+                    const uniqueError = new Error(getUniqueViolationMessage(authError));
+                    uniqueError.name = 'UniqueViolationError';
+                    return { user: null, error: uniqueError };
                 }
 
                 return { user: null, error: authError };
@@ -174,43 +246,11 @@ export const authService = {
                     return { user: null, error: null };
                 }
 
-                if (userError.code === '23505') {
-                    const match = userError.details?.match(/\(([^)]+)\)=\(([^)]+)\)/);
-                    const violatedField = match ? match[1] : undefined;
-                    const violatedValue = match ? match[2] : undefined;
-
-                    const isEmailViolation =
-                        violatedField === 'email' ||
-                        (userError.message && userError.message.includes('users_email_key'));
-                    const isPhoneViolation =
-                        violatedField === 'phone_number' ||
-                        (userError.message && userError.message.includes('users_phone_number_key'));
-
-                    if (isEmailViolation) {
-                        const email = violatedValue ?? data.email;
-                        const emailExistsError = new Error(
-                            `This email address (${email}) is already registered. Please use a different email or try logging in.`
-                        );
-                        emailExistsError.name = 'EmailExistsError';
-                        return { user: null, error: emailExistsError };
-                    }
-
-                    if (isPhoneViolation) {
-                        const phone = violatedValue ?? data.phoneNumber;
-                        const phoneExistsError = new Error(
-                            `This phone number (${phone}) is already registered. Please use a different phone number or try logging in.`
-                        );
-                        phoneExistsError.name = 'PhoneExistsError';
-                        return { user: null, error: phoneExistsError };
-                    }
-
-                    if (violatedField && violatedValue) {
-                        const uniqueError = new Error(
-                            `The value (${violatedValue}) for ${violatedField} is already registered. Please use a different value or try logging in.`
-                        );
-                        uniqueError.name = 'UniqueViolationError';
-                        return { user: null, error: uniqueError };
-                    }
+                if (isDuplicateViolation(userError)) {
+                    const message = getUniqueViolationMessage(userError);
+                    const uniqueError = new Error(message);
+                    uniqueError.name = 'UniqueViolationError';
+                    return { user: null, error: uniqueError };
                 }
 
                 try {

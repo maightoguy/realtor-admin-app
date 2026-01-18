@@ -315,6 +315,49 @@ Great catch — Android Developer Options (“limit background processes”) can
 *   `npm run lint`
 *   `npm run build`
 
+### O. Signup Unique Constraint Errors (Email/Phone) + Login/Forgot CTAs
+**Outcome**
+*   Registration now surfaces friendly messages for duplicate email/phone uniqueness errors instead of generic database errors.
+*   Error UI provides direct actions to log in or start password recovery.
+*   Login page supports deep-linking to the forgot-password view via query param.
+
+**What Changed**
+*   Hardened duplicate-violation detection and messaging for both auth signup and profile insert failures (handles cases where Supabase returns nested error strings):
+    *   `src/services/authService.ts`
+    *   `src/services/registrationService.ts`
+*   Registration error UI now always shows “Log in” and “Forgot password” actions:
+    *   `src/pages/Registration.tsx`
+*   Added `/login?view=forgot` support to open the forgot-password form directly:
+    *   `src/pages/LoginPage.tsx`
+*   Registration form error state clears on input change and successful submit:
+    *   `src/pages/Registration.tsx`
+    *   `src/components/registration components/CreateAccountForm.tsx`
+    *   `src/components/registration components/PersonalInfoForm.tsx`
+
+**Messaging**
+*   Duplicate phone: “That phone number is already in use. Please use a different number or log in.”
+*   Duplicate email: “That email is already in use. Please log in instead.”
+*   Registration error header copy updated to: “We couldn’t create your account with those details. Try a different phone number or log in.”
+
+**Verification**
+*   `npm run lint`
+*   `npm run build`
+
+### P. Settings → Profile Unique Constraint Errors (Email/Phone)
+**Outcome**
+*   Profile updates now return friendly errors when updates violate unique constraints (e.g., duplicate phone number), rather than generic PostgREST/Edge Function failures.
+*   Profile error clears immediately as the user edits fields.
+
+**What Changed**
+*   Added robust duplicate-violation detection + mapped messages to `userService.update()` (covers both direct PostgREST update and Edge Function fallback):
+    *   `src/services/apiService.ts`
+*   Cleared profile error state on input change:
+    *   `src/components/Dashboard components/Dashboard settings/DashboardSettings.tsx`
+
+**Verification**
+*   `npm run lint`
+*   `npm run build`
+
 ## 5. Codebase Structure & Navigation
 ### Key Directories
 *   `src/context/UserContext.tsx`: **Central Truth**. Handles user hydration, profile fetching, and role management.

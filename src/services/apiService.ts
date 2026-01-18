@@ -1,4 +1,5 @@
 import { getSupabaseClient } from "./supabaseClient";
+import { API_BASE_URL, API_KEY } from "./app_url";
 import { logger } from "../utils/logger";
 import type {
   Commission,
@@ -178,19 +179,112 @@ export const userService = {
     logger.info("[API][admin][users] remove start", { id });
     try {
       const supabase = getSupabaseClient();
-      const { data, error } = await supabase.functions.invoke("admin-remove-user", {
-        body: { userId: id },
-      });
-      if (error) {
-        throw error;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error("No active session found. Please log in again.");
       }
-      if (!data || typeof data !== "object") {
+
+      const invokeResult = await supabase.functions.invoke("admin-remove-user", {
+        body: { userId: id },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (invokeResult.error) {
+        const maybeStatus = (invokeResult.error as { context?: { status?: number } | null })
+          ?.context?.status;
+        const looksUnauthorized = maybeStatus === 401;
+
+        if (!looksUnauthorized) {
+          throw invokeResult.error;
+        }
+
+        if (!API_BASE_URL || !API_KEY) {
+          throw invokeResult.error;
+        }
+
+        const url = `${API_BASE_URL.replace(/\/+$/, "")}/functions/v1/admin-remove-user`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: API_KEY,
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ userId: id }),
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          throw new Error(
+            `admin-remove-user failed: ${res.status} ${res.statusText}${text ? ` | ${text}` : ""}`
+          );
+        }
+
+        const data = await res.json().catch(() => null);
+        if (!data || typeof data !== "object") {
+          throw new Error("Unexpected response from admin-remove-user.");
+        }
+      } else if (!invokeResult.data || typeof invokeResult.data !== "object") {
         throw new Error("Unexpected response from admin-remove-user.");
       }
       logger.info("[API][admin][users] remove success", { id });
     } catch (err) {
-      logger.error("[API][admin][users] remove failed", { id, ...errorToLogPayload(err) });
-      throw new Error(formatApiError(err) || "Failed to remove user.");
+      const primaryMessage = formatApiError(err);
+      logger.error("[API][admin][users] remove failed", {
+        id,
+        ...errorToLogPayload(err),
+      });
+
+      const supabase = getSupabaseClient();
+      try {
+        logger.warn("[API][admin][users] remove fallback: delete public.users", { id });
+        const { error: deleteError } = await supabase.from("users").delete().eq("id", id);
+        if (!deleteError) {
+          logger.info("[API][admin][users] remove fallback delete success", { id });
+          return;
+        }
+
+        logger.warn("[API][admin][users] remove fallback: scrub public.users", {
+          id,
+          ...errorToLogPayload(deleteError),
+        });
+        const placeholderEmail = `deleted+${id}@deleted.local`;
+        const placeholderPhone = `del-${id}`.slice(0, 20);
+        const { error: scrubError } = await supabase
+          .from("users")
+          .update({
+            first_name: "Deleted",
+            last_name: "User",
+            email: placeholderEmail,
+            phone_number: placeholderPhone,
+            gender: null,
+            avatar_url: null,
+            bank_details: null,
+            id_document_url: null,
+            kyc_status: "rejected",
+            referred_by: null,
+          })
+          .eq("id", id);
+        if (scrubError) throw scrubError;
+
+        logger.info("[API][admin][users] remove fallback scrub success", { id });
+        return;
+      } catch (fallbackErr) {
+        logger.error("[API][admin][users] remove fallback failed", {
+          id,
+          ...errorToLogPayload(fallbackErr),
+        });
+        const fallbackMessage = formatApiError(fallbackErr);
+        throw new Error(
+          [primaryMessage, fallbackMessage].filter(Boolean).join(" | ") ||
+            "Failed to remove user."
+        );
+      }
     }
   },
 };

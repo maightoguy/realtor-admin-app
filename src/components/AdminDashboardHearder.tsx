@@ -5,6 +5,7 @@ import NotificationModal from "../components/Admin Dashboard components/Notifica
 import { notificationService } from "../services/apiService";
 import { getSupabaseClient } from "../services/supabaseClient";
 import type { User } from "../services/types";
+import { useNotifications } from "../services/useNotifications";
 
 interface HeaderProps {
   activeSection: string;
@@ -22,6 +23,7 @@ const AdminDashboardHeader = ({
 }: HeaderProps) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
   const currentDate = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -39,8 +41,8 @@ const AdminDashboardHeader = ({
   };
 
   const refreshUnreadCount = async () => {
-    const id = await resolveUserId();
-    if (!id) return;
+    const id = resolvedUserId ?? (await resolveUserId());
+    if (!id) return; 
     const count = await notificationService.getAdminActionUnreadCount({
       userId: id,
     });
@@ -48,8 +50,25 @@ const AdminDashboardHeader = ({
   };
 
   useEffect(() => {
-    refreshUnreadCount().catch(() => {});
+    resolveUserId()
+      .then((id) => setResolvedUserId(id))
+      .catch(() => setResolvedUserId(null));
   }, [user?.id]);
+
+  const { inserts } = useNotifications({
+    userId: resolvedUserId ?? undefined,
+    enabled: Boolean(resolvedUserId),
+  });
+
+  useEffect(() => {
+    if (!resolvedUserId) return;
+    if (inserts.length === 0) return;
+    refreshUnreadCount().catch(() => {});
+  }, [inserts.length, resolvedUserId]);
+
+  useEffect(() => {
+    refreshUnreadCount().catch(() => {});
+  }, [resolvedUserId]);
 
   useEffect(() => {
     if (!isNotificationOpen) {

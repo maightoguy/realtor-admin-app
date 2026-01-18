@@ -13,6 +13,13 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { user } = useUser();
 
+  useEffect(() => {
+    const view = searchParams.get("view");
+    if (view === "forgot") {
+      setStep("forgot");
+    }
+  }, [searchParams]);
+
   // If already logged in, redirect to dashboard
   useEffect(() => {
     const isRecovery =

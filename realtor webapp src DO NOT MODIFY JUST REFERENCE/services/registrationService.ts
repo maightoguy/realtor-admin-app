@@ -49,6 +49,63 @@ export const registrationService = {
         });
 
         try {
+            const stringifyError = (err: unknown) => {
+                const seen = new Set<unknown>();
+                const collect = (value: unknown, depth: number): string[] => {
+                    if (depth > 2) return [];
+                    if (value == null) return [];
+                    if (typeof value === 'string') return [value];
+                    if (typeof value === 'number' || typeof value === 'boolean') return [String(value)];
+                    if (typeof value !== 'object') return [];
+                    if (seen.has(value)) return [];
+                    seen.add(value);
+
+                    if (Array.isArray(value)) {
+                        return value.flatMap((v) => collect(v, depth + 1));
+                    }
+
+                    const obj = value as Record<string, unknown>;
+                    return Object.keys(obj).flatMap((k) => {
+                        const v = obj[k];
+                        if (typeof v === 'string') return [`${k}: ${v}`];
+                        if (typeof v === 'number' || typeof v === 'boolean') return [`${k}: ${String(v)}`];
+                        if (v && typeof v === 'object') return collect(v, depth + 1);
+                        return [];
+                    });
+                };
+
+                return collect(err, 0).join('\n');
+            };
+
+            const isDuplicateViolation = (err: unknown) => {
+                if (!err || typeof err !== 'object') return false;
+                const anyErr = err as { code?: unknown };
+                const code = typeof anyErr.code === 'string' ? anyErr.code : undefined;
+                if (code === '23505') return true;
+                const haystack = stringifyError(err).toLowerCase();
+                return (
+                    haystack.includes('duplicate key value violates unique constraint') ||
+                    haystack.includes('sqlstate 23505') ||
+                    haystack.includes('users_phone_number_key') ||
+                    haystack.includes('users_email_key')
+                );
+            };
+
+            const mapDuplicateMessage = (err: unknown) => {
+                if (!err || typeof err !== 'object') return 'Registration failed. Please try again.';
+                const haystack = stringifyError(err).toLowerCase();
+
+                if (haystack.includes('users_phone_number_key') || haystack.includes('(phone_number)')) {
+                    return 'That phone number is already in use. Please use a different number or log in.';
+                }
+
+                if (haystack.includes('users_email_key') || haystack.includes('(email)')) {
+                    return 'That email is already in use. Please log in instead.';
+                }
+
+                return 'Registration failed. Please try again.';
+            };
+
             const phoneResult = validateNigerianPhone(data.phone);
             if (!phoneResult.valid) {
                 return {
@@ -93,25 +150,9 @@ export const registrationService = {
 
                 logger.error('❌ [REGISTRATION] User signup failed:', signUpError);
 
-                // Check for email already exists error
-                let errorMessage = signUpError?.message || 'Failed to create user account';
-
-                // Specific duplicate errors bubbled up from authService
-                if (signUpError?.name === 'EmailExistsError') {
-                    errorMessage = signUpError.message;
-                } else if (signUpError?.name === 'PhoneExistsError') {
-                    errorMessage = signUpError.message;
-                } else if ((signUpError as any)?.code === '23505') {
-                    // Fallback: infer field from message/details for friendliness
-                    const details: string = (signUpError as any)?.details || '';
-                    const msg: string = (signUpError as any)?.message || '';
-                    if (details.includes('users_email_key') || msg.includes('users_email_key') || details.includes('(email)')) {
-                        errorMessage = 'This email address is already registered. Please use a different email or try logging in.';
-                    } else if (details.includes('users_phone_number_key') || msg.includes('users_phone_number_key') || details.includes('(phone_number)')) {
-                        errorMessage = 'This phone number is already registered. Please use a different phone number or try logging in.';
-                    } else {
-                        errorMessage = 'Duplicate data detected. Please use different values and try again.';
-                    }
+                let errorMessage = signUpError?.message || 'Registration failed. Please try again.';
+                if (isDuplicateViolation(signUpError)) {
+                    errorMessage = mapDuplicateMessage(signUpError);
                 }
 
                 return {

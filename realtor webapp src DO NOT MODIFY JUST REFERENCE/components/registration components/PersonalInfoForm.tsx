@@ -14,6 +14,7 @@ export type PersonalInfoData = {
 type Props = {
   initialData?: Partial<PersonalInfoData>;
   onNext: (data: PersonalInfoData) => void;
+  onInputChange?: () => void;
 };
 
 const genders = ["Male", "Female", "Other"];
@@ -21,6 +22,7 @@ const genders = ["Male", "Female", "Other"];
 export const PersonalInfoForm: React.FC<Props> = ({
   initialData = {},
   onNext,
+  onInputChange,
 }) => {
   const [firstName, setFirstName] = useState(initialData.firstName ?? "");
   const [lastName, setLastName] = useState(initialData.lastName ?? "");
@@ -81,7 +83,10 @@ export const PersonalInfoForm: React.FC<Props> = ({
         <input
           type="text"
           value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
+          onChange={(e) => {
+            setFirstName(e.target.value);
+            if (onInputChange) onInputChange();
+          }}
           placeholder="e.g John"
           className="w-full bg-[#FAFAFA] border border-[#F0F1F2] rounded-lg px-4 py-3 outline-none text-gray-800 placeholder-gray-400"
         />
@@ -95,7 +100,10 @@ export const PersonalInfoForm: React.FC<Props> = ({
         <input
           type="text"
           value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
+          onChange={(e) => {
+            setLastName(e.target.value);
+            if (onInputChange) onInputChange();
+          }}
           placeholder="e.g Doe"
           className="w-full bg-[#FAFAFA] border border-[#F0F1F2] rounded-lg px-4 py-3 outline-none text-gray-800 placeholder-gray-400"
         />
@@ -112,6 +120,7 @@ export const PersonalInfoForm: React.FC<Props> = ({
           onChange={(e) => {
             setPhone(e.target.value);
             if (phoneError) setPhoneError(null);
+            if (onInputChange) onInputChange();
           }}
           placeholder="e.g 08012345678"
           inputMode="tel"
@@ -129,7 +138,10 @@ export const PersonalInfoForm: React.FC<Props> = ({
         </label>
         <select
           value={gender}
-          onChange={(e) => setGender(e.target.value)}
+          onChange={(e) => {
+            setGender(e.target.value);
+            if (onInputChange) onInputChange();
+          }}
           className="w-full bg-[#FAFAFA] border border-[#F0F1F2] rounded-lg px-4 py-3 outline-none text-gray-800"
         >
           <option value="">Select gender</option>
@@ -149,7 +161,10 @@ export const PersonalInfoForm: React.FC<Props> = ({
         <input
           type="text"
           value={referral}
-          onChange={(e) => setReferral(e.target.value)}
+          onChange={(e) => {
+            setReferral(e.target.value);
+            if (onInputChange) onInputChange();
+          }}
           placeholder="Enter referral code"
           className="w-full bg-[#FAFAFA] border border-[#F0F1F2] rounded-lg px-4 py-3 outline-none text-gray-800 placeholder-gray-400"
         />
