@@ -22,6 +22,13 @@ interface AdminSearchFilterModalProps {
     statusOptions?: string[];
     showUserType?: boolean;
     userTypeOptions?: string[];
+    showText?: boolean;
+    textLabel?: string;
+    textPlaceholder?: string;
+    textKey?: string;
+    showDateRange?: boolean;
+    dateRangeLabel?: string;
+    dateRangeKey?: string;
   };
 }
 
@@ -92,6 +99,9 @@ const AdminSearchFilterModal = ({
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedUserType, setSelectedUserType] = useState("");
+  const [textValue, setTextValue] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const formatCurrency = (val: number) =>
     `₦${Math.round(val).toLocaleString()}`;
@@ -104,6 +114,22 @@ const AdminSearchFilterModal = ({
 
   useEffect(() => {
     if (!isOpen) return;
+
+    const textKey = config.textKey || "Name";
+    const initialText = String(initialFilters?.[textKey] ?? "").trim();
+    setTextValue(initialText);
+
+    const dateRangeKey = config.dateRangeKey || "Date Range";
+    const initialDateRange = initialFilters?.[dateRangeKey];
+    if (Array.isArray(initialDateRange) && initialDateRange.length === 2) {
+      const from = initialDateRange[0];
+      const to = initialDateRange[1];
+      setStartDate(typeof from === "string" ? from : "");
+      setEndDate(typeof to === "string" ? to : "");
+    } else {
+      setStartDate("");
+      setEndDate("");
+    }
 
     const initialType = String(initialFilters?.["Property Type"] ?? "").trim();
     setSelectedPropertyType(initialType);
@@ -145,6 +171,8 @@ const AdminSearchFilterModal = ({
 
   const handleApply = () => {
     const filters: Record<string, unknown> = {};
+    const textKey = config.textKey || "Name";
+    const dateRangeKey = config.dateRangeKey || "Date Range";
 
     if (config.showPrice) {
       filters["Price (₦)"] = price;
@@ -170,6 +198,14 @@ const AdminSearchFilterModal = ({
       filters["User Type"] = selectedUserType.trim();
     }
 
+    if (config.showText && textValue.trim()) {
+      filters[textKey] = textValue.trim();
+    }
+
+    if (config.showDateRange && (startDate.trim() || endDate.trim())) {
+      filters[dateRangeKey] = [startDate.trim() || null, endDate.trim() || null];
+    }
+
     onApply?.(filters);
     onClose();
   };
@@ -179,6 +215,9 @@ const AdminSearchFilterModal = ({
     setSelectedLocation("Select location");
     setSelectedStatus("");
     setSelectedUserType("");
+    setTextValue("");
+    setStartDate("");
+    setEndDate("");
     setPrice([config.priceMin || MIN_PRICE, config.priceMax || MAX_PRICE]);
     setDragged(null);
     setShowMoreCategories(false);
@@ -401,6 +440,48 @@ const AdminSearchFilterModal = ({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {config.showText && (
+            <div className="flex flex-col gap-2">
+              <span className="font-medium text-[14px] text-[#6B7280]">
+                {config.textLabel || "Name"}
+              </span>
+              <input
+                value={textValue}
+                onChange={(e) => setTextValue(e.target.value)}
+                placeholder={config.textPlaceholder || "Search"}
+                className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+              />
+            </div>
+          )}
+
+          {config.showDateRange && (
+            <div className="flex flex-col gap-3">
+              <span className="font-medium text-[14px] text-[#6B7280]">
+                {config.dateRangeLabel || "Date Range"}
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[12px] text-[#6B7280]">From</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[12px] text-[#6B7280]">To</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
+                  />
+                </div>
+              </div>
             </div>
           )}
 

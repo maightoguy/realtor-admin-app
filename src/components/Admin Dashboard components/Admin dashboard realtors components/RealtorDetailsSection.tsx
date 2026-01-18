@@ -2046,6 +2046,7 @@ const RealtorDetailsSection = ({
                                     type: "Commission",
                                     amount: formatNaira(c.amount),
                                     date: formatDate(c.created_at),
+                                    createdAtIso: c.created_at,
                                     status: statusToUi(c.status),
                                     dbStatus: normalizeDbStatus(c.status),
                                   });
@@ -2073,6 +2074,7 @@ const RealtorDetailsSection = ({
                                   type: "Withdrawal",
                                   amount: formatNaira(p.amount),
                                   date: formatDate(p.created_at),
+                                  createdAtIso: p.created_at,
                                   status: statusToUi(p.status),
                                   dbStatus: normalizeDbStatus(p.status),
                                   bankName,

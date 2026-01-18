@@ -306,7 +306,7 @@ const AdminDashboardTransactionsInner = () => {
             new Date(a.createdAtIso).getTime()
         );
 
-        setTransactions(tx.map(({ createdAtIso, ...rest }) => rest));
+        setTransactions(tx);
       })
       .catch(() => {
         if (!cancelled) setTransactions([]);
@@ -363,6 +363,9 @@ const AdminDashboardTransactionsInner = () => {
   const filteredTransactions = useMemo(() => {
     let filtered = [...transactions];
 
+    const toDayStart = (value: string) => new Date(`${value}T00:00:00`);
+    const toDayEnd = (value: string) => new Date(`${value}T23:59:59.999`);
+
     // Apply type filter
     if (activeFilter === "Commission") {
       filtered = filtered.filter((t) => t.type === "Commission");
@@ -390,6 +393,26 @@ const AdminDashboardTransactionsInner = () => {
         const amount = parseFloat(t.amount.replace(/[₦,]/g, "")) || 0;
         return amount >= min && amount <= max;
       });
+    }
+
+    const realtorName = activeFilters["Realtor Name"] as string | undefined;
+    if (realtorName && realtorName.trim()) {
+      const query = realtorName.trim().toLowerCase();
+      filtered = filtered.filter((t) => t.realtorName.toLowerCase().includes(query));
+    }
+
+    const dateRange = activeFilters["Date Range"];
+    if (Array.isArray(dateRange) && dateRange.length === 2) {
+      const from = typeof dateRange[0] === "string" ? dateRange[0].trim() : "";
+      const to = typeof dateRange[1] === "string" ? dateRange[1].trim() : "";
+      if (from) {
+        const fromDate = toDayStart(from);
+        filtered = filtered.filter((t) => new Date(t.createdAtIso) >= fromDate);
+      }
+      if (to) {
+        const toDate = toDayEnd(to);
+        filtered = filtered.filter((t) => new Date(t.createdAtIso) <= toDate);
+      }
     }
 
     return filtered;
@@ -827,10 +850,17 @@ const AdminDashboardTransactionsInner = () => {
             initialFilters={activeFilters}
             config={{
               title: "Filter Transactions",
-              description: "Filter transactions by amount",
+              description: "Filter transactions by amount, date range, and realtor",
               showPrice: true,
               showPropertyType: false,
               showLocation: false,
+              showText: true,
+              textLabel: "Realtor Name",
+              textPlaceholder: "Search by realtor name",
+              textKey: "Realtor Name",
+              showDateRange: true,
+              dateRangeLabel: "Date Range",
+              dateRangeKey: "Date Range",
             }}
           />
 

@@ -128,6 +128,9 @@ const AdminDashboardReferrals = ({
   const filteredReferrals = useMemo(() => {
     let filtered = filteredByTab;
 
+    const toDayStart = (value: string) => new Date(`${value}T00:00:00`);
+    const toDayEnd = (value: string) => new Date(`${value}T23:59:59.999`);
+
     // Apply modal filters
     const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
     if (priceRange && priceRange.length === 2) {
@@ -137,6 +140,30 @@ const AdminDashboardReferrals = ({
           parseFloat(r.totalReferralCommission.replace(/[₦,]/g, "")) || 0;
         return amount >= min && amount <= max;
       });
+    }
+
+    const name = activeFilters["Name"] as string | undefined;
+    if (name && name.trim()) {
+      const query = name.trim().toLowerCase();
+      filtered = filtered.filter((r) => r.name.toLowerCase().includes(query));
+    }
+
+    const dateRange = activeFilters["Date Range"];
+    if (Array.isArray(dateRange) && dateRange.length === 2) {
+      const from = typeof dateRange[0] === "string" ? dateRange[0].trim() : "";
+      const to = typeof dateRange[1] === "string" ? dateRange[1].trim() : "";
+      if (from) {
+        const fromDate = toDayStart(from);
+        filtered = filtered.filter(
+          (r) => new Date(r.recruiter.created_at) >= fromDate,
+        );
+      }
+      if (to) {
+        const toDate = toDayEnd(to);
+        filtered = filtered.filter(
+          (r) => new Date(r.recruiter.created_at) <= toDate,
+        );
+      }
     }
 
     if (!searchQuery.trim()) return filtered;
@@ -282,13 +309,20 @@ const AdminDashboardReferrals = ({
         initialFilters={activeFilters}
         config={{
           title: "Filter Referrals",
-          description: "Filter referrals by commission earned",
+          description: "Filter referrals by amount, date range, and name",
           showPrice: true,
           showPropertyType: false,
           showLocation: false,
           priceMin: 0,
           priceMax: 100_000_000,
           priceStep: 10000,
+          showText: true,
+          textLabel: "Name",
+          textPlaceholder: "Search by name",
+          textKey: "Name",
+          showDateRange: true,
+          dateRangeLabel: "Date Range",
+          dateRangeKey: "Date Range",
         }}
       />
 

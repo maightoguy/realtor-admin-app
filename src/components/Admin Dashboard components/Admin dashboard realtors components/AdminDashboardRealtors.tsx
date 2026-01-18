@@ -287,6 +287,9 @@ const AdminDashboardRealtors = ({
   const filteredRealtors = useMemo(() => {
     let filtered = [...realtors];
 
+    const toDayStart = (value: string) => new Date(`${value}T00:00:00`);
+    const toDayEnd = (value: string) => new Date(`${value}T23:59:59.999`);
+
     // Apply modal filters
     const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
     if (priceRange && priceRange.length === 2) {
@@ -300,6 +303,26 @@ const AdminDashboardRealtors = ({
     const status = activeFilters["Status"] as string | undefined;
     if (status) {
       filtered = filtered.filter((r) => r.status === status);
+    }
+
+    const realtorName = activeFilters["Realtor Name"] as string | undefined;
+    if (realtorName && realtorName.trim()) {
+      const query = realtorName.trim().toLowerCase();
+      filtered = filtered.filter((r) => r.name.toLowerCase().includes(query));
+    }
+
+    const dateRange = activeFilters["Date Range"];
+    if (Array.isArray(dateRange) && dateRange.length === 2) {
+      const from = typeof dateRange[0] === "string" ? dateRange[0].trim() : "";
+      const to = typeof dateRange[1] === "string" ? dateRange[1].trim() : "";
+      if (from) {
+        const fromDate = toDayStart(from);
+        filtered = filtered.filter((r) => new Date(r.user.created_at) >= fromDate);
+      }
+      if (to) {
+        const toDate = toDayEnd(to);
+        filtered = filtered.filter((r) => new Date(r.user.created_at) <= toDate);
+      }
     }
 
     // Apply status filter
@@ -540,12 +563,19 @@ const AdminDashboardRealtors = ({
         initialFilters={activeFilters}
         config={{
           title: "Filter Realtors",
-          description: "Filter realtors by status and amount sold",
+          description: "Filter realtors by amount, date range, and name",
           showPrice: true,
           showPropertyType: false,
           showLocation: false,
           showStatus: true,
           statusOptions: ["Active", "Inactive"],
+          showText: true,
+          textLabel: "Realtor Name",
+          textPlaceholder: "Search by realtor name",
+          textKey: "Realtor Name",
+          showDateRange: true,
+          dateRangeLabel: "Date Range",
+          dateRangeKey: "Date Range",
           priceMin: 0,
           priceMax: 100_000_000,
           priceStep: 10000,

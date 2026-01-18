@@ -5,6 +5,7 @@ export interface Transaction {
   type: "Commission" | "Withdrawal";
   amount: string;
   date: string;
+  createdAtIso: string;
   status: "Paid" | "Approved" | "Pending" | "Rejected";
   dbStatus: "pending" | "approved" | "paid" | "rejected";
   bankName?: string;

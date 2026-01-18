@@ -270,6 +270,9 @@ const AdminDashboardReceipts = () => {
   const filteredReceipts = useMemo(() => {
     let filtered = [...receipts];
 
+    const toDayStart = (value: string) => new Date(`${value}T00:00:00`);
+    const toDayEnd = (value: string) => new Date(`${value}T23:59:59.999`);
+
     // Apply status filter
     if (activeFilter === "Pending receipts") {
       filtered = filtered.filter(
@@ -313,6 +316,26 @@ const AdminDashboardReceipts = () => {
       filtered = filtered.filter((r) =>
         r.propertyLocation.toLowerCase().includes(location.toLowerCase())
       );
+    }
+
+    const clientName = modalFilters["Client Name"] as string | undefined;
+    if (clientName && clientName.trim()) {
+      const query = clientName.trim().toLowerCase();
+      filtered = filtered.filter((r) => r.clientName.toLowerCase().includes(query));
+    }
+
+    const dateRange = modalFilters["Date Range"];
+    if (Array.isArray(dateRange) && dateRange.length === 2) {
+      const from = typeof dateRange[0] === "string" ? dateRange[0].trim() : "";
+      const to = typeof dateRange[1] === "string" ? dateRange[1].trim() : "";
+      if (from) {
+        const fromDate = toDayStart(from);
+        filtered = filtered.filter((r) => new Date(r.createdAt) >= fromDate);
+      }
+      if (to) {
+        const toDate = toDayEnd(to);
+        filtered = filtered.filter((r) => new Date(r.createdAt) <= toDate);
+      }
     }
 
     return filtered;
@@ -591,10 +614,17 @@ const AdminDashboardReceipts = () => {
         initialFilters={modalFilters}
         config={{
           title: "Filter Receipts",
-          description: "Filter receipts by amount, property type, or location",
+          description: "Filter receipts by amount, date range, and client name",
           showPrice: true,
           showPropertyType: true,
           showLocation: true,
+          showText: true,
+          textLabel: "Client Name",
+          textPlaceholder: "Search by client name",
+          textKey: "Client Name",
+          showDateRange: true,
+          dateRangeLabel: "Date Range",
+          dateRangeKey: "Date Range",
         }}
       />
 
