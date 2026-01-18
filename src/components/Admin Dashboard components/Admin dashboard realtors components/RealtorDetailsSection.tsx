@@ -42,10 +42,10 @@ const formatDate = (iso: string) => {
     day % 10 === 1 && day % 100 !== 11
       ? "st"
       : day % 10 === 2 && day % 100 !== 12
-      ? "nd"
-      : day % 10 === 3 && day % 100 !== 13
-      ? "rd"
-      : "th";
+        ? "nd"
+        : day % 10 === 3 && day % 100 !== 13
+          ? "rd"
+          : "th";
   const monthName = d.toLocaleDateString("en-US", { month: "long" });
   const year = d.getFullYear();
   return `${monthName} ${day}${suffix}, ${year}`;
@@ -349,8 +349,8 @@ const KycReviewModal = ({
     realtor.kyc_status === "approved"
       ? "Approved"
       : realtor.kyc_status === "pending"
-      ? "Pending"
-      : "Rejected";
+        ? "Pending"
+        : "Rejected";
 
   return (
     <>
@@ -621,13 +621,13 @@ const RealtorDetailsSection = ({
   const referralsPerPage = 8;
   const [copyStatus, setCopyStatus] = useState<"code" | "link" | null>(null);
   const [expandedReceiptId, setExpandedReceiptId] = useState<string | null>(
-    null
+    null,
   );
   const [expandedTransactionId, setExpandedTransactionId] = useState<
     string | null
   >(null);
   const [expandedReferralId, setExpandedReferralId] = useState<string | null>(
-    null
+    null,
   );
 
   const [isLoading, setIsLoading] = useState(true);
@@ -672,7 +672,7 @@ const RealtorDetailsSection = ({
       onBack();
     } catch (err) {
       setRemoveError(
-        err instanceof Error ? err.message : "Failed to remove realtor."
+        err instanceof Error ? err.message : "Failed to remove realtor.",
       );
     } finally {
       setIsRemoving(false);
@@ -682,7 +682,7 @@ const RealtorDetailsSection = ({
   const handleReceiptStatusUpdate = (
     receiptId: string,
     newStatus: ReceiptStatus,
-    rejectionReason?: string
+    rejectionReason?: string,
   ) => {
     receiptService
       .updateStatus({
@@ -699,8 +699,8 @@ const RealtorDetailsSection = ({
                   status: updated.status,
                   rejection_reason: updated.rejection_reason ?? null,
                 }
-              : r
-          )
+              : r,
+          ),
         );
         setSelectedReceipt((prev) =>
           prev && prev.id === receiptId
@@ -709,7 +709,7 @@ const RealtorDetailsSection = ({
                 status: updated.status,
                 rejectionReason: updated.rejection_reason ?? null,
               }
-            : prev
+            : prev,
         );
       })
       .catch(() => {});
@@ -719,7 +719,7 @@ const RealtorDetailsSection = ({
     `₦${Math.round(amount).toLocaleString()}`;
 
   const statusToUi = (
-    status: Commission["status"] | Payout["status"]
+    status: Commission["status"] | Payout["status"],
   ): Transaction["status"] => {
     if (status === "paid") return "Paid";
     if (status === "approved") return "Approved";
@@ -728,7 +728,7 @@ const RealtorDetailsSection = ({
   };
 
   const normalizeDbStatus = (
-    status: Commission["status"] | Payout["status"]
+    status: Commission["status"] | Payout["status"],
   ): Transaction["dbStatus"] => {
     if (status === "paid") return "paid";
     if (status === "approved") return "approved";
@@ -748,7 +748,7 @@ const RealtorDetailsSection = ({
       status: "approved",
     });
     setCommissions((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c))
+      prev.map((c) => (c.id === updated.id ? updated : c)),
     );
     setSelectedTransaction((prev) =>
       prev && prev.id === updated.id
@@ -757,7 +757,7 @@ const RealtorDetailsSection = ({
             status: statusToUi(updated.status),
             dbStatus: normalizeDbStatus(updated.status),
           }
-        : prev
+        : prev,
     );
   };
 
@@ -767,7 +767,7 @@ const RealtorDetailsSection = ({
       status: "paid",
     });
     setCommissions((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c))
+      prev.map((c) => (c.id === updated.id ? updated : c)),
     );
     setSelectedTransaction((prev) =>
       prev && prev.id === updated.id
@@ -776,20 +776,20 @@ const RealtorDetailsSection = ({
             status: statusToUi(updated.status),
             dbStatus: normalizeDbStatus(updated.status),
           }
-        : prev
+        : prev,
     );
   };
 
   const handleRejectCommission = async (
     transactionId: string,
-    reason: string
+    reason: string,
   ) => {
     const updated = await commissionService.updateStatus({
       id: transactionId,
       status: "rejected",
     });
     setCommissions((prev) =>
-      prev.map((c) => (c.id === updated.id ? updated : c))
+      prev.map((c) => (c.id === updated.id ? updated : c)),
     );
     setSelectedTransaction((prev) =>
       prev && prev.id === updated.id
@@ -799,7 +799,7 @@ const RealtorDetailsSection = ({
             dbStatus: normalizeDbStatus(updated.status),
             rejectionReason: reason,
           }
-        : prev
+        : prev,
     );
   };
 
@@ -816,7 +816,7 @@ const RealtorDetailsSection = ({
             status: statusToUi(updated.status),
             dbStatus: normalizeDbStatus(updated.status),
           }
-        : prev
+        : prev,
     );
   };
 
@@ -834,7 +834,7 @@ const RealtorDetailsSection = ({
             dbStatus: normalizeDbStatus(updated.status),
             date: formatDate(updated.created_at),
           }
-        : prev
+        : prev,
     );
   };
 
@@ -853,7 +853,7 @@ const RealtorDetailsSection = ({
             date: formatDate(updated.created_at),
             rejectionReason: reason,
           }
-        : prev
+        : prev,
     );
   };
 
@@ -881,8 +881,8 @@ const RealtorDetailsSection = ({
           new Set(
             receiptsRes
               .map((r) => r.property_id)
-              .filter((id): id is string => Boolean(id))
-          )
+              .filter((id): id is string => Boolean(id)),
+          ),
         );
 
         const downlineIds = Array.from(
@@ -891,14 +891,16 @@ const RealtorDetailsSection = ({
               .map((r) => r.downline_id)
               .filter((id): id is string => Boolean(id)),
             ...directReferralsRes.map((u) => u.id),
-          ])
+          ]),
         );
 
         // Collect receipt IDs from referral commissions that are missing downline_id
         const referralCommissionReceiptIds = commissionsRes
           .filter(
             (c) =>
-              c.commission_type === "referral" && !c.downline_id && c.receipt_id
+              c.commission_type === "referral" &&
+              !c.downline_id &&
+              c.receipt_id,
           )
           .map((c) => c.receipt_id as string);
 
@@ -919,7 +921,7 @@ const RealtorDetailsSection = ({
             c.receipt_id
           ) {
             const receipt = missingReceiptsRes.find(
-              (r) => r.id === c.receipt_id
+              (r) => r.id === c.receipt_id,
             );
             if (receipt && receipt.realtor_id) {
               return { ...c, downline_id: receipt.realtor_id };
@@ -933,7 +935,9 @@ const RealtorDetailsSection = ({
           .map((r) => r.realtor_id)
           .filter(
             (id): id is string =>
-              typeof id === "string" && Boolean(id) && !downlineIds.includes(id)
+              typeof id === "string" &&
+              Boolean(id) &&
+              !downlineIds.includes(id),
           );
 
         let finalDownlines = downlinesRes;
@@ -976,7 +980,7 @@ const RealtorDetailsSection = ({
 
   const propertyMap = useMemo(
     () => new Map(properties.map((p) => [p.id, p])),
-    [properties]
+    [properties],
   );
 
   const chartData = useMemo(() => {
@@ -1032,8 +1036,8 @@ const RealtorDetailsSection = ({
     maxValue === 0
       ? 1
       : maxValue < 1000000
-      ? Math.ceil(maxValue / 1000) * 1000
-      : Math.ceil(maxValue / 1000000) * 1000000;
+        ? Math.ceil(maxValue / 1000) * 1000
+        : Math.ceil(maxValue / 1000000) * 1000000;
 
   // Get initials for avatar
   /* const getInitials = (name: string) => {
@@ -1052,13 +1056,13 @@ const RealtorDetailsSection = ({
         receipts
           .filter((r) => r.status === "approved")
           .map((r) => r.property_id)
-          .filter((id): id is string => Boolean(id))
-      )
+          .filter((id): id is string => Boolean(id)),
+      ),
     )
       .map((propertyId, index) => {
         const p = propertyMap.get(propertyId);
         if (!p) return null;
-        const img = Array.isArray(p.images) ? p.images[0] ?? "" : "";
+        const img = Array.isArray(p.images) ? (p.images[0] ?? "") : "";
         const fallbackImage =
           propertyImages[index % propertyImages.length] ?? DefaultProfilePic;
         return {
@@ -1087,7 +1091,7 @@ const RealtorDetailsSection = ({
     return uniqueSold.filter(
       (p) =>
         p.title.toLowerCase().includes(query) ||
-        p.location.toLowerCase().includes(query)
+        p.location.toLowerCase().includes(query),
     );
   }, [propertyMap, receipts, searchQuery]);
 
@@ -1095,14 +1099,14 @@ const RealtorDetailsSection = ({
   const realtorReceipts = useMemo(() => {
     return receipts.map((receipt) => {
       const propertyName = receipt.property_id
-        ? propertyMap.get(receipt.property_id)?.title ?? receipt.property_id
+        ? (propertyMap.get(receipt.property_id)?.title ?? receipt.property_id)
         : "-";
       return {
         id: receipt.id,
         clientName: receipt.client_name ?? "-",
         propertyName,
         amount: formatCurrencyValue(
-          Number.isFinite(receipt.amount_paid) ? receipt.amount_paid : 0
+          Number.isFinite(receipt.amount_paid) ? receipt.amount_paid : 0,
         ),
         date: formatDate(receipt.created_at),
         status: receipt.status,
@@ -1120,7 +1124,7 @@ const RealtorDetailsSection = ({
         r.id.toLowerCase().includes(query) ||
         r.propertyName.toLowerCase().includes(query) ||
         r.clientName.toLowerCase().includes(query) ||
-        r.amount.toLowerCase().includes(query)
+        r.amount.toLowerCase().includes(query),
     );
   }, [realtorReceipts, searchQuery]);
 
@@ -1130,13 +1134,13 @@ const RealtorDetailsSection = ({
   const receiptsEndIndex = receiptsStartIndex + receiptsPerPage;
   const currentReceipts = filteredReceipts.slice(
     receiptsStartIndex,
-    receiptsEndIndex
+    receiptsEndIndex,
   );
 
   // Get transactions for this realtor
   const realtorTransactions = useMemo(() => {
     const statusLabel = (
-      status: Commission["status"] | Payout["status"]
+      status: Commission["status"] | Payout["status"],
     ): "Paid" | "Pending" | "Rejected" => {
       if (status === "paid") return "Paid";
       if (status === "rejected") return "Rejected";
@@ -1200,11 +1204,11 @@ const RealtorDetailsSection = ({
 
     if (transactionFilter === "Commission") {
       filtered = filtered.filter(
-        (transaction) => transaction.type === "Commission"
+        (transaction) => transaction.type === "Commission",
       );
     } else if (transactionFilter === "Withdrawals") {
       filtered = filtered.filter(
-        (transaction) => transaction.type === "Withdrawal"
+        (transaction) => transaction.type === "Withdrawal",
       );
     }
 
@@ -1215,7 +1219,7 @@ const RealtorDetailsSection = ({
           transaction.id.toLowerCase().includes(query) ||
           transaction.amount.toLowerCase().includes(query) ||
           transaction.status.toLowerCase().includes(query) ||
-          transaction.type.toLowerCase().includes(query)
+          transaction.type.toLowerCase().includes(query),
       );
     }
 
@@ -1227,7 +1231,7 @@ const RealtorDetailsSection = ({
   const transactionsEndIndex = transactionsStartIndex + transactionsPerPage;
   const currentTransactions = filteredTransactions.slice(
     transactionsStartIndex,
-    transactionsEndIndex
+    transactionsEndIndex,
   );
 
   useEffect(() => {
@@ -1245,7 +1249,7 @@ const RealtorDetailsSection = ({
       const current = commissionMap.get(c.downline_id) ?? 0;
       commissionMap.set(
         c.downline_id,
-        current + (Number.isFinite(amount) ? amount : 0)
+        current + (Number.isFinite(amount) ? amount : 0),
       );
     }
 
@@ -1278,7 +1282,7 @@ const RealtorDetailsSection = ({
         referral.id.toLowerCase().includes(query) ||
         referral.name.toLowerCase().includes(query) ||
         referral.dateJoined.toLowerCase().includes(query) ||
-        referral.totalReferralCommission.toLowerCase().includes(query)
+        referral.totalReferralCommission.toLowerCase().includes(query),
     );
   }, [realtorReferrals, searchQuery]);
 
@@ -1287,7 +1291,7 @@ const RealtorDetailsSection = ({
   const referralsEndIndex = referralsStartIndex + referralsPerPage;
   const currentReferrals = filteredReferrals.slice(
     referralsStartIndex,
-    referralsEndIndex
+    referralsEndIndex,
   );
 
   useEffect(() => {
@@ -1297,7 +1301,7 @@ const RealtorDetailsSection = ({
   const referralMetrics = useMemo(() => {
     const totalCommissionValue = commissions
       .filter(
-        (c) => c.commission_type === "referral" && c.status !== "rejected"
+        (c) => c.commission_type === "referral" && c.status !== "rejected",
       )
       .reduce((sum, c) => {
         const amount = Number(c.amount);
@@ -1316,7 +1320,7 @@ const RealtorDetailsSection = ({
 
   const realtorReferralLink = useMemo(() => {
     const normalizedBase = normalizeReferralLink(
-      "https://referral.veriplot.com"
+      "https://referral.veriplot.com",
     );
     const slug = realtorReferralCode || `agent-${realtor.id}`;
     const separator = normalizedBase.includes("?") ? "&" : "?";
@@ -1463,16 +1467,16 @@ const RealtorDetailsSection = ({
                   realtor.kyc_status === "approved"
                     ? "bg-[#22C55E]"
                     : realtor.kyc_status === "pending"
-                    ? "bg-[#F59E0B]"
-                    : "bg-[#EF4444]"
+                      ? "bg-[#F59E0B]"
+                      : "bg-[#EF4444]"
                 }`}
               ></div>
               <span className="text-sm font-medium text-gray-900">
                 {realtor.kyc_status === "approved"
                   ? "Approved"
                   : realtor.kyc_status === "pending"
-                  ? "Pending"
-                  : "Rejected"}
+                    ? "Pending"
+                    : "Rejected"}
               </span>
               <button
                 type="button"
@@ -1723,14 +1727,14 @@ const RealtorDetailsSection = ({
                               tabIndex={0}
                               onClick={() =>
                                 setExpandedReceiptId((prev) =>
-                                  prev === receipt.id ? null : receipt.id
+                                  prev === receipt.id ? null : receipt.id,
                                 )
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
                                   setExpandedReceiptId((prev) =>
-                                    prev === receipt.id ? null : receipt.id
+                                    prev === receipt.id ? null : receipt.id,
                                   );
                                 }
                               }}
@@ -1765,7 +1769,7 @@ const RealtorDetailsSection = ({
                             <button
                               onClick={() => {
                                 const original = receipts.find(
-                                  (r) => r.id === receipt.id
+                                  (r) => r.id === receipt.id,
                                 );
                                 if (!original) return;
                                 const propertyName =
@@ -1781,7 +1785,7 @@ const RealtorDetailsSection = ({
                                   propertyName,
                                   amountPaid: Number(original.amount_paid) || 0,
                                   receiptUrls: Array.isArray(
-                                    original.receipt_urls
+                                    original.receipt_urls,
                                   )
                                     ? original.receipt_urls
                                     : [],
@@ -1882,7 +1886,7 @@ const RealtorDetailsSection = ({
                     >
                       {filter === "All" ? "All transactions" : filter}
                     </button>
-                  )
+                  ),
                 )}
               </div>
 
@@ -1986,7 +1990,7 @@ const RealtorDetailsSection = ({
                                 setExpandedTransactionId((prev) =>
                                   prev === transaction.id
                                     ? null
-                                    : transaction.id
+                                    : transaction.id,
                                 )
                               }
                               onKeyDown={(e) => {
@@ -1995,7 +1999,7 @@ const RealtorDetailsSection = ({
                                   setExpandedTransactionId((prev) =>
                                     prev === transaction.id
                                       ? null
-                                      : transaction.id
+                                      : transaction.id,
                                   );
                                 }
                               }}
@@ -2032,7 +2036,7 @@ const RealtorDetailsSection = ({
                               onClick={() => {
                                 if (transaction.type === "Commission") {
                                   const c = commissions.find(
-                                    (row) => row.id === transaction.id
+                                    (row) => row.id === transaction.id,
                                   );
                                   if (!c) return;
                                   setSelectedTransaction({
@@ -2049,18 +2053,18 @@ const RealtorDetailsSection = ({
                                 }
 
                                 const p = payouts.find(
-                                  (row) => row.id === transaction.id
+                                  (row) => row.id === transaction.id,
                                 );
                                 if (!p) return;
                                 const bankName = extractString(
                                   p.bank_details,
-                                  "bankName"
+                                  "bankName",
                                 );
                                 const accountNumber =
                                   extractString(p.bank_details, "accountNo") ??
                                   extractString(
                                     p.bank_details,
-                                    "accountNumber"
+                                    "accountNumber",
                                   );
                                 setSelectedTransaction({
                                   id: p.id,
@@ -2242,14 +2246,14 @@ const RealtorDetailsSection = ({
                               tabIndex={0}
                               onClick={() =>
                                 setExpandedReferralId((prev) =>
-                                  prev === referral.id ? null : referral.id
+                                  prev === referral.id ? null : referral.id,
                                 )
                               }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
                                   setExpandedReferralId((prev) =>
-                                    prev === referral.id ? null : referral.id
+                                    prev === referral.id ? null : referral.id,
                                   );
                                 }
                               }}
@@ -2280,13 +2284,13 @@ const RealtorDetailsSection = ({
                               className="text-sm text-[#5E17EB] font-semibold hover:underline whitespace-nowrap"
                               onClick={() => {
                                 const target = downlines.find(
-                                  (d) => d.id === referral.id
+                                  (d) => d.id === referral.id,
                                 );
                                 if (!target) return;
                                 onViewRealtor?.(target);
                               }}
                             >
-                              View details
+                              View agent
                             </button>
                           </td>
                         </tr>
