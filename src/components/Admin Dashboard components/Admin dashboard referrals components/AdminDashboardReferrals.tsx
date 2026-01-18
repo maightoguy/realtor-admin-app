@@ -51,12 +51,13 @@ const AdminDashboardReferrals = ({
   const [rows, setRows] = useState<ReferralRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRealtor, setSelectedRealtor] = useState<User | null>(null);
+  const [realtorStack, setRealtorStack] = useState<User[]>([]);
   const [expandedRealtorId, setExpandedRealtorId] = useState<string | null>(
-    null
+    null,
   );
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
-    {}
+    {},
   );
   const itemsPerPage = 8;
 
@@ -71,10 +72,10 @@ const AdminDashboardReferrals = ({
       day % 10 === 1 && day % 100 !== 11
         ? "st"
         : day % 10 === 2 && day % 100 !== 12
-        ? "nd"
-        : day % 10 === 3 && day % 100 !== 13
-        ? "rd"
-        : "th";
+          ? "nd"
+          : day % 10 === 3 && day % 100 !== 13
+            ? "rd"
+            : "th";
     const monthName = d.toLocaleDateString("en-US", { month: "long" });
     const year = d.getFullYear();
     return `${monthName} ${day}${suffix}, ${year}`;
@@ -145,7 +146,7 @@ const AdminDashboardReferrals = ({
       (r) =>
         r.name.toLowerCase().includes(query) ||
         r.referralCode.toLowerCase().includes(query) ||
-        r.id.toLowerCase().includes(query)
+        r.id.toLowerCase().includes(query),
     );
   }, [searchQuery, filteredByTab, activeFilters]);
 
@@ -183,7 +184,10 @@ const AdminDashboardReferrals = ({
 
   const handleViewAgent = (referralId: string) => {
     const row = rows.find((r) => r.id === referralId) ?? null;
-    if (row) setSelectedRealtor(row.recruiter);
+    if (row) {
+      setSelectedRealtor(row.recruiter);
+      setRealtorStack([row.recruiter]);
+    }
   };
 
   const handleToggleRealtorId = (realtorId: string) => {
@@ -191,7 +195,14 @@ const AdminDashboardReferrals = ({
   };
 
   const handleBackFromDetails = () => {
-    setSelectedRealtor(null);
+    if (realtorStack.length > 1) {
+      const newStack = realtorStack.slice(0, -1);
+      setRealtorStack(newStack);
+      setSelectedRealtor(newStack[newStack.length - 1]);
+    } else {
+      setRealtorStack([]);
+      setSelectedRealtor(null);
+    }
   };
 
   const handleRemoveRealtor = async (realtorId: string) => {
@@ -207,6 +218,10 @@ const AdminDashboardReferrals = ({
           realtor={selectedRealtor}
           onBack={handleBackFromDetails}
           onRemoveRealtor={handleRemoveRealtor}
+          onViewRealtor={(realtor) => {
+            setRealtorStack((prev) => [...prev, realtor]);
+            setSelectedRealtor(realtor);
+          }}
           onNavigateToPropertyDetails={onNavigateToPropertyDetails}
         />
       </div>
