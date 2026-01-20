@@ -223,8 +223,10 @@ const AdminDashboardProperties = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [propertiesSearchInput, setPropertiesSearchInput] = useState("");
+  const [propertiesSearchQuery, setPropertiesSearchQuery] = useState("");
+  const [developersSearchInput, setDevelopersSearchInput] = useState("");
+  const [developersSearchQuery, setDevelopersSearchQuery] = useState("");
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
   const [hasFetchedPropertiesOnce, setHasFetchedPropertiesOnce] =
@@ -259,9 +261,12 @@ const AdminDashboardProperties = ({
 
   // Filter state
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
-    {},
-  );
+  const [propertiesFilters, setPropertiesFilters] = useState<
+    Record<string, unknown>
+  >({});
+  const [developersFilters, setDevelopersFilters] = useState<
+    Record<string, unknown>
+  >({});
 
   const itemsPerPage = 8;
 
@@ -397,18 +402,18 @@ const AdminDashboardProperties = ({
     setDeveloperPropertiesMessage(null);
 
     // Extract filters
-    const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
+    const priceRange = propertiesFilters["Price (₦)"] as number[] | undefined;
     const minPrice = priceRange?.[0];
     const maxPrice = priceRange?.[1];
-    const category = activeFilters["Property Type"] as string | undefined;
-    const location = activeFilters["Location"] as string | undefined;
+    const category = propertiesFilters["Property Type"] as string | undefined;
+    const location = propertiesFilters["Location"] as string | undefined;
 
     try {
       logger.info("[ADMIN][PROPERTIES] Fetch start", {
         page,
         q,
         developerId,
-        activeFilters,
+        activeFilters: propertiesFilters,
       });
       let rows: DbProperty[] = [];
       if (q.trim().length > 0) {
@@ -484,7 +489,8 @@ const AdminDashboardProperties = ({
     setShowAddForm(false);
     setSelectedDeveloper(null);
     setActiveTab("Properties");
-    setSearchQuery("");
+    setPropertiesSearchInput("");
+    setPropertiesSearchQuery("");
 
     const match = properties.find((p) => p.id === initialSelectedPropertyId);
     if (match) {
@@ -524,34 +530,34 @@ const AdminDashboardProperties = ({
   useEffect(() => {
     if (activeTab !== "Properties") return;
     if (showAddForm || selectedProperty) return;
-    if (searchQuery.trim().length > 0) return;
+    if (propertiesSearchQuery.trim().length > 0) return;
     fetchPropertiesPage(currentPage, "", selectedDeveloper?.id).catch(
       () => undefined,
     );
   }, [
     activeTab,
     currentPage,
-    searchQuery,
+    propertiesSearchQuery,
     showAddForm,
     selectedProperty,
     selectedDeveloper?.id,
-    activeFilters,
+    propertiesFilters,
   ]);
 
   useEffect(() => {
     if (activeTab !== "Properties") return;
     if (showAddForm || selectedProperty) return;
-    if (searchQuery.trim().length === 0) return;
-    fetchPropertiesPage(1, searchQuery, selectedDeveloper?.id).catch(
+    if (propertiesSearchQuery.trim().length === 0) return;
+    fetchPropertiesPage(1, propertiesSearchQuery, selectedDeveloper?.id).catch(
       () => undefined,
     );
   }, [
     activeTab,
-    searchQuery,
+    propertiesSearchQuery,
     showAddForm,
     selectedProperty,
     selectedDeveloper?.id,
-    activeFilters,
+    propertiesFilters,
   ]);
 
   useEffect(() => {
@@ -592,17 +598,28 @@ const AdminDashboardProperties = ({
   };
 
   const handleSearch = (query: string) => {
-    logger.info("[ADMIN][PROPERTIES] Search change", { query });
-    setSearchInput(query);
+    logger.info("[ADMIN][PROPERTIES] Search change", { query, activeTab });
+    if (activeTab === "Developers") {
+      setDevelopersSearchInput(query);
+    } else {
+      setPropertiesSearchInput(query);
+    }
     setCurrentPage(1);
   };
 
   useEffect(() => {
     const handle = setTimeout(() => {
-      setSearchQuery(searchInput);
+      setPropertiesSearchQuery(propertiesSearchInput);
     }, 400);
     return () => clearTimeout(handle);
-  }, [searchInput]);
+  }, [propertiesSearchInput]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDevelopersSearchQuery(developersSearchInput);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [developersSearchInput]);
 
   const handleFilterClick = () => {
     logger.info("[ADMIN][PROPERTIES] Filter clicked");
@@ -611,13 +628,21 @@ const AdminDashboardProperties = ({
 
   const handleApplyFilter = (filters: Record<string, unknown>) => {
     logger.info("[ADMIN][PROPERTIES] Filter applied", { filters });
-    setActiveFilters(filters);
+    if (activeTab === "Developers") {
+      setDevelopersFilters(filters);
+    } else {
+      setPropertiesFilters(filters);
+    }
     setCurrentPage(1);
   };
 
   const handleResetFilter = () => {
     logger.info("[ADMIN][PROPERTIES] Filter reset");
-    setActiveFilters({});
+    if (activeTab === "Developers") {
+      setDevelopersFilters({});
+    } else {
+      setPropertiesFilters({});
+    }
     setCurrentPage(1);
   };
 
@@ -884,7 +909,8 @@ const AdminDashboardProperties = ({
       });
 
       setCurrentPage(1);
-      setSearchQuery("");
+      setPropertiesSearchInput("");
+      setPropertiesSearchQuery("");
       await Promise.all([
         fetchPropertiesPage(1, "", selectedDeveloper?.id),
         refreshMetrics(),
@@ -1025,16 +1051,80 @@ const AdminDashboardProperties = ({
 
   // Calculate pagination
   const totalItems = (() => {
-    if (searchQuery.trim().length > 0) return properties.length;
+    if (propertiesSearchQuery.trim().length > 0) return properties.length;
     if (selectedDeveloper) return developerPropertiesCount;
     return totalPropertiesCount;
   })();
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentProperties =
-    searchQuery.trim().length > 0
+    propertiesSearchQuery.trim().length > 0
       ? properties.slice(startIndex, endIndex)
       : properties;
+
+  const filteredDevelopers = useMemo(() => {
+    const normalize = (value: string) => value.trim().toLowerCase();
+    const tokenize = (value: string) =>
+      normalize(value).split(/\s+/).filter(Boolean);
+    const includesTokens = (haystack: string, tokens: string[]) => {
+      const normalized = normalize(haystack);
+      return tokens.every((t) => normalized.includes(t));
+    };
+
+    const queryTokens = tokenize(developersSearchQuery);
+
+    const nameFilter = String(developersFilters["Name"] ?? "").trim();
+    const emailFilter = String(developersFilters["Email"] ?? "").trim();
+    const phoneFilter = String(developersFilters["Phone"] ?? "").trim();
+    const statusFilter = String(developersFilters["Status"] ?? "").trim();
+    const dateRange = developersFilters["Date Added"];
+
+    const from = Array.isArray(dateRange) ? dateRange[0] : null;
+    const to = Array.isArray(dateRange) ? dateRange[1] : null;
+    const fromDate =
+      typeof from === "string" && from.trim()
+        ? new Date(`${from}T00:00:00`)
+        : null;
+    const toDate =
+      typeof to === "string" && to.trim() ? new Date(`${to}T23:59:59`) : null;
+
+    return developers.filter((developer) => {
+      if (queryTokens.length > 0) {
+        const match =
+          includesTokens(developer.name, queryTokens) ||
+          includesTokens(developer.email, queryTokens) ||
+          includesTokens(developer.phone, queryTokens);
+        if (!match) return false;
+      }
+
+      if (nameFilter) {
+        if (!includesTokens(developer.name, tokenize(nameFilter))) return false;
+      }
+
+      if (emailFilter) {
+        if (!includesTokens(developer.email, tokenize(emailFilter)))
+          return false;
+      }
+
+      if (phoneFilter) {
+        if (!includesTokens(developer.phone, tokenize(phoneFilter)))
+          return false;
+      }
+
+      if (statusFilter) {
+        if (normalize(developer.status) !== normalize(statusFilter))
+          return false;
+      }
+
+      if (fromDate || toDate) {
+        const added = new Date(developer.dateAdded);
+        if (fromDate && added.getTime() < fromDate.getTime()) return false;
+        if (toDate && added.getTime() > toDate.getTime()) return false;
+      }
+
+      return true;
+    });
+  }, [developers, developersFilters, developersSearchQuery]);
 
   return (
     <div className="p-6 bg-[#FCFCFC]">
@@ -1099,7 +1189,10 @@ const AdminDashboardProperties = ({
           {/* Tabs */}
           <div className="flex gap-2">
             <button
-              onClick={() => setActiveTab("Properties")}
+              onClick={() => {
+                setActiveTab("Properties");
+                setCurrentPage(1);
+              }}
               className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                 activeTab === "Properties"
                   ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
@@ -1112,7 +1205,10 @@ const AdminDashboardProperties = ({
               Properties
             </button>
             <button
-              onClick={() => setActiveTab("Developers")}
+              onClick={() => {
+                setActiveTab("Developers");
+                setCurrentPage(1);
+              }}
               className={`flex items-center gap-2 px-4 py-2 border rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 ${
                 activeTab === "Developers"
                   ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
@@ -1129,10 +1225,13 @@ const AdminDashboardProperties = ({
           {/* Search and Actions */}
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <AdminSearchBar
+              key={activeTab}
               onSearch={handleSearch}
               onFilterClick={handleFilterClick}
               className="flex-1 sm:flex-initial"
-              placeholder="Search"
+              placeholder={
+                activeTab === "Developers" ? "Search developers" : "Search"
+              }
             />
           </div>
         </div>
@@ -1230,17 +1329,48 @@ const AdminDashboardProperties = ({
         onClose={() => setIsFilterModalOpen(false)}
         onApply={handleApplyFilter}
         onReset={handleResetFilter}
-        initialFilters={activeFilters}
-        config={{
-          title: "Filter Properties",
-          description: "Filter properties by price, type, or location",
-          showPrice: true,
-          showPropertyType: true,
-          showLocation: true,
-          priceMin: 0,
-          priceMax: 10_000_000_000,
-          priceStep: 100000,
-        }}
+        initialFilters={
+          activeTab === "Developers" ? developersFilters : propertiesFilters
+        }
+        config={
+          activeTab === "Developers"
+            ? {
+                title: "Filter Developers",
+                description:
+                  "Filter developers by status, date added, or details",
+                showPrice: false,
+                showPropertyType: false,
+                showLocation: false,
+                showStatus: true,
+                statusOptions: ["Active", "Inactive", "Removed"],
+                showDateRange: true,
+                dateRangeLabel: "Date Added",
+                dateRangeKey: "Date Added",
+                textFields: [
+                  { label: "Name", placeholder: "Search by name", key: "Name" },
+                  {
+                    label: "Email",
+                    placeholder: "Search by email",
+                    key: "Email",
+                  },
+                  {
+                    label: "Phone",
+                    placeholder: "Search by phone",
+                    key: "Phone",
+                  },
+                ],
+              }
+            : {
+                title: "Filter Properties",
+                description: "Filter properties by price, type, or location",
+                showPrice: true,
+                showPropertyType: true,
+                showLocation: true,
+                priceMin: 0,
+                priceMax: 10_000_000_000,
+                priceStep: 100000,
+              }
+        }
       />
 
       {/* Remove Developer Modal */}
@@ -1286,7 +1416,7 @@ const AdminDashboardProperties = ({
                   selectedDeveloper &&
                   currentProperties.length === 0 && (
                     <div className="py-10 text-center text-sm text-gray-500">
-                      {searchQuery.trim().length > 0
+                      {propertiesSearchQuery.trim().length > 0
                         ? "No matching properties for this developer."
                         : developerPropertiesMessage ||
                           "This developer has no properties yet."}
@@ -1320,7 +1450,7 @@ const AdminDashboardProperties = ({
             <>
               {/* Developers Tab */}
               <AdminPropertyDeveloper
-                developers={developers}
+                developers={filteredDevelopers}
                 onAddDeveloper={handleAddDeveloper}
                 onViewDetails={handleViewDeveloperDetails}
                 currentPage={currentPage}
