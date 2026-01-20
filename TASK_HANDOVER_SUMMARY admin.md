@@ -4,11 +4,21 @@ This document is a complete handover for the entire repository, with extra detai
 
 Primary scoped work completed in this chat:
 
-Implement “View details” behavior in the Realtor Details section so that:
+- Implement “View details” behavior in the Realtor Details section so that:
 
-- Properties “View details” navigates to the Properties section and opens the clicked property inside the existing AdminPropertyDetails flow (no duplicate property-detail logic in RealtorDetailsSection).
-- Receipts / Transactions / Withdrawals “View details” open the already-existing detail modals from their corresponding dashboard sections (no new modals created for realtor details).
-- The same behavior works when viewing a referred realtor’s details (callbacks are passed through referrals).
+  - Properties “View details” navigates to the Properties section and opens the clicked property inside the existing AdminPropertyDetails flow (no duplicate property-detail logic in RealtorDetailsSection).
+  - Receipts / Transactions / Withdrawals “View details” open the already-existing detail modals from their corresponding dashboard sections (no new modals created for realtor details).
+  - The same behavior works when viewing a referred realtor’s details (callbacks are passed through referrals).
+
+- Add Search + Filter support for the Properties → Developers tab so that:
+  - The shared search bar works for Developers (without affecting Properties search state).
+  - The shared filter modal switches config when on Developers tab and filters locally (Name/Email/Phone/Status/Date Added).
+  - Switching tabs resets the search input to avoid cross-tab query confusion.
+
+- Expand and stabilize admin dashboard filtering across sections (matching realtor webapp patterns) so that:
+  - Receipts/Realtors/Transactions/Referrals/Notifications/Properties filters behave consistently and do not break state.
+  - Filters support richer inputs (text fields, date ranges, number ranges) with validation.
+  - Properties search UX avoids loader spam while typing.
 
 ## Project Overview
 
@@ -121,12 +131,16 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
 - “View details” inside the Realtor Details tabs should not open bespoke/duplicated UIs.
 - It should reuse the existing modals from the Receipts/Transactions sections, and the existing AdminPropertyDetails view for properties.
 - The same behavior should also work for the “referred realtor details” view under Referrals.
+- Admin dashboard filters needed to be extended to match the user webapp filter patterns and fixed where broken.
+- Properties search needed to avoid showing the loader on every character input, and properties filters needed more robust inputs.
 
 ### Key design decisions
 
 - Single source of truth: do not reconstruct a “property details object” in the realtor details screen; instead route to Properties and let `AdminPropertyDetails` render.
 - Modal reuse: do not add new modals; use `AdminReceiptsDetailsModal`, `TransactionDetailsModal`, and `WithdrawalDetailsModal`.
 - Cross-section navigation is callback-based: drill-in actions from Realtors/Referrals can request “open property X in Properties section”.
+- Reuse a single shared filter modal (`AdminSearchFilterModal`) across admin sections and drive it via a per-section config.
+- Prefer defensive parsing + validation at the modal boundary so each dashboard section receives clean filter objects.
 
 ## What Changed
 
@@ -141,6 +155,29 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
 - Realtor details “View details” buttons now open the already-existing modals used in the Receipts and Transactions sections, passing the specific selected record.
 - No new “receipt details modal” or “transaction details modal” was introduced for RealtorDetailsSection.
 
+### Admin filters (Multi-section)
+
+- Updated multiple admin dashboard sections to use consistent filter patterns (text search, date ranges, number ranges) and to avoid broken filter state when opening/closing the modal.
+- Receipts filters were adjusted to remove the location filter and use a realtor name filter instead.
+- Transactions filters were adjusted (client filter was added during refinement and later removed per requirement).
+- Notifications filters were trimmed to the intended user type options.
+- Referrals filters were overhauled to match the expected UX and data joins.
+
+### Properties (Search + Filter robustness)
+
+- Properties search input is debounced to reduce fetch spam and avoid showing the loader on every keystroke.
+- Properties “Location” filtering uses a robust free-text input (instead of a brittle fixed options list).
+- Properties “Property Type” filtering aligns to the app’s category options and database filtering uses `category` where applicable.
+- Price filter min/max fields below the slider act as both display and editable inputs, staying in sync with the range slider.
+
+### Properties → Developers tab (Search + Filter)
+
+- `AdminDashboardProperties` now maintains separate search + filter state for the Properties list vs the Developers table.
+- Developers filtering is client-side (it filters the already-fetched developers list):
+  - Search matches against name/email/phone (token-based, case-insensitive).
+  - Filter modal supports: Name, Email, Phone, Status, Date Added (date range).
+- The search bar remounts per active tab (`key={activeTab}`) so switching tabs clears the input visually.
+
 ## Files Touched
 
 - [RealtorDetailsSection.tsx](<src/components/Admin Dashboard components/Admin dashboard realtors components/RealtorDetailsSection.tsx>)
@@ -152,10 +189,24 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
   - Passes `initialSelectedPropertyId` into Properties section and clears it after consumption.
 - [AdminDashboardProperties.tsx](<src/components/Admin Dashboard components/Admin dashboard properties components/AdminDashboardProperties.tsx>)
   - Accepts `initialSelectedPropertyId` and selects the matching property after the list has been fetched.
+  - Adds Developers tab search + filter support, with separate state from Properties search + filters.
+- [AdminSearchFilterModal.tsx](src/components/AdminSearchFilterModal.tsx)
+  - Adds support for configurable text fields, date ranges, and number ranges, with validation.
+  - Improves Properties filter robustness (free-text location, category-aligned property type, slider + input sync for price).
 - [AdminDashboardRealtors.tsx](<src/components/Admin Dashboard components/Admin dashboard realtors components/AdminDashboardRealtors.tsx>)
   - Plumbs `onNavigateToPropertyDetails` into RealtorDetailsSection.
 - [AdminDashboardReferrals.tsx](<src/components/Admin Dashboard components/Admin dashboard referrals components/AdminDashboardReferrals.tsx>)
   - Plumbs `onNavigateToPropertyDetails` into RealtorDetailsSection for referred realtor details.
+- [AdminDashboardReceipts.tsx](<src/components/Admin Dashboard components/Admin dashboard receipts components/AdminDashboardReceipts.tsx>)
+  - Updates filters to match intended behavior (includes realtor name filtering; removes receipt location/type filters as required).
+- [AdminDashboardTransactions.tsx](<src/components/Admin Dashboard components/Admin dashboard transactions components/AdminDashboardTransactions.tsx>)
+  - Updates filters to match intended behavior (and removes client entry filter as required).
+- [AdminDashboardNotifications.tsx](<src/components/Admin Dashboard components/Admin dashboard notifications components/AdminDashboardNotifications.tsx>)
+  - Adjusts filter options for user types to the intended set.
+- [AdminTransactionsData.ts](<src/components/Admin Dashboard components/Admin dashboard transactions components/AdminTransactionsData.ts>)
+  - Adds missing fields needed for build correctness after filter/view details enhancements (e.g. `createdAtIso` on Transaction model).
+- [apiService.ts](src/services/apiService.ts)
+  - Aligns properties filtering with the database schema (uses `category` for property category filtering).
 
 ## Related Notes / Existing TODOs
 
@@ -171,6 +222,15 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
    - Commission transaction → existing transaction details modal opens.
    - Withdrawal/payout transaction → existing withdrawal details modal opens.
 4. Go to Referrals → open a referred realtor’s details → repeat steps 1–3.
+
+5. Go to Properties → switch to Developers tab:
+   - Type into search: results should filter by name/email/phone.
+   - Click filter icon: modal should show “Filter Developers” and allow filtering by Name/Email/Phone/Status/Date Added.
+   - Switch back to Properties tab: search input should be cleared and properties filtering remains separate.
+
+6. Sanity-check filters across sections:
+   - Properties: apply price/type/location filters and confirm results update; edit min/max price inputs and confirm slider sync.
+   - Receipts/Realtors/Referrals/Notifications: open filter modal, apply/reset, and confirm no broken state when reopening.
 
 ## Build
 
