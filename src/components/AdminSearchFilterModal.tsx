@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Range } from "react-range";
-import AdminManualLocationModal from "./AdminManualLocationModal";
 
 interface AdminSearchFilterModalProps {
   isOpen: boolean;
@@ -45,18 +44,14 @@ interface AdminSearchFilterModalProps {
 const MAX_PRICE = 100_000_000;
 const MIN_PRICE = 100_000;
 
-const BASE_PROPERTY_TYPES = ["Land for Rent", "Land for Sale"] as const;
-const MORE_PROPERTY_TYPES = [
-  "House for Rent",
-  "House for Sale",
-  "Apartment for Rent",
-  "Apartment for Sale",
-  "Industrial Land",
-  "Commercial Land",
-  "Residential Plot",
-  "Office Space",
-  "Warehouse",
+const BASE_PROPERTY_TYPES = [
+  "Land",
+  "Residential",
+  "Commercial",
+  "Industrial",
+  "Mixed-Use",
 ] as const;
+const MORE_PROPERTY_TYPES = [] as const;
 
 const LOCATION_OPTIONS = [
   "Ikorodu, Lagos",
@@ -77,6 +72,12 @@ const LOCATION_OPTIONS = [
   "Kaduna, Kaduna",
   "Kano, Kano",
 ];
+
+const EMPTY_TEXT_FIELDS: Array<{
+  label: string;
+  placeholder?: string;
+  key: string;
+}> = [];
 
 const AdminSearchFilterModal = ({
   isOpen,
@@ -99,13 +100,17 @@ const AdminSearchFilterModal = ({
   const [showMoreCategories, setShowMoreCategories] = useState(false);
   const [showStatus, setShowStatus] = useState(false);
   const [showUserType, setShowUserType] = useState(false);
+  const defaultPriceMin = config.priceMin ?? MIN_PRICE;
+  const defaultPriceMax = config.priceMax ?? MAX_PRICE;
   const [price, setPrice] = useState<number[]>([
-    config.priceMin || MIN_PRICE,
-    config.priceMax || MAX_PRICE,
+    defaultPriceMin,
+    defaultPriceMax,
   ]);
+  const [didAdjustPrice, setDidAdjustPrice] = useState(false);
+  const [priceMinInput, setPriceMinInput] = useState(String(defaultPriceMin));
+  const [priceMaxInput, setPriceMaxInput] = useState(String(defaultPriceMax));
   const [dragged, setDragged] = useState<number | null>(null);
-  const [manualModalOpen, setManualModalOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState("Select location");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
   const [selectedUserType, setSelectedUserType] = useState("");
@@ -116,24 +121,41 @@ const AdminSearchFilterModal = ({
   const [numberMax, setNumberMax] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const textFields =
-    config.textFields ??
-    (config.showText
-      ? [
-          {
-            label: config.textLabel || "Name",
-            placeholder: config.textPlaceholder || "Search",
-            key: config.textKey || "Name",
-          },
-        ]
-      : []);
+  const textFields = useMemo(() => {
+    if (config.textFields) return config.textFields;
+    if (!config.showText) return EMPTY_TEXT_FIELDS;
+    return [
+      {
+        label: config.textLabel || "Name",
+        placeholder: config.textPlaceholder || "Search",
+        key: config.textKey || "Name",
+      },
+    ];
+  }, [
+    config.textFields,
+    config.showText,
+    config.textLabel,
+    config.textPlaceholder,
+    config.textKey,
+  ]);
+
+  const dateRangeKey = config.dateRangeKey || "Date Range";
+  const numberRangeKey = config.numberRangeKey || "Value Range (₦)";
 
   const formatCurrency = (val: number) =>
     `₦${Math.round(val).toLocaleString()}`;
 
+  const clampPrice = (val: number) =>
+    Math.min(defaultPriceMax, Math.max(defaultPriceMin, val));
+
+  const syncPrice = (next: number[]) => {
+    setPrice(next);
+    setPriceMinInput(String(next[0]));
+    setPriceMaxInput(String(next[1]));
+  };
+
   const propertyTypes = [
-    "Land for Rent",
-    "Land for Sale",
+    ...BASE_PROPERTY_TYPES,
     ...(showMoreCategories ? MORE_PROPERTY_TYPES : []),
   ];
 
@@ -150,7 +172,6 @@ const AdminSearchFilterModal = ({
     }
     setTextValues(nextTextValues);
 
-    const dateRangeKey = config.dateRangeKey || "Date Range";
     const initialDateRange = initialFilters?.[dateRangeKey];
     if (Array.isArray(initialDateRange) && initialDateRange.length === 2) {
       const from = initialDateRange[0];
@@ -162,7 +183,6 @@ const AdminSearchFilterModal = ({
       setEndDate("");
     }
 
-    const numberRangeKey = config.numberRangeKey || "Value Range (₦)";
     const initialNumberRange = initialFilters?.[numberRangeKey];
     if (Array.isArray(initialNumberRange) && initialNumberRange.length === 2) {
       const min = initialNumberRange[0];
@@ -192,7 +212,7 @@ const AdminSearchFilterModal = ({
     }
 
     const initialLocation = String(initialFilters?.["Location"] ?? "").trim();
-    setSelectedLocation(initialLocation || "Select location");
+    setSelectedLocation(initialLocation);
 
     const initialStatus = String(initialFilters?.["Status"] ?? "").trim();
     setSelectedStatus(initialStatus);
@@ -206,35 +226,49 @@ const AdminSearchFilterModal = ({
       const max = Number(initialPrice[1]);
       if (Number.isFinite(min) && Number.isFinite(max)) {
         setPrice([min, max]);
+        setDidAdjustPrice(min > defaultPriceMin || max < defaultPriceMax);
+        setPriceMinInput(String(min));
+        setPriceMaxInput(String(max));
       } else {
-        setPrice([config.priceMin || MIN_PRICE, config.priceMax || MAX_PRICE]);
+        setPrice([defaultPriceMin, defaultPriceMax]);
+        setDidAdjustPrice(false);
+        setPriceMinInput(String(defaultPriceMin));
+        setPriceMaxInput(String(defaultPriceMax));
       }
     } else {
-      setPrice([config.priceMin || MIN_PRICE, config.priceMax || MAX_PRICE]);
+      setPrice([defaultPriceMin, defaultPriceMax]);
+      setDidAdjustPrice(false);
+      setPriceMinInput(String(defaultPriceMin));
+      setPriceMaxInput(String(defaultPriceMax));
     }
 
     setDragged(null);
-  }, [isOpen, initialFilters, config, textFields]);
+  }, [
+    isOpen,
+    initialFilters,
+    textFields,
+    dateRangeKey,
+    numberRangeKey,
+    defaultPriceMin,
+    defaultPriceMax,
+  ]);
 
   const handleApply = () => {
     const filters: Record<string, unknown> = {};
-    const dateRangeKey = config.dateRangeKey || "Date Range";
-    const numberRangeKey = config.numberRangeKey || "Value Range (₦)";
 
     if (config.showPrice) {
-      filters["Price (₦)"] = price;
+      const narrowed = price[0] > defaultPriceMin || price[1] < defaultPriceMax;
+      if (didAdjustPrice && narrowed) {
+        filters["Price (₦)"] = price;
+      }
     }
 
     if (config.showPropertyType && selectedPropertyType.trim()) {
       filters["Property Type"] = selectedPropertyType.trim();
     }
 
-    if (
-      config.showLocation &&
-      selectedLocation &&
-      selectedLocation !== "Select location"
-    ) {
-      filters["Location"] = selectedLocation;
+    if (config.showLocation && selectedLocation.trim()) {
+      filters["Location"] = selectedLocation.trim();
     }
 
     if (config.showStatus && selectedStatus.trim()) {
@@ -308,7 +342,7 @@ const AdminSearchFilterModal = ({
 
   const handleReset = () => {
     setSelectedPropertyType("");
-    setSelectedLocation("Select location");
+    setSelectedLocation("");
     setSelectedStatus("");
     setSelectedUserType("");
     setTextValues({});
@@ -317,7 +351,10 @@ const AdminSearchFilterModal = ({
     setNumberMin("");
     setNumberMax("");
     setFormError(null);
-    setPrice([config.priceMin || MIN_PRICE, config.priceMax || MAX_PRICE]);
+    setPrice([defaultPriceMin, defaultPriceMax]);
+    setDidAdjustPrice(false);
+    setPriceMinInput(String(defaultPriceMin));
+    setPriceMaxInput(String(defaultPriceMax));
     setDragged(null);
     setShowMoreCategories(false);
     setShowPropertyType(false);
@@ -397,24 +434,6 @@ const AdminSearchFilterModal = ({
                       />
                     </label>
                   ))}
-                  {!showMoreCategories && (
-                    <button
-                      className="flex items-center gap-1 text-[#6500AC] text-[14px] mt-1"
-                      onClick={() => setShowMoreCategories(true)}
-                    >
-                      <span>More categories</span>
-                      <span>▼</span>
-                    </button>
-                  )}
-                  {showMoreCategories && (
-                    <button
-                      className="flex items-center gap-1 text-[#6500AC] text-[14px] mt-1"
-                      onClick={() => setShowMoreCategories(false)}
-                    >
-                      <span>Hide categories</span>
-                      <span>▲</span>
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -426,37 +445,18 @@ const AdminSearchFilterModal = ({
               <span className="font-medium text-[14px] text-[#6B7280]">
                 Location
               </span>
-              <select
+              <input
+                list="admin-location-options"
                 className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
                 value={selectedLocation}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === "--Manually select location--") {
-                    setManualModalOpen(true);
-                  } else {
-                    setSelectedLocation(value);
-                  }
-                }}
-              >
-                <option>Select location</option>
-                <option>--Manually select location--</option>
-                {selectedLocation !== "Select location" &&
-                  selectedLocation !== "--Manually select location--" &&
-                  !LOCATION_OPTIONS.includes(selectedLocation) && (
-                    <option value={selectedLocation}>{selectedLocation}</option>
-                  )}
-                {LOCATION_OPTIONS.map((loc) => (
-                  <option key={loc} value={loc}>
-                    {loc}
-                  </option>
-                ))}
-              </select>
-
-              <AdminManualLocationModal
-                isOpen={manualModalOpen}
-                onClose={() => setManualModalOpen(false)}
-                onApply={(loc) => setSelectedLocation(loc)}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+                placeholder="Enter location"
               />
+              <datalist id="admin-location-options">
+                {LOCATION_OPTIONS.map((loc) => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
             </div>
           )}
 
@@ -647,10 +647,19 @@ const AdminSearchFilterModal = ({
               </span>
               <Range
                 step={config.priceStep || 100000}
-                min={config.priceMin || MIN_PRICE}
-                max={config.priceMax || MAX_PRICE}
+                min={defaultPriceMin}
+                max={defaultPriceMax}
                 values={price}
-                onChange={setPrice}
+                onChange={(values) => {
+                  setDidAdjustPrice(true);
+                  const nextMin = clampPrice(values[0]);
+                  const nextMax = clampPrice(values[1]);
+                  const next: number[] =
+                    nextMin <= nextMax
+                      ? [nextMin, nextMax]
+                      : [nextMax, nextMin];
+                  syncPrice(next);
+                }}
                 onFinalChange={() => setDragged(null)}
                 renderTrack={({ props, children }) => (
                   <div
@@ -661,15 +670,13 @@ const AdminSearchFilterModal = ({
                       className="absolute h-2 bg-[#6500AC] rounded-full"
                       style={{
                         left: `${
-                          ((price[0] - (config.priceMin || MIN_PRICE)) /
-                            ((config.priceMax || MAX_PRICE) -
-                              (config.priceMin || MIN_PRICE))) *
+                          ((price[0] - defaultPriceMin) /
+                            (defaultPriceMax - defaultPriceMin)) *
                           100
                         }%`,
                         width: `${
                           ((price[1] - price[0]) /
-                            ((config.priceMax || MAX_PRICE) -
-                              (config.priceMin || MIN_PRICE))) *
+                            (defaultPriceMax - defaultPriceMin)) *
                           100
                         }%`,
                       }}
@@ -687,13 +694,72 @@ const AdminSearchFilterModal = ({
                 )}
               />
 
-              {/* Min / Max Labels */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white border border-[#F0F1F2] rounded-md p-3 md:p-4 text-xs md:text-sm">
-                  {formatCurrency(price[0])}
+                <div className="flex flex-col gap-1">
+                  <span className="text-[12px] text-[#6B7280]">Min</span>
+                  <input
+                    inputMode="numeric"
+                    type="number"
+                    min={defaultPriceMin}
+                    max={defaultPriceMax}
+                    step={config.priceStep || 100000}
+                    value={priceMinInput}
+                    onChange={(e) => {
+                      setFormError(null);
+                      setDidAdjustPrice(true);
+                      const raw = e.target.value;
+                      setPriceMinInput(raw);
+                      const nextNum = Number(raw);
+                      if (!Number.isFinite(nextNum)) return;
+                      const nextMin = clampPrice(nextNum);
+                      const nextMax = clampPrice(Math.max(nextMin, price[1]));
+                      syncPrice([nextMin, nextMax]);
+                    }}
+                    onBlur={() => {
+                      const n = Number(priceMinInput);
+                      if (!Number.isFinite(n)) {
+                        setPriceMinInput(String(price[0]));
+                        return;
+                      }
+                      const nextMin = clampPrice(n);
+                      const nextMax = clampPrice(Math.max(nextMin, price[1]));
+                      syncPrice([nextMin, nextMax]);
+                    }}
+                    className="border border-[#F0F1F2] bg-white rounded-md p-3 md:p-4 text-xs md:text-sm text-black w-full focus:outline-none"
+                  />
                 </div>
-                <div className="bg-white border border-[#F0F1F2] rounded-md p-3 md:p-4 text-xs md:text-sm">
-                  {formatCurrency(price[1])}
+                <div className="flex flex-col gap-1">
+                  <span className="text-[12px] text-[#6B7280]">Max</span>
+                  <input
+                    inputMode="numeric"
+                    type="number"
+                    min={defaultPriceMin}
+                    max={defaultPriceMax}
+                    step={config.priceStep || 100000}
+                    value={priceMaxInput}
+                    onChange={(e) => {
+                      setFormError(null);
+                      setDidAdjustPrice(true);
+                      const raw = e.target.value;
+                      setPriceMaxInput(raw);
+                      const nextNum = Number(raw);
+                      if (!Number.isFinite(nextNum)) return;
+                      const nextMax = clampPrice(nextNum);
+                      const nextMin = clampPrice(Math.min(nextMax, price[0]));
+                      syncPrice([nextMin, nextMax]);
+                    }}
+                    onBlur={() => {
+                      const n = Number(priceMaxInput);
+                      if (!Number.isFinite(n)) {
+                        setPriceMaxInput(String(price[1]));
+                        return;
+                      }
+                      const nextMax = clampPrice(n);
+                      const nextMin = clampPrice(Math.min(nextMax, price[0]));
+                      syncPrice([nextMin, nextMax]);
+                    }}
+                    className="border border-[#F0F1F2] bg-white rounded-md p-3 md:p-4 text-xs md:text-sm text-black w-full focus:outline-none"
+                  />
                 </div>
               </div>
             </div>

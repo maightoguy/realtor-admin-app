@@ -218,11 +218,12 @@ const AdminDashboardProperties = ({
   onInitialSelectedPropertyConsumed,
 }: AdminDashboardPropertiesProps) => {
   const [activeTab, setActiveTab] = useState<"Properties" | "Developers">(
-    "Properties"
+    "Properties",
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
@@ -237,17 +238,17 @@ const AdminDashboardProperties = ({
     string | null
   >(null);
   const [selectedDeveloper, setSelectedDeveloper] = useState<Developer | null>(
-    null
+    null,
   );
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(
-    null
+    null,
   );
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [editingDeveloper, setEditingDeveloper] = useState<Developer | null>(
-    null
+    null,
   );
   const [developerToRemove, setDeveloperToRemove] = useState<Developer | null>(
-    null
+    null,
   );
   const [isRemoveDeveloperModalOpen, setIsRemoveDeveloperModalOpen] =
     useState(false);
@@ -259,7 +260,7 @@ const AdminDashboardProperties = ({
   // Filter state
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>(
-    {}
+    {},
   );
 
   const itemsPerPage = 8;
@@ -308,14 +309,14 @@ const AdminDashboardProperties = ({
         typeof p.commission_percent === "number"
           ? p.commission_percent
           : p.commission_percent != null
-          ? Number(p.commission_percent)
-          : undefined,
+            ? Number(p.commission_percent)
+            : undefined,
       landSizeSqm:
         typeof p.land_size_sqm === "number"
           ? p.land_size_sqm
           : p.land_size_sqm != null
-          ? Number(p.land_size_sqm)
-          : undefined,
+            ? Number(p.land_size_sqm)
+            : undefined,
       security: p.security ?? undefined,
       accessibility: p.accessibility ?? undefined,
       topography: p.topography ?? undefined,
@@ -332,8 +333,8 @@ const AdminDashboardProperties = ({
       typeof (obj?.message ?? null) === "string"
         ? String(obj?.message)
         : e instanceof Error
-        ? e.message
-        : "";
+          ? e.message
+          : "";
     const code =
       typeof (obj?.code ?? null) === "string" ? String(obj?.code) : "";
     const details =
@@ -366,7 +367,7 @@ const AdminDashboardProperties = ({
       activeProperties: activePropertiesCount.toLocaleString(),
       soldOutProperties: soldOutPropertiesCount.toLocaleString(),
     }),
-    [totalPropertiesCount, activePropertiesCount, soldOutPropertiesCount]
+    [totalPropertiesCount, activePropertiesCount, soldOutPropertiesCount],
   );
 
   const refreshMetrics = async () => {
@@ -389,7 +390,7 @@ const AdminDashboardProperties = ({
   const fetchPropertiesPage = async (
     page: number,
     q: string,
-    developerId?: string
+    developerId?: string,
   ) => {
     setIsLoadingProperties(true);
     setPropertiesError(null);
@@ -399,7 +400,7 @@ const AdminDashboardProperties = ({
     const priceRange = activeFilters["Price (₦)"] as number[] | undefined;
     const minPrice = priceRange?.[0];
     const maxPrice = priceRange?.[1];
-    const type = activeFilters["Property Type"] as string | undefined;
+    const category = activeFilters["Property Type"] as string | undefined;
     const location = activeFilters["Location"] as string | undefined;
 
     try {
@@ -416,7 +417,7 @@ const AdminDashboardProperties = ({
           developerId,
           minPrice,
           maxPrice,
-          type: type as any,
+          category,
           location,
         });
       } else {
@@ -426,7 +427,7 @@ const AdminDashboardProperties = ({
           developerId,
           minPrice,
           maxPrice,
-          type: type as any,
+          category,
           location,
         });
       }
@@ -525,7 +526,7 @@ const AdminDashboardProperties = ({
     if (showAddForm || selectedProperty) return;
     if (searchQuery.trim().length > 0) return;
     fetchPropertiesPage(currentPage, "", selectedDeveloper?.id).catch(
-      () => undefined
+      () => undefined,
     );
   }, [
     activeTab,
@@ -542,7 +543,7 @@ const AdminDashboardProperties = ({
     if (showAddForm || selectedProperty) return;
     if (searchQuery.trim().length === 0) return;
     fetchPropertiesPage(1, searchQuery, selectedDeveloper?.id).catch(
-      () => undefined
+      () => undefined,
     );
   }, [
     activeTab,
@@ -571,11 +572,11 @@ const AdminDashboardProperties = ({
       .then(async (rows) => {
         const counts = await Promise.all(
           rows.map((d) =>
-            propertyService.countByDeveloperId(d.id).catch(() => 0)
-          )
+            propertyService.countByDeveloperId(d.id).catch(() => 0),
+          ),
         );
         setDevelopers(
-          rows.map((d, idx) => ({ ...d, totalProperties: counts[idx] }))
+          rows.map((d, idx) => ({ ...d, totalProperties: counts[idx] })),
         );
       })
       .catch((e: unknown) => {
@@ -592,9 +593,16 @@ const AdminDashboardProperties = ({
 
   const handleSearch = (query: string) => {
     logger.info("[ADMIN][PROPERTIES] Search change", { query });
-    setSearchQuery(query);
+    setSearchInput(query);
     setCurrentPage(1);
   };
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
 
   const handleFilterClick = () => {
     logger.info("[ADMIN][PROPERTIES] Filter clicked");
@@ -646,11 +654,13 @@ const AdminDashboardProperties = ({
       await propertyService.update(propertyId, { status: newStatus });
       setProperties((prev) =>
         prev.map((p) =>
-          p.id === propertyId ? { ...p, isSoldOut: !p.isSoldOut } : p
-        )
+          p.id === propertyId ? { ...p, isSoldOut: !p.isSoldOut } : p,
+        ),
       );
       setSelectedProperty((prev) =>
-        prev?.id === propertyId ? { ...prev, isSoldOut: !prev.isSoldOut } : prev
+        prev?.id === propertyId
+          ? { ...prev, isSoldOut: !prev.isSoldOut }
+          : prev,
       );
       refreshMetrics().catch(() => undefined);
       logger.info("[ADMIN][PROPERTIES] Toggle sold-out success", {
@@ -727,8 +737,8 @@ const AdminDashboardProperties = ({
                 totalProperties: d.totalProperties,
                 dateAdded: d.dateAdded,
               }
-            : d
-        )
+            : d,
+        ),
       );
       setSelectedDeveloper((prev) =>
         prev?.id === developerToRemove.id
@@ -738,7 +748,7 @@ const AdminDashboardProperties = ({
               totalProperties: prev.totalProperties,
               dateAdded: prev.dateAdded,
             }
-          : prev
+          : prev,
       );
       handleCloseRemoveDeveloperModal();
     } catch (e: unknown) {
@@ -747,7 +757,7 @@ const AdminDashboardProperties = ({
         error: e,
       });
       setRemoveDeveloperError(
-        toUserErrorMessage(e, "Failed to remove developer")
+        toUserErrorMessage(e, "Failed to remove developer"),
       );
     } finally {
       setIsRemovingDeveloper(false);
@@ -803,17 +813,17 @@ const AdminDashboardProperties = ({
         mediaCount: newProperty.mediaFiles.length,
       });
       const uploadedPaths = await propertyMediaService.uploadMany(
-        newProperty.mediaFiles
+        newProperty.mediaFiles,
       );
       const uploadedContractPaths = await propertyMediaService.uploadMany(
-        newProperty.contractFiles
+        newProperty.contractFiles,
       );
       const contractDocs = [
         ...(newProperty.contractDocs ?? []).filter(
-          (doc) => typeof doc === "string" && doc.trim().length > 0
+          (doc) => typeof doc === "string" && doc.trim().length > 0,
         ),
         ...(newProperty.existingContractDocs ?? []).filter(
-          (doc) => typeof doc === "string" && doc.trim().length > 0
+          (doc) => typeof doc === "string" && doc.trim().length > 0,
         ),
         ...uploadedContractPaths,
       ];
@@ -835,10 +845,11 @@ const AdminDashboardProperties = ({
               .map((item) =>
                 item.kind === "existing"
                   ? item.path
-                  : uploadedPaths[item.fileIndex]
+                  : uploadedPaths[item.fileIndex],
               )
               .filter(
-                (v): v is string => typeof v === "string" && v.trim().length > 0
+                (v): v is string =>
+                  typeof v === "string" && v.trim().length > 0,
               )
           : uploadedPaths;
 
@@ -927,10 +938,10 @@ const AdminDashboardProperties = ({
       });
 
       const uploadedPaths = await propertyMediaService.uploadMany(
-        updated.mediaFiles
+        updated.mediaFiles,
       );
       const uploadedContractPaths = await propertyMediaService.uploadMany(
-        updated.contractFiles
+        updated.contractFiles,
       );
 
       const imagesToSave =
@@ -939,19 +950,20 @@ const AdminDashboardProperties = ({
               .map((item) =>
                 item.kind === "existing"
                   ? item.path
-                  : uploadedPaths[item.fileIndex]
+                  : uploadedPaths[item.fileIndex],
               )
               .filter(
-                (v): v is string => typeof v === "string" && v.trim().length > 0
+                (v): v is string =>
+                  typeof v === "string" && v.trim().length > 0,
               )
           : uploadedPaths;
 
       const contractDocsToSave = [
         ...(updated.contractDocs ?? []).filter(
-          (doc) => typeof doc === "string" && doc.trim().length > 0
+          (doc) => typeof doc === "string" && doc.trim().length > 0,
         ),
         ...(updated.existingContractDocs ?? []).filter(
-          (doc) => typeof doc === "string" && doc.trim().length > 0
+          (doc) => typeof doc === "string" && doc.trim().length > 0,
         ),
         ...uploadedContractPaths,
       ];
@@ -993,7 +1005,7 @@ const AdminDashboardProperties = ({
 
       const updatedUi = adaptDbProperty(updatedDb);
       setProperties((prev) =>
-        prev.map((p) => (p.id === propertyId ? updatedUi : p))
+        prev.map((p) => (p.id === propertyId ? updatedUi : p)),
       );
       setSelectedProperty(updatedUi);
       setEditingProperty(null);
@@ -1195,8 +1207,8 @@ const AdminDashboardProperties = ({
                     totalProperties: d.totalProperties,
                     dateAdded: d.dateAdded,
                   }
-                : d
-            )
+                : d,
+            ),
           );
           setSelectedDeveloper((prev) =>
             prev?.id === existing.id
@@ -1206,7 +1218,7 @@ const AdminDashboardProperties = ({
                   totalProperties: prev.totalProperties,
                   dateAdded: prev.dateAdded,
                 }
-              : prev
+              : prev,
           );
           setEditingDeveloper(null);
         }}
@@ -1225,6 +1237,9 @@ const AdminDashboardProperties = ({
           showPrice: true,
           showPropertyType: true,
           showLocation: true,
+          priceMin: 0,
+          priceMax: 10_000_000_000,
+          priceStep: 100000,
         }}
       />
 

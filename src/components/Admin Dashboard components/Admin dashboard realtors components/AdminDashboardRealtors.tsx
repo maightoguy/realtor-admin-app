@@ -605,8 +605,8 @@ const AdminDashboardRealtors = ({
           dateRangeLabel: "Date Range",
           dateRangeKey: "Date Range",
           priceMin: 0,
-          priceMax: 100_000_000,
-          priceStep: 10000,
+          priceMax: 10_000_000_000,
+          priceStep: 100000,
         }}
       />
 

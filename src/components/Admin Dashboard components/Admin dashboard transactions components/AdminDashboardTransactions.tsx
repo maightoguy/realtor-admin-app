@@ -438,11 +438,6 @@ const AdminDashboardTransactionsInner = () => {
       );
     }
 
-    const clientName = activeFilters["Client Name"] as string | undefined;
-    if (clientName && clientName.trim()) {
-      filtered = filtered.filter((t) => matchesText(clientName, t.clientName));
-    }
-
     const dateRange = activeFilters["Date Range"];
     if (Array.isArray(dateRange) && dateRange.length === 2) {
       const from = typeof dateRange[0] === "string" ? dateRange[0].trim() : "";
@@ -897,16 +892,14 @@ const AdminDashboardTransactionsInner = () => {
               showPrice: true,
               showPropertyType: false,
               showLocation: false,
+              priceMin: 0,
+              priceMax: 10_000_000_000,
+              priceStep: 100000,
               textFields: [
                 {
                   label: "Realtor Name",
                   placeholder: "Search by realtor name",
                   key: "Realtor Name",
-                },
-                {
-                  label: "Client Name",
-                  placeholder: "Search by client name",
-                  key: "Client Name",
                 },
               ],
               showDateRange: true,

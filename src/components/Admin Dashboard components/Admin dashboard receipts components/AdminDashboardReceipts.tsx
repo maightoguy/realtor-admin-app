@@ -632,8 +632,11 @@ const AdminDashboardReceipts = () => {
           title: "Filter Receipts",
           description: "Filter receipts by amount, date range, and client name",
           showPrice: true,
-          showPropertyType: true,
+          showPropertyType: false,
           showLocation: false,
+          priceMin: 0,
+          priceMax: 10_000_000_000,
+          priceStep: 100000,
           textFields: [
             {
               label: "Client Name",

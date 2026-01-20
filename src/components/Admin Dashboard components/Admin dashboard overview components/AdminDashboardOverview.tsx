@@ -327,6 +327,19 @@ const AdminDashboardOverview = ({
     }));
   }, [snapshot]);
 
+  const topRealtorsFixed = useMemo(() => {
+    const filled = topRealtors.slice(0, 5).map((row) => ({ ...row, isEmpty: false }));
+    while (filled.length < 5) {
+      filled.push({
+        name: "---",
+        value: "₦0",
+        avatar: DefaultProfilePic,
+        isEmpty: true,
+      });
+    }
+    return filled;
+  }, [topRealtors]);
+
   const recentReceipts = useMemo(() => {
     if (!snapshot) return [];
     const mapStatus = (status: string): "Pending" | "Approved" | "Rejected" => {
@@ -623,29 +636,15 @@ const AdminDashboardOverview = ({
           </h3>
           {hasData ? (
             <div>
-              {topRealtors.length > 0 ? (
-                topRealtors.map((realtor, index) => (
-                  <TopRealtorItem
-                    key={index}
-                    name={realtor.name}
-                    value={realtor.value}
-                    avatar={realtor.avatar}
-                    isEmpty={false}
-                  />
-                ))
-              ) : (
-                <div className="space-y-3">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <TopRealtorItem
-                      key={i}
-                      name="---"
-                      value="₦0"
-                      avatar={DefaultProfilePic}
-                      isEmpty={true}
-                    />
-                  ))}
-                </div>
-              )}
+              {topRealtorsFixed.map((realtor, index) => (
+                <TopRealtorItem
+                  key={`${realtor.name}-${index}`}
+                  name={realtor.name}
+                  value={realtor.value}
+                  avatar={realtor.avatar}
+                  isEmpty={realtor.isEmpty}
+                />
+              ))}
             </div>
           ) : (
             <div className="space-y-3">

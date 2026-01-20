@@ -308,6 +308,7 @@ export const propertyService = {
 
   async getAll(filters?: {
     type?: PropertyType;
+    category?: string;
     status?: PropertyStatus;
     developerId?: string;
     location?: string;
@@ -324,6 +325,9 @@ export const propertyService = {
 
     if (filters?.type) {
       query = query.eq("type", filters.type);
+    }
+    if (filters?.category) {
+      query = query.eq("category", filters.category);
     }
     if (filters?.status) {
       query = query.eq("status", filters.status);
@@ -361,6 +365,7 @@ export const propertyService = {
     searchText: string,
     filters?: {
       type?: PropertyType;
+      category?: string;
       status?: PropertyStatus;
       developerId?: string;
       location?: string;
@@ -379,6 +384,9 @@ export const propertyService = {
 
     if (filters?.type) {
       query = query.eq("type", filters.type);
+    }
+    if (filters?.category) {
+      query = query.eq("category", filters.category);
     }
     if (filters?.status) {
       query = query.eq("status", filters.status);
@@ -1748,20 +1756,20 @@ export const overviewService = {
       );
     }
 
-    const top = [...totalsByRealtor.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, params.limit);
+    const sorted = [...totalsByRealtor.entries()].sort((a, b) => b[1] - a[1]);
+    const candidates = sorted.slice(0, Math.max(params.limit, params.limit * 3));
 
-    const users = await userService.getByIds(top.map(([id]) => id));
+    const users = await userService.getByIds(candidates.map(([id]) => id));
     const userMap = new Map(users.map((u) => [u.id, u]));
 
-    return top
+    return candidates
       .map(([id, total]) => {
         const user = userMap.get(id);
         if (!user) return null;
         return { user, total };
       })
-      .filter(Boolean) as Array<{ user: User; total: number }>;
+      .filter(Boolean)
+      .slice(0, params.limit) as Array<{ user: User; total: number }>;
   },
 
   async getRecentReceiptsEnriched(params: {
