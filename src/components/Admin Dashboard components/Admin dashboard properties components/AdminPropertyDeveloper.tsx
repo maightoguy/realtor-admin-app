@@ -135,8 +135,8 @@ const AdminPropertyDeveloper = ({
 
       {/* Developers Table */}
       <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto admin-table-scroll">
+          <table className="admin-table">
             <thead className="bg-[#FAFAFA] border-b border-[#F0F1F2]">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">

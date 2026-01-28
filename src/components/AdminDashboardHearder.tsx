@@ -11,6 +11,7 @@ interface HeaderProps {
   activeSection: string;
   onSectionChange?: (section: string) => void;
   onProfileClick?: () => void;
+  onOpenMobileNav?: () => void;
   isAddPropertyFormActive?: boolean;
   user?: User | null;
 }
@@ -18,6 +19,7 @@ interface HeaderProps {
 const AdminDashboardHeader = ({
   activeSection,
   onProfileClick,
+  onOpenMobileNav,
   isAddPropertyFormActive = false,
   user,
 }: HeaderProps) => {
@@ -100,7 +102,7 @@ const AdminDashboardHeader = ({
         {/* Right */}
         <div className="flex items-center gap-3">
           {/* Date */}
-          <div className="flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 font-semibold px-3 py-1.5 rounded-lg">
+          <div className="hidden sm:flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 font-semibold px-3 py-1.5 rounded-lg">
             <Calendar className="w-4 h-4" />
             <span>{currentDate}</span>
           </div>
@@ -129,9 +131,24 @@ const AdminDashboardHeader = ({
             </button>
           </div>
 
-          {/* Mobile: Menu icon */}
-          <div className="md:hidden">
-            <button className="text-gray-700 hover:text-gray-900 transition-colors">
+          {/* Mobile: Notification + Menu */}
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => setIsNotificationOpen(true)}
+              className="text-gray-700 hover:text-gray-900 transition-colors relative"
+              aria-label="Open notifications"
+            >
+              <Bell className="w-6 h-6" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+              )}
+            </button>
+            <button
+              onClick={onOpenMobileNav}
+              className="text-gray-700 hover:text-gray-900 transition-colors"
+              aria-label="Open menu"
+              type="button"
+            >
               <Menu className="w-6 h-6" />
             </button>
           </div>

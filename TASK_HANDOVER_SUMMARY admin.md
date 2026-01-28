@@ -20,6 +20,11 @@ Primary scoped work completed in this chat:
   - Filters support richer inputs (text fields, date ranges, number ranges) with validation.
   - Properties search UX avoids loader spam while typing.
 
+- Implement a comprehensive responsive UI pass (mobile-first) so that:
+  - Navigation works on mobile via a slide-in drawer while preserving the desktop sidebar.
+  - Tables remain readable on small screens via horizontal scroll wrappers (no desktop layout regression).
+  - Touch targets meet minimum tap sizing on mobile.
+
 ## Project Overview
 
 - App type: React + TypeScript + Vite admin dashboard
@@ -133,6 +138,7 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
 - The same behavior should also work for the “referred realtor details” view under Referrals.
 - Admin dashboard filters needed to be extended to match the user webapp filter patterns and fixed where broken.
 - Properties search needed to avoid showing the loader on every character input, and properties filters needed more robust inputs.
+- Admin dashboard needed a responsive design implementation (mobile/tablet/desktop) without compromising desktop UI/behavior.
 
 ### Key design decisions
 
@@ -141,6 +147,8 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
 - Cross-section navigation is callback-based: drill-in actions from Realtors/Referrals can request “open property X in Properties section”.
 - Reuse a single shared filter modal (`AdminSearchFilterModal`) across admin sections and drive it via a per-section config.
 - Prefer defensive parsing + validation at the modal boundary so each dashboard section receives clean filter objects.
+- Mobile-first CSS approach: apply safe global accessibility improvements (touch targets) and add per-component responsive behavior where required.
+- Preserve desktop layouts: add mobile-only wrappers (e.g. table horizontal scrolling) instead of changing column/layout rules.
 
 ## What Changed
 
@@ -178,15 +186,34 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
   - Filter modal supports: Name, Email, Phone, Status, Date Added (date range).
 - The search bar remounts per active tab (`key={activeTab}`) so switching tabs clears the input visually.
 
+### Responsive design (Mobile / Tablet / Desktop)
+
+- Breakpoints:
+  - Mobile-first base styles.
+  - Tablet: `min-width: 768px`.
+  - Desktop: `min-width: 1024px`.
+- Mobile navigation:
+  - Desktop sidebar is unchanged (still `lg` only).
+  - Mobile gets a slide-in navigation drawer with the same sections, profile access, and logout.
+- Tables:
+  - Tables are wrapped in a horizontal scroll container on smaller screens to prevent column collapse.
+  - Desktop table layout and spacing remain unchanged.
+- Touch targets:
+  - Mobile enforces minimum 44px tap targets for common interactive elements.
+
 ## Files Touched
 
 - [RealtorDetailsSection.tsx](<src/components/Admin Dashboard components/Admin dashboard realtors components/RealtorDetailsSection.tsx>)
   - Properties tab “View details” calls `onNavigateToPropertyDetails?.(property.id)`.
   - Receipts/Transactions/Withdrawals “View details” wire to existing detail modal state.
+  - Tables use a horizontal scroll wrapper for mobile usability.
 - [AdminDashboardPage.tsx](src/pages/AdminDashboardPage.tsx)
   - Adds `pendingPropertyDetailsId` and `handleNavigateToPropertyDetails(propertyId)`.
   - Passes `onNavigateToPropertyDetails` into Realtors + Referrals sections.
   - Passes `initialSelectedPropertyId` into Properties section and clears it after consumption.
+  - Adds a mobile navigation drawer and wires it to the header menu button.
+- [AdminDashboardHearder.tsx](src/components/AdminDashboardHearder.tsx)
+  - Adds functional mobile header actions (notifications + menu) and connects menu to the drawer.
 - [AdminDashboardProperties.tsx](<src/components/Admin Dashboard components/Admin dashboard properties components/AdminDashboardProperties.tsx>)
   - Accepts `initialSelectedPropertyId` and selects the matching property after the list has been fetched.
   - Adds Developers tab search + filter support, with separate state from Properties search + filters.
@@ -195,18 +222,29 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
   - Improves Properties filter robustness (free-text location, category-aligned property type, slider + input sync for price).
 - [AdminDashboardRealtors.tsx](<src/components/Admin Dashboard components/Admin dashboard realtors components/AdminDashboardRealtors.tsx>)
   - Plumbs `onNavigateToPropertyDetails` into RealtorDetailsSection.
+  - Table uses a horizontal scroll wrapper for mobile usability.
 - [AdminDashboardReferrals.tsx](<src/components/Admin Dashboard components/Admin dashboard referrals components/AdminDashboardReferrals.tsx>)
   - Plumbs `onNavigateToPropertyDetails` into RealtorDetailsSection for referred realtor details.
+  - Table uses a horizontal scroll wrapper for mobile usability.
 - [AdminDashboardReceipts.tsx](<src/components/Admin Dashboard components/Admin dashboard receipts components/AdminDashboardReceipts.tsx>)
   - Updates filters to match intended behavior (includes realtor name filtering; removes receipt location/type filters as required).
+  - Table uses a horizontal scroll wrapper for mobile usability.
 - [AdminDashboardTransactions.tsx](<src/components/Admin Dashboard components/Admin dashboard transactions components/AdminDashboardTransactions.tsx>)
   - Updates filters to match intended behavior (and removes client entry filter as required).
+  - Table uses a horizontal scroll wrapper for mobile usability.
 - [AdminDashboardNotifications.tsx](<src/components/Admin Dashboard components/Admin dashboard notifications components/AdminDashboardNotifications.tsx>)
   - Adjusts filter options for user types to the intended set.
+  - Table uses a horizontal scroll wrapper for mobile usability.
+- [AdminDashboardOverview.tsx](<src/components/Admin Dashboard components/Admin dashboard overview components/AdminDashboardOverview.tsx>)
+  - Recent receipts table uses a horizontal scroll wrapper for mobile usability.
+- [AdminPropertyDeveloper.tsx](<src/components/Admin Dashboard components/Admin dashboard properties components/AdminPropertyDeveloper.tsx>)
+  - Developers table uses a horizontal scroll wrapper for mobile usability.
 - [AdminTransactionsData.ts](<src/components/Admin Dashboard components/Admin dashboard transactions components/AdminTransactionsData.ts>)
   - Adds missing fields needed for build correctness after filter/view details enhancements (e.g. `createdAtIso` on Transaction model).
 - [apiService.ts](src/services/apiService.ts)
   - Aligns properties filtering with the database schema (uses `category` for property category filtering).
+- [index.css](src/index.css)
+  - Adds mobile-first touch target sizing and shared table scrolling utilities.
 
 ## Related Notes / Existing TODOs
 
@@ -231,6 +269,12 @@ Dashboard section switching is in [AdminDashboardPage.tsx](file:///c:/Users/hp/D
 6. Sanity-check filters across sections:
    - Properties: apply price/type/location filters and confirm results update; edit min/max price inputs and confirm slider sync.
    - Receipts/Realtors/Referrals/Notifications: open filter modal, apply/reset, and confirm no broken state when reopening.
+
+7. Responsive UI checks:
+   - Mobile (<768px): open the hamburger menu, navigate between sections, open/close notifications, and confirm buttons/inputs are easily tappable.
+   - Tablet (≥768px): confirm header layout stays readable and tables remain usable.
+   - Desktop (≥1024px): confirm sidebar behavior and all existing hover states/interactions remain unchanged.
+   - Small screens: confirm tables scroll horizontally rather than compressing into unreadable columns.
 
 ## Build
 

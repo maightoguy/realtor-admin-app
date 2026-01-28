@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 import VeriplotLogo from "../assets/Veriplot Primary logo 2.svg";
 import DefaultProfilePic from "../assets/Default Profile pic.png";
 import AdminDashboardHeader from "../components/AdminDashboardHearder.tsx";
@@ -39,6 +39,7 @@ const AdminDashboardPage = () => {
   const location = useLocation();
   const [activeSection, setActiveSection] = useState("Overview");
   const [isAddPropertyFormActive, setIsAddPropertyFormActive] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [pendingPropertyDetailsId, setPendingPropertyDetailsId] = useState<
     string | null
   >(null);
@@ -170,6 +171,7 @@ const AdminDashboardPage = () => {
     if (section !== "Properties") {
       setIsAddPropertyFormActive(false);
     }
+    setIsMobileNavOpen(false);
   };
 
   const handleNavigateToPropertyDetails = (propertyId: string) => {
@@ -357,12 +359,118 @@ const AdminDashboardPage = () => {
         </div>
       </aside>
 
+      {/* Mobile navigation drawer */}
+      {isMobileNavOpen && (
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setIsMobileNavOpen(false)}
+          />
+          <div className="absolute left-0 top-0 h-full w-[82vw] max-w-[320px] bg-white shadow-xl flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <Link
+                to="/"
+                className="flex items-center gap-2"
+                onClick={() => setIsMobileNavOpen(false)}
+              >
+                <img
+                  src={VeriplotLogo}
+                  alt="Veriplot logo"
+                  className="h-7 w-auto"
+                />
+              </Link>
+              <button
+                type="button"
+                className="text-gray-600 hover:text-gray-900"
+                onClick={() => setIsMobileNavOpen(false)}
+                aria-label="Close"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <nav className="flex flex-col p-3 gap-1 text-gray-700">
+              {[
+                "Overview",
+                "Properties",
+                "Receipts",
+                "Realtors",
+                "Transactions",
+                "Notifications",
+                "Referrals",
+                "Settings",
+              ].map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => handleNavigate(item)}
+                  className={`flex items-center gap-3 text-left rounded-lg px-3 py-3 transition-colors ${
+                    activeSection === item
+                      ? "bg-[#F0E6F7] text-[#6500AC] font-semibold"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <span className="shrink-0">
+                    {getIconComponent(item, activeSection === item, false)}
+                  </span>
+                  <span className="text-base">{item}</span>
+                </button>
+              ))}
+            </nav>
+
+            <div className="mt-auto border-t border-gray-100 p-4">
+              <button
+                type="button"
+                onClick={handleProfileClick}
+                className="w-full flex items-center gap-3 text-left rounded-lg px-3 py-3 hover:bg-gray-50"
+              >
+                <div className="rounded-full overflow-hidden border border-gray-200 w-10 h-10 shrink-0">
+                  <img
+                    src={
+                      currentUser?.avatar_url
+                        ? currentUser.avatar_url
+                        : DefaultProfilePic
+                    }
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {currentUser
+                      ? `${currentUser.first_name} ${currentUser.last_name}`.trim()
+                      : "Admin"}
+                  </p>
+                  <p className="text-xs text-gray-500">Admin</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogoutClick}
+                className="w-full mt-2 flex items-center gap-3 text-left rounded-lg px-3 py-3 hover:bg-gray-50 text-red-700"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="text-base font-semibold">Log out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="flex-1">
         <AdminDashboardHeader
           activeSection={activeSection}
           onSectionChange={setActiveSection}
           onProfileClick={handleProfileClick}
+          onOpenMobileNav={() => setIsMobileNavOpen(true)}
           isAddPropertyFormActive={isAddPropertyFormActive}
           user={currentUser}
         />

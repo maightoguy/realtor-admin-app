@@ -768,8 +768,8 @@ const AdminDashboardTransactionsInner = () => {
 
           {/* Transactions Table */}
           <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div className="overflow-x-auto admin-table-scroll">
+              <table className="admin-table">
                 <thead className="bg-gray-50 border-b border-[#F0F1F2]">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
