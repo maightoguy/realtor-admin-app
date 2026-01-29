@@ -44,21 +44,18 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
   const isActive = email.trim() !== "";
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6 bg-white">
-      {/*md:items-center md:my-[50%] md:justify-center*/}
-
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-6 ">
-        {/* Header */}
-        <div className="flex flex-col items-start justify-start gap-3 ">
-          <button type="button" onClick={onBack}>
-            <span className="text-2xl font-bold text-gray-700">←</span>
+    <div className="flex flex-col items-center w-full px-2 sm:px-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
+        <div className="flex flex-col items-start justify-start gap-3">
+          <button type="button" onClick={onBack} className="text-2xl font-bold text-gray-700">
+            ←
           </button>
-          <h2 className="text-2xl font-bold text-gray-900 mt-3">
+          <h2 className="text-[22px] sm:text-2xl font-bold text-gray-900 mt-2">
             Forgot Password
           </h2>
         </div>
 
-        <p className="text-gray-500 text-sm text-left">
+        <p className="text-gray-500 text-xs sm:text-sm text-left">
           Remember your password?{" "}
           <Link to="/login" className="text-purple-700 font-medium">
             Log in
@@ -67,7 +64,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
 
         {/* Email Field */}
         <div className="text-left">
-          <label className="block text-gray-600 font-medium mb-2">
+          <label className="block text-gray-600 font-medium mb-2 text-xs sm:text-sm">
             Email Address
           </label>
           <input
@@ -75,7 +72,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="e.g ****@mail.com"
-            className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600 placeholder-gray-400"
+            className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-600 placeholder-gray-400 text-sm"
           />
         </div>
 
@@ -88,7 +85,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
             }`}
           >
             <p
-              className={`text-sm ${
+              className={`text-xs sm:text-sm ${
                 message.type === "success" ? "text-green-700" : "text-red-600"
               }`}
             >
@@ -101,7 +98,7 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
         <button
           type="submit"
           disabled={!isActive || isSending}
-          className={`w-full py-3 rounded-xl font-semibold text-white transition ${
+          className={`w-full py-3 rounded-xl font-semibold text-white text-sm sm:text-base transition ${
             isActive && !isSending
               ? "bg-purple-700 hover:bg-purple-800"
               : "bg-gray-300 cursor-not-allowed"

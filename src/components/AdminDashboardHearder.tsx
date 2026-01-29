@@ -80,20 +80,20 @@ const AdminDashboardHeader = ({
 
   return (
     <>
-      <header className="flex justify-between items-center px-6 py-5 bg-white shadow-sm relative z-10">
+      <header className="flex justify-between items-center px-4 py-3 sm:px-6 sm:py-5 bg-white shadow-sm relative z-10">
         {/* Left - Welcome message */}
         <div className="flex items-center gap-4">
           {activeSection === "Overview" ? (
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="text-base sm:text-lg font-semibold text-gray-900">
               Welcome back, {displayName || "Admin"}
             </span>
           ) : activeSection === "Properties" && isAddPropertyFormActive ? (
-            <span className="text-lg text-gray-900">
+            <span className="text-base sm:text-lg text-gray-900">
               <span className="text-gray-500 font-normal">Properties</span>
               <span className="text-black font-semibold">/Add Property</span>
             </span>
           ) : (
-            <span className="text-lg font-semibold text-gray-900">
+            <span className="text-base sm:text-lg font-semibold text-gray-900">
               {activeSection}
             </span>
           )}
@@ -102,13 +102,13 @@ const AdminDashboardHeader = ({
         {/* Right */}
         <div className="flex items-center gap-3">
           {/* Date */}
-          <div className="hidden sm:flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 font-semibold px-3 py-1.5 rounded-lg">
-            <Calendar className="w-4 h-4" />
+          <div className="hidden sm:flex items-center gap-2 bg-green-100 border border-green-200 text-green-700 font-semibold px-3 py-1.5 rounded-lg text-xs sm:text-sm">
+            <Calendar className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             <span>{currentDate}</span>
           </div>
 
           {/* Desktop: Notification + Profile */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             <button
               onClick={() => setIsNotificationOpen(true)}
               className="text-gray-600 hover:text-gray-800 relative"
@@ -132,13 +132,13 @@ const AdminDashboardHeader = ({
           </div>
 
           {/* Mobile: Notification + Menu */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-2">
             <button
               onClick={() => setIsNotificationOpen(true)}
               className="text-gray-700 hover:text-gray-900 transition-colors relative"
               aria-label="Open notifications"
             >
-              <Bell className="w-6 h-6" />
+              <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
               {unreadCount > 0 && (
                 <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
               )}
@@ -149,7 +149,7 @@ const AdminDashboardHeader = ({
               aria-label="Open menu"
               type="button"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>

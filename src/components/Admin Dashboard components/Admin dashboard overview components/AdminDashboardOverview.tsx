@@ -32,7 +32,7 @@ const MetricCard = ({
   valueTextColor,
   isEmpty,
 }: MetricCardProps) => (
-  <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-5 flex flex-col gap-4 w-full transition duration-300 hover:shadow-lg">
+  <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-4 sm:p-5 flex flex-col gap-4 w-full transition duration-300 hover:shadow-lg">
     {/* Top Row - Icon and Title */}
     <div className="flex items-center gap-3">
       {/* SVG Icon Wrapper */}
@@ -61,7 +61,7 @@ const MetricCard = ({
       </svg>
 
       <p
-        className="text-sm font-medium truncate"
+        className="text-xs sm:text-sm font-medium truncate"
         style={{ color: valueTextColor }}
       >
         {title}
@@ -74,7 +74,7 @@ const MetricCard = ({
       style={{ color: valueTextColor }}
     >
       <p
-        className="text-[24px] leading-9 font-medium wrap-break-word max-w-full"
+        className="text-[20px] sm:text-[24px] leading-7 sm:leading-9 font-medium wrap-break-word max-w-full"
         style={{ color: valueTextColor }}
       >
         {isEmpty ? "-" : value}
@@ -98,14 +98,14 @@ const TopRealtorItem = ({
 }: TopRealtorItemProps) => (
   <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-gray-200">
         <img src={avatar} alt={name} className="w-full h-full object-cover" />
       </div>
-      <span className="text-sm font-medium text-gray-700">
+      <span className="text-xs sm:text-sm font-medium text-gray-700">
         {isEmpty ? "---" : name}
       </span>
     </div>
-    <span className="text-sm font-semibold text-gray-900">
+    <span className="text-xs sm:text-sm font-semibold text-gray-900">
       {isEmpty ? "₦0" : value.startsWith("₦") ? value : `₦${value}`}
     </span>
   </div>
@@ -408,10 +408,10 @@ const AdminDashboardOverview = ({
   };
 
   return (
-    <div className="p-6 bg-[#FCFCFC]">
+    <div className="px-3 py-4 sm:px-4 md:p-6 bg-[#FCFCFC]">
       <Loader isOpen={isLoading} text="Loading overview..." />
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
         <div
           onClick={() => onNavigate?.("Realtors")}
           className="cursor-pointer transition-transform hover:scale-[1.02]"
@@ -492,13 +492,15 @@ const AdminDashboardOverview = ({
       {/* Charts and Top Realtors Row */}
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 mb-6">
         {/* Commission Statistics */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Statistics</h3>
-            <div className="flex gap-2">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+              Statistics
+            </h3>
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2 pb-2">
               <button
                 onClick={() => setChartView("Commission")}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   chartView === "Commission"
                     ? "bg-[#6500AC] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -508,7 +510,7 @@ const AdminDashboardOverview = ({
               </button>
               <button
                 onClick={() => setChartView("Sales")}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   chartView === "Sales"
                     ? "bg-[#6500AC] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -518,7 +520,7 @@ const AdminDashboardOverview = ({
               </button>
               <button
                 onClick={() => setChartView("Realtors")}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   chartView === "Realtors"
                     ? "bg-[#6500AC] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -530,92 +532,84 @@ const AdminDashboardOverview = ({
           </div>
 
           {hasData ? (
-            <div className="relative h-64">
-              {/* Y-axis labels */}
-              <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 pr-3 w-12">
-                {yAxisLabels.map((label, index) => (
-                  <span key={`${label}-${index}`}>{label}</span>
-                ))}
-              </div>
-
-              {/* Chart container with grid lines */}
-              <div className="ml-12 pr-4 relative h-full">
-                {/* Grid lines */}
-                <div className="absolute inset-0 flex flex-col justify-between pb-12">
+            <div className="relative h-64 overflow-x-auto scrollbar-hide">
+              <div className="min-w-[560px] sm:min-w-0 h-full relative">
+                <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-[10px] sm:text-xs text-gray-500 pr-3 w-12">
                   {yAxisLabels.map((label, index) => (
-                    <div
-                      key={`${label}-${index}`}
-                      className="w-full h-px bg-gray-200"
-                    ></div>
+                    <span key={`${label}-${index}`}>{label}</span>
                   ))}
                 </div>
 
-                {/* Bars and labels container */}
-                <div className="relative">
-                  {/* Bars container */}
-                  <div className="relative h-48 flex items-end justify-between gap-1.5 mb-2">
-                    {chartDataFixed.map((value, index) => {
-                      const height = (value / chartMaxValue) * 100;
-                      const isCurrentMonth = index === currentMonthIndex;
-                      return (
-                        <div
-                          key={`bar-${index}`}
-                          className="flex-1 flex flex-col items-center h-full justify-end relative"
-                        >
-                          {/* Highlight background for current month */}
-                          {isCurrentMonth && (
-                            <div className="absolute -inset-x-1 -top-2 -bottom-8 bg-gray-100 rounded-lg"></div>
-                          )}
-                          {/* Bar */}
-                          <div
-                            className={`w-full rounded-t transition-all relative z-10 ${
-                              isCurrentMonth ? "bg-green-500" : "bg-[#6500AC]"
-                            }`}
-                            style={{
-                              height: `${height}%`,
-                              minHeight: height > 0 ? "4px" : "0",
-                            }}
-                          />
-                          {/* Vertical line from bar to month label */}
-                          <div
-                            className="absolute w-px bg-gray-200 z-0"
-                            style={{
-                              bottom: "-20px",
-                              height: "20px",
-                              left: "50%",
-                              transform: "translateX(-50%)",
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
+                <div className="ml-12 pr-4 relative h-full">
+                  <div className="absolute inset-0 flex flex-col justify-between pb-12">
+                    {yAxisLabels.map((label, index) => (
+                      <div
+                        key={`${label}-${index}`}
+                        className="w-full h-px bg-gray-200"
+                      ></div>
+                    ))}
                   </div>
 
-                  {/* Month labels */}
-                  <div className="flex items-center justify-between gap-1.5 mt-2">
-                    {months.map((month, index) => {
-                      const isCurrentMonth = index === currentMonthIndex;
-                      return (
-                        <div
-                          key={`label-${index}`}
-                          className="flex-1 flex justify-center relative"
-                        >
-                          {/* Extend highlight to label area for current month */}
-                          {isCurrentMonth && (
-                            <div className="absolute -top-8 bottom-0 -left-1 -right-1 bg-gray-100 rounded-b-lg"></div>
-                          )}
-                          <span
-                            className={`text-xs relative z-10 ${
-                              isCurrentMonth
-                                ? "text-gray-900 font-medium"
-                                : "text-gray-600"
-                            }`}
+                  <div className="relative">
+                    <div className="relative h-48 flex items-end justify-between gap-1.5 mb-2">
+                      {chartDataFixed.map((value, index) => {
+                        const height = (value / chartMaxValue) * 100;
+                        const isCurrentMonth = index === currentMonthIndex;
+                        return (
+                          <div
+                            key={`bar-${index}`}
+                            className="flex-1 flex flex-col items-center h-full justify-end relative"
                           >
-                            {month}
-                          </span>
-                        </div>
-                      );
-                    })}
+                            {isCurrentMonth && (
+                              <div className="absolute -inset-x-1 -top-2 -bottom-8 bg-gray-100 rounded-lg"></div>
+                            )}
+                            <div
+                              className={`w-full rounded-t transition-all relative z-10 ${
+                                isCurrentMonth ? "bg-green-500" : "bg-[#6500AC]"
+                              }`}
+                              style={{
+                                height: `${height}%`,
+                                minHeight: height > 0 ? "4px" : "0",
+                              }}
+                            />
+                            <div
+                              className="absolute w-px bg-gray-200 z-0"
+                              style={{
+                                bottom: "-20px",
+                                height: "20px",
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-1.5 mt-2">
+                      {months.map((month, index) => {
+                        const isCurrentMonth = index === currentMonthIndex;
+                        return (
+                          <div
+                            key={`label-${index}`}
+                            className="flex-1 flex justify-center relative"
+                          >
+                            {isCurrentMonth && (
+                              <div className="absolute -top-8 bottom-0 -left-1 -right-1 bg-gray-100 rounded-b-lg"></div>
+                            )}
+                            <span
+                              className={`text-[10px] sm:text-xs whitespace-nowrap relative z-10 ${
+                                isCurrentMonth
+                                  ? "text-gray-900 font-medium"
+                                  : "text-gray-600"
+                              }`}
+                            >
+                              {month}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -630,8 +624,8 @@ const AdminDashboardOverview = ({
         </div>
 
         {/* Top 5 Realtors */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
             Top 5 Realtors
           </h3>
           {hasData ? (
@@ -664,13 +658,13 @@ const AdminDashboardOverview = ({
 
       {/* Recent Receipts Table */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
             Recent Receipt
           </h3>
           <button
             onClick={() => setShowAllReceipts(!showAllReceipts)}
-            className="text-sm text-[#6500AC] font-medium hover:underline flex items-center gap-1"
+            className="text-xs sm:text-sm text-[#6500AC] font-medium hover:underline flex items-center gap-1"
           >
             {showAllReceipts ? "Show less" : "View all"}
             <ChevronRight className="w-4 h-4" />

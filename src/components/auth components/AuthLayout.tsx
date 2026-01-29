@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import VeriplotSvg from "../icons/VeriplotIcon";
 import heroImage from "../../assets/Hero-background.png";
+import VeriplotLogo from "../../assets/Veriplot Primary logo 2.svg";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -9,28 +10,17 @@ interface AuthLayoutProps {
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen flex">
-      {/* Left Section - Background Image and Branding */}
-      <div className="w-2/5 relative bg-cover bg-center bg-no-repeat bg-gray-800">
+    <div className="min-h-screen bg-white flex flex-col md:flex-row md:p-6">
+      <div className="hidden md:flex md:w-1/2 relative">
         <img
           src={heroImage}
           alt="Hero background"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-full h-full object-cover rounded-3xl"
         />
-
-        {/* Logo */}
-        <Link to="/" className="relative z-10 p-8">
-          <div className="flex items-center space-x-2">
-            {/* TODO: Add logo SVG */}
-            <span className="text-white text-xl font-bold">
-              <VeriplotSvg />
-            </span>
-          </div>
+        <Link to="/" className="absolute top-5 left-5">
+          <VeriplotSvg />
         </Link>
-
-        {/* Main content */}
         <div className="absolute bottom-10 left-10 text-white max-w-md">
-          {/* Step indicators */}
           <div className="flex space-x-2 mb-6">
             <div className="w-8 h-1 bg-purple-500 rounded"></div>
             <div className="w-8 h-1 bg-white rounded"></div>
@@ -46,9 +36,15 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      {/* Right Section - Form Content */}
-      <div className="w-3/5 bg-white flex items-center justify-center">
-        <div className="w-full max-w-md px-8">{children}</div>
+      <div className="flex-1 flex flex-col items-center py-6 px-3 md:px-16">
+        <Link to="/" className="w-full max-w-md mb-6 px-3 md:hidden">
+          <img
+            src={VeriplotLogo}
+            alt="Veriplot logo"
+            className="h-8 w-auto md:h-9 mb-3"
+          />
+        </Link>
+        <div className="w-full max-w-md">{children}</div>
       </div>
     </div>
   );

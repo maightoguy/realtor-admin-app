@@ -102,13 +102,13 @@ type AdminRealtorRow = {
   };
 };
 
-const StatusBadge = ({ status }: { status: AdminRealtorRow["status"] }) => {
-  const statusConfig = {
-    Active: { color: "#22C55E", bgColor: "#D1FAE5", label: "Active" },
-    Inactive: { color: "#EF4444", bgColor: "#FEE2E2", label: "Inactive" },
-  };
+const realtorStatusConfig = {
+  Active: { color: "#22C55E", bgColor: "#D1FAE5", label: "Active" },
+  Inactive: { color: "#EF4444", bgColor: "#FEE2E2", label: "Inactive" },
+} as const;
 
-  const config = statusConfig[status] || statusConfig.Active;
+const StatusBadge = ({ status }: { status: AdminRealtorRow["status"] }) => {
+  const config = realtorStatusConfig[status] || realtorStatusConfig.Active;
 
   return (
     <span
@@ -529,10 +529,10 @@ const AdminDashboardRealtors = ({
       {/* Filter Tabs and Search */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         {/* Filter Tabs */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-3 px-3 pb-2 sm:flex-wrap sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0">
           <button
             onClick={() => handleFilterChange("All Realtors")}
-            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeFilter === "All Realtors"
                 ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                 : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -542,7 +542,7 @@ const AdminDashboardRealtors = ({
           </button>
           <button
             onClick={() => handleFilterChange("Top realtors")}
-            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeFilter === "Top realtors"
                 ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                 : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -552,7 +552,7 @@ const AdminDashboardRealtors = ({
           </button>
           <button
             onClick={() => handleFilterChange("Approved receipts")}
-            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeFilter === "Approved receipts"
                 ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                 : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -562,7 +562,7 @@ const AdminDashboardRealtors = ({
           </button>
           <button
             onClick={() => handleFilterChange("Rejected receipts")}
-            className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               activeFilter === "Rejected receipts"
                 ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                 : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -614,7 +614,7 @@ const AdminDashboardRealtors = ({
         <Loader text="Loading realtors..." />
       ) : (
         <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">
-          <div className="overflow-x-auto admin-table-scroll">
+          <div className="hidden md:block overflow-x-auto admin-table-scroll">
             <table className="admin-table table-fixed">
               <thead className="bg-gray-50 border-b border-[#F0F1F2]">
                 <tr>
@@ -722,6 +722,59 @@ const AdminDashboardRealtors = ({
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="md:hidden px-3 pb-3 space-y-3">
+            {currentRealtors.length > 0 ? (
+              currentRealtors.map((realtor) => {
+                const config =
+                  realtorStatusConfig[realtor.status] ??
+                  realtorStatusConfig.Active;
+                return (
+                  <div
+                    key={realtor.id}
+                    className="border border-[#E9EAEB] rounded-lg p-2 bg-white shadow-sm"
+                  >
+                    <div className="flex justify-between items-center mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img
+                          src={realtor.avatar}
+                          alt={realtor.name}
+                          className="w-8 h-8 rounded-full object-cover shrink-0"
+                        />
+                        <p className="font-semibold text-xs text-[#0A1B39] truncate">
+                          {realtor.name}
+                        </p>
+                      </div>
+                      <span
+                        className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                        style={{
+                          color: config.color,
+                          backgroundColor: config.bgColor,
+                        }}
+                      >
+                        {config.label}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-[#667085] space-y-0.5">
+                      <p>Email: {realtor.email}</p>
+                      <p>Property sold: {realtor.propertySold}</p>
+                      <p>Amount sold: {realtor.amountSold}</p>
+                      <p>Date joined: {realtor.dateJoined}</p>
+                    </div>
+                    <button
+                      onClick={() => handleViewDetails(realtor.id)}
+                      className="w-full mt-2 py-1 border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+                    >
+                      View details
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="px-2 py-6 text-center text-xs text-gray-500">
+                No realtors found
+              </div>
+            )}
           </div>
         </div>
       )}

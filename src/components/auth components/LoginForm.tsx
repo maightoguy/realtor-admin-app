@@ -92,17 +92,17 @@ const LoginForm: React.FC<LoginFormProps> = ({
       <Loader isOpen={loading} text="Verifying..." />
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col space-y-6 max-w-sm mx-auto justify-center p-6 md:mt-20"
+        className="flex flex-col space-y-6 w-full max-w-md mx-auto justify-center px-2 sm:px-4 md:px-0 md:mt-10"
       >
-      <div className="">
-        <h2 className="text-[25px] font-bold text-gray-900">
+      <div>
+        <h2 className="text-[22px] sm:text-[25px] font-bold text-gray-900">
           Welcome back Admin!
         </h2>
       </div>
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
+        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">
           Email Address
         </label>
         <input
@@ -114,13 +114,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
             onClearError?.();
           }}
           placeholder="example@mail.com"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-600 outline-none"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-purple-600 outline-none text-sm"
         />
       </div>
 
       {/* Password */}
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
+        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">
           Password
         </label>
         <div className="relative">
@@ -133,7 +133,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
               onClearError?.();
             }}
             placeholder="********"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-purple-600 outline-none"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 pr-10 focus:ring-2 focus:ring-purple-600 outline-none text-sm"
           />
           <button
             type="button"
@@ -155,18 +155,18 @@ const LoginForm: React.FC<LoginFormProps> = ({
       <button
         type="submit"
         disabled={loading || !email || !password}
-        className="w-full py-3 bg-purple-700 text-white rounded-lg font-medium hover:bg-purple-800 disabled:opacity-50"
+        className="w-full py-3 bg-purple-700 text-white rounded-lg font-medium text-sm sm:text-base hover:bg-purple-800 disabled:opacity-50"
       >
         {loading ? "Verifying..." : "Login"}
       </button>
 
       {/* Forgot Password */}
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-xs sm:text-sm text-gray-600">
         Forgot Password?{" "}
         <button
           type="button"
           onClick={onForgot}
-          className="text-purple-700 font-medium hover:underline"
+          className="text-purple-700 font-medium hover:underline text-xs sm:text-sm"
         >
           Recover
         </button>

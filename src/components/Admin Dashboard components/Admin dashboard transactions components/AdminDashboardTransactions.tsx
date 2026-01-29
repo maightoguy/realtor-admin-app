@@ -139,16 +139,15 @@ const MetricCard = ({
   </div>
 );
 
-// Status badge component
-const StatusBadge = ({ status }: { status: Transaction["status"] }) => {
-  const statusConfig = {
-    Paid: { color: "#22C55E", bgColor: "#D1FAE5", label: "Paid" },
-    Approved: { color: "#6500AC", bgColor: "#F0E6F7", label: "Approved" },
-    Pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
-    Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
-  };
+const transactionStatusConfig = {
+  Paid: { color: "#22C55E", bgColor: "#D1FAE5", label: "Paid" },
+  Approved: { color: "#6500AC", bgColor: "#F0E6F7", label: "Approved" },
+  Pending: { color: "#6B7280", bgColor: "#F3F4F6", label: "Pending" },
+  Rejected: { color: "#EF4444", bgColor: "#FEE2E2", label: "Rejected" },
+} as const;
 
-  const config = statusConfig[status] || statusConfig.Pending;
+const StatusBadge = ({ status }: { status: Transaction["status"] }) => {
+  const config = transactionStatusConfig[status] || transactionStatusConfig.Pending;
 
   return (
     <span
@@ -719,11 +718,11 @@ const AdminDashboardTransactionsInner = () => {
           {/* Filter Tabs and Search */}
           <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             {/* Filter Tabs */}
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-3 px-3 pb-2 sm:flex-wrap sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0">
               <button
                 type="button"
                 onClick={() => handleFilterChange("All Transactions")}
-                className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   activeFilter === "All Transactions"
                     ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                     : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -734,7 +733,7 @@ const AdminDashboardTransactionsInner = () => {
               <button
                 type="button"
                 onClick={() => handleFilterChange("Commission")}
-                className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   activeFilter === "Commission"
                     ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                     : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -745,7 +744,7 @@ const AdminDashboardTransactionsInner = () => {
               <button
                 type="button"
                 onClick={() => handleFilterChange("Withdrawals")}
-                className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+                className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                   activeFilter === "Withdrawals"
                     ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                     : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -768,7 +767,7 @@ const AdminDashboardTransactionsInner = () => {
 
           {/* Transactions Table */}
           <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">
-            <div className="overflow-x-auto admin-table-scroll">
+            <div className="hidden md:block overflow-x-auto admin-table-scroll">
               <table className="admin-table">
                 <thead className="bg-gray-50 border-b border-[#F0F1F2]">
                   <tr>
@@ -867,6 +866,55 @@ const AdminDashboardTransactionsInner = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+            <div className="md:hidden px-3 pb-3 space-y-3">
+              {currentTransactions.length > 0 ? (
+                currentTransactions.map((transaction) => {
+                  const config =
+                    transactionStatusConfig[transaction.status] ??
+                    transactionStatusConfig.Pending;
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="border border-[#E9EAEB] rounded-lg p-2 bg-white shadow-sm"
+                    >
+                      <div className="flex justify-between items-center mb-1.5">
+                        <p className="font-semibold text-xs text-[#0A1B39] truncate pr-2">
+                          {transaction.type === "Commission"
+                            ? "Commission payment"
+                            : "Withdrawal"}
+                        </p>
+                        <span
+                          className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                          style={{
+                            color: config.color,
+                            backgroundColor: config.bgColor,
+                          }}
+                        >
+                          {config.label}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-[#667085] space-y-0.5">
+                        <p>ID: {formatIdMiddle(transaction.id)}</p>
+                        <p>Realtor: {transaction.realtorName}</p>
+                        <p>Amount: {transaction.amount}</p>
+                        <p>Date: {transaction.date}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleViewDetails(transaction)}
+                        className="w-full mt-2 py-1 border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+                      >
+                        View details
+                      </button>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="px-2 py-6 text-center text-xs text-gray-500">
+                  No transactions found
+                </div>
+              )}
             </div>
           </div>
 
