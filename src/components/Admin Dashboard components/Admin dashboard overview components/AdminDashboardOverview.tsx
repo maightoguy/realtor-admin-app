@@ -180,6 +180,8 @@ const AdminDashboardOverview = ({
     "Commission" | "Realtors" | "Sales"
   >("Commission");
   //const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [showAllReceipts, setShowAllReceipts] = useState(false);
   const [snapshot, setSnapshot] = useState<Awaited<
     ReturnType<typeof overviewService.getOverviewSnapshot>
@@ -363,6 +365,28 @@ const AdminDashboardOverview = ({
     }));
   }, [snapshot]);
 
+  const visibleReceipts = useMemo(() => {
+    if (!showAllReceipts) {
+      return recentReceipts.slice(0, 2);
+    }
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return recentReceipts.slice(startIndex, startIndex + itemsPerPage);
+  }, [recentReceipts, showAllReceipts, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    if (!showAllReceipts) {
+      setCurrentPage(1);
+      return;
+    }
+    const maxPage = Math.max(
+      1,
+      Math.ceil(recentReceipts.length / itemsPerPage),
+    );
+    if (currentPage > maxPage) {
+      setCurrentPage(maxPage);
+    }
+  }, [showAllReceipts, recentReceipts.length, itemsPerPage, currentPage]);
+
   const handleViewReceiptDetails = (receiptId: string) => {
     if (!snapshot) return;
     const row =
@@ -493,14 +517,14 @@ const AdminDashboardOverview = ({
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 mb-6">
         {/* Commission Statistics */}
         <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900">
               Statistics
             </h3>
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2 pb-2">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2 pb-2 w-full sm:w-auto">
               <button
                 onClick={() => setChartView("Commission")}
-                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`px-3 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   chartView === "Commission"
                     ? "bg-[#6500AC] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -510,7 +534,7 @@ const AdminDashboardOverview = ({
               </button>
               <button
                 onClick={() => setChartView("Sales")}
-                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`px-3 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   chartView === "Sales"
                     ? "bg-[#6500AC] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -520,7 +544,7 @@ const AdminDashboardOverview = ({
               </button>
               <button
                 onClick={() => setChartView("Realtors")}
-                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`px-3 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   chartView === "Realtors"
                     ? "bg-[#6500AC] text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -658,13 +682,13 @@ const AdminDashboardOverview = ({
 
       {/* Recent Receipts Table */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b border-gray-200">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900">
             Recent Receipt
           </h3>
           <button
             onClick={() => setShowAllReceipts(!showAllReceipts)}
-            className="text-xs sm:text-sm text-[#6500AC] font-medium hover:underline flex items-center gap-1"
+            className="text-xs sm:text-sm text-[#6500AC] font-medium hover:underline flex items-center gap-1 w-fit"
           >
             {showAllReceipts ? "Show less" : "View all"}
             <ChevronRight className="w-4 h-4" />
@@ -673,7 +697,7 @@ const AdminDashboardOverview = ({
 
         {hasData ? (
           <>
-            <div className="overflow-x-auto admin-table-scroll">
+            <div className="hidden md:block overflow-x-auto admin-table-scroll">
               <table className="admin-table">
                 <thead className="bg-gray-50">
                   <tr>
@@ -701,10 +725,7 @@ const AdminDashboardOverview = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {(showAllReceipts
-                    ? recentReceipts
-                    : recentReceipts.slice(0, 2)
-                  ).map((receipt) => (
+                  {visibleReceipts.map((receipt) => (
                     <ReceiptRow
                       key={receipt.id}
                       {...receipt}
@@ -714,12 +735,54 @@ const AdminDashboardOverview = ({
                 </tbody>
               </table>
             </div>
+            <div className="md:hidden px-3 pb-3 space-y-3">
+              {visibleReceipts.length > 0 ? (
+                visibleReceipts.map((receipt) => (
+                  <div
+                    key={receipt.id}
+                    className="border border-[#E9EAEB] rounded-lg p-3 bg-white shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-[#0A1B39] truncate">
+                          {receipt.property}
+                        </p>
+                        <p className="text-[10px] text-[#667085] truncate">
+                          Receipt ID: {receipt.receiptId}
+                        </p>
+                      </div>
+                      <span className="flex items-center gap-1 text-[10px] text-gray-600 whitespace-nowrap">
+                        <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                        {receipt.status}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-[#667085] space-y-1">
+                      <p className="truncate">Realtor: {receipt.realtorName}</p>
+                      <p className="truncate">Client: {receipt.clientName}</p>
+                      <p>Date: {receipt.dateUploaded}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleViewReceiptDetails(receipt.id)}
+                      className="w-full mt-2 py-2 min-h-[44px] border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+                    >
+                      View details
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="px-2 py-6 text-center text-xs text-gray-500">
+                  No recent receipts available
+                </div>
+              )}
+            </div>
             {showAllReceipts && (
               <div className="p-4 border-t border-gray-200">
                 <AdminPagination
-                  totalItems={100}
-                  itemsPerPage={10}
-                  //onPageChange={setCurrentPage}
+                  totalItems={recentReceipts.length}
+                  itemsPerPage={itemsPerPage}
+                  currentPage={currentPage}
+                  onPageChange={setCurrentPage}
                 />
               </div>
             )}

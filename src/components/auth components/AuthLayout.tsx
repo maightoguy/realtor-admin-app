@@ -36,7 +36,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center py-6 px-3 md:px-16">
+      <div className="flex-1 flex flex-col items-center md:justify-center py-6 px-3 md:px-16">
         <Link to="/" className="w-full max-w-md mb-6 px-3 md:hidden">
           <img
             src={VeriplotLogo}

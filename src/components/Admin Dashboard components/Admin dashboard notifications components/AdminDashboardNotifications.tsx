@@ -222,10 +222,9 @@ const AdminDashboardNotifications = () => {
       </div>
 
       {/* Controls */}
-      <div className="mb-6 flex flex-row sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-gray-600">All notifications</p>
-        <div className="flex flex-row gap-3">
-          {/* Search and Filter Controls */}
+        <div className="flex flex-col gap-3 w-full sm:flex-row sm:w-auto">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <AdminSearchBar
               onSearch={handleSearch}
@@ -233,14 +232,14 @@ const AdminDashboardNotifications = () => {
               className="flex-1 sm:flex-initial"
               placeholder="Search"
             />
-            <button
-              onClick={() => setIsNewNotificationModalOpen(true)}
-              className="bg-[#3D0066] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#3D0066]/90 transition-colors whitespace-nowrap"
-            >
-              <span className="text-xl">+</span>
-              New Notification
-            </button>
           </div>
+          <button
+            onClick={() => setIsNewNotificationModalOpen(true)}
+            className="bg-[#3D0066] text-white px-4 py-2 min-h-[44px] rounded-lg flex items-center justify-center gap-2 hover:bg-[#3D0066]/90 transition-colors whitespace-nowrap w-full sm:w-auto"
+          >
+            <span className="text-xl">+</span>
+            New Notification
+          </button>
         </div>
       </div>
 
@@ -269,7 +268,7 @@ const AdminDashboardNotifications = () => {
 
       {/* Notifications Table */}
       <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">
-        <div className="overflow-x-auto admin-table-scroll">
+        <div className="hidden md:block overflow-x-auto admin-table-scroll">
           <table className="admin-table">
             <thead className="bg-gray-50 border-b border-[#F0F1F2]">
               <tr>
@@ -349,6 +348,49 @@ const AdminDashboardNotifications = () => {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="md:hidden px-3 pb-3 space-y-3">
+          {isLoading ? (
+            <div className="px-2 py-6 text-center text-xs text-gray-500">
+              Loading...
+            </div>
+          ) : loadError ? (
+            <div className="px-2 py-6 text-center text-xs text-gray-500">
+              {loadError}
+            </div>
+          ) : currentNotifications.length > 0 ? (
+            currentNotifications.map((notification) => (
+              <div
+                key={notification.id}
+                className="border border-[#E9EAEB] rounded-lg p-3 bg-white shadow-sm space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#0A1B39] truncate">
+                      {notification.title}
+                    </p>
+                    <p className="text-[10px] text-[#667085] line-clamp-2">
+                      {notification.message}
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <StatusBadge status={notification.status} />
+                  </div>
+                </div>
+                <p className="text-[10px] text-[#667085]">{notification.date}</p>
+                <button
+                  onClick={() => handleViewDetails(notification.id)}
+                  className="w-full mt-2 py-2 min-h-[44px] border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+                >
+                  View details
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="px-2 py-6 text-center text-xs text-gray-500">
+              No notifications found
+            </div>
+          )}
         </div>
       </div>
 

@@ -267,10 +267,10 @@ const AdminDashboardReferrals = ({
         <h1 className="text-2xl font-semibold text-gray-900 mb-4">Referrals</h1>
 
         {/* Tabs */}
-        <div className="flex gap-4 border-b border-[#F0F1F2]">
+        <div className="flex gap-4 border-b border-[#F0F1F2] overflow-x-auto scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveTab("all")}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+            className={`px-4 py-2 min-h-[44px] text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
               activeTab === "all"
                 ? "text-[#6500AC] border-[#6500AC]"
                 : "text-gray-600 border-transparent hover:text-gray-900"
@@ -280,7 +280,7 @@ const AdminDashboardReferrals = ({
           </button>
           <button
             onClick={() => setActiveTab("top")}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+            className={`px-4 py-2 min-h-[44px] text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
               activeTab === "top"
                 ? "text-[#6500AC] border-[#6500AC]"
                 : "text-gray-600 border-transparent hover:text-gray-900"
@@ -292,11 +292,11 @@ const AdminDashboardReferrals = ({
       </div>
 
       {/* Controls */}
-      <div className="mb-6 flex flex-row sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-gray-600">
           {activeTab === "all" ? "All Referrals" : "Top Referrals"}
         </p>
-        <div className="flex flex-row gap-3">
+        <div className="flex w-full sm:w-auto">
           <AdminSearchBar
             onSearch={handleSearch}
             onFilterClick={handleFilterClick}
@@ -335,7 +335,7 @@ const AdminDashboardReferrals = ({
 
       {/* Referrals Table */}
       <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden mb-6">
-        <div className="overflow-x-auto admin-table-scroll">
+        <div className="hidden md:block overflow-x-auto admin-table-scroll">
           <table className="admin-table">
             <thead className="bg-gray-50 border-b border-[#F0F1F2]">
               <tr>
@@ -466,6 +466,51 @@ const AdminDashboardReferrals = ({
               )}
             </tbody>
           </table>
+        </div>
+        <div className="md:hidden px-3 pb-3 space-y-3">
+          {isLoading ? (
+            <div className="px-2 py-6 text-center text-xs text-gray-500">
+              Loading...
+            </div>
+          ) : currentReferrals.length > 0 ? (
+            currentReferrals.map((referral) => (
+              <div
+                key={referral.id}
+                className="border border-[#E9EAEB] rounded-lg p-3 bg-white shadow-sm space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#0A1B39] truncate">
+                      {referral.name}
+                    </p>
+                    <p className="text-[10px] text-[#667085] truncate">
+                      ID: {formatIdMiddle(referral.id)}
+                    </p>
+                    <p className="text-[10px] text-[#667085] truncate">
+                      Referral code: {referral.referralCode}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-[10px] text-[#667085] whitespace-nowrap">
+                    {activeTab === "all" ? referral.dateJoined : "Top"}
+                  </div>
+                </div>
+                <div className="text-[10px] text-[#667085] space-y-1">
+                  <p>Amount referred: {referral.recruitsCount}</p>
+                  <p>Total commission: {referral.totalReferralCommission}</p>
+                </div>
+                <button
+                  onClick={() => handleViewAgent(referral.id)}
+                  className="w-full mt-2 py-2 min-h-[44px] border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+                >
+                  View agent
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="px-2 py-6 text-center text-xs text-gray-500">
+              No referrals found
+            </div>
+          )}
         </div>
       </div>
 
