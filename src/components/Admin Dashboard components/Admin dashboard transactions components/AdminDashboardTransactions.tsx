@@ -147,7 +147,8 @@ const transactionStatusConfig = {
 } as const;
 
 const StatusBadge = ({ status }: { status: Transaction["status"] }) => {
-  const config = transactionStatusConfig[status] || transactionStatusConfig.Pending;
+  const config =
+    transactionStatusConfig[status] || transactionStatusConfig.Pending;
 
   return (
     <span
@@ -718,7 +719,10 @@ const AdminDashboardTransactionsInner = () => {
           {/* Filter Tabs and Search */}
           <div className="mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             {/* Filter Tabs */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-3 px-3 pb-2 sm:flex-wrap sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0">
+            <div
+              className="flex flex-nowrap gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide max-w-full -mx-3 px-3 pb-2 sm:flex-wrap sm:overflow-visible sm:whitespace-normal sm:mx-0 sm:px-0 sm:pb-0"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
               <button
                 type="button"
                 onClick={() => handleFilterChange("All Transactions")}

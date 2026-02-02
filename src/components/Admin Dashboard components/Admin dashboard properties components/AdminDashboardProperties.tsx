@@ -1390,8 +1390,8 @@ const AdminDashboardProperties = ({
             <>
               {/* Properties Grid */}
               <div className="mb-6">
-                <div className="flex flex-row justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-gray-600 mb-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-600">
                     {selectedDeveloper
                       ? "Developer's property"
                       : "All properties"}
@@ -1401,7 +1401,7 @@ const AdminDashboardProperties = ({
                       setEditingProperty(null);
                       handleFormStateChange(!showAddForm);
                     }}
-                    className="bg-[#6500AC] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
+                    className="bg-[#6500AC] text-white px-3 py-2 min-h-[44px] rounded-lg text-xs sm:text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap w-full sm:w-auto"
                   >
                     Add new property
                   </button>

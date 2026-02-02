@@ -11,12 +11,12 @@ export default function Loader({
 
   return (
     <div
-      className="fixed inset-0 w-full h-full bg-black/10 backdrop-blur-md flex items-center justify-center z-9999"
+      className="fixed inset-0 w-full h-full bg-black/10 backdrop-blur-md flex items-center justify-center z-[9999] p-4"
       role="status"
       aria-live="polite"
       aria-label={text}
     >
-      <div className="bg-white rounded-lg p-6 flex items-center gap-3 shadow-xl">
+      <div className="bg-white rounded-lg p-6 flex items-center gap-3 shadow-xl max-w-full">
         <svg
           className="animate-spin h-6 w-6 text-[#6500AC]"
           viewBox="0 0 24 24"

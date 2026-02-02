@@ -123,11 +123,11 @@ const AdminPropertyDeveloper = ({
   // Table view with data
   return (
     <div className="mb-6">
-      <div className="flex flex-row justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between gap-3 mb-6">
         <h2 className="text-lg font-semibold text-gray-600">Developers</h2>
         <button
           onClick={handleOpenModal}
-          className="bg-[#6500AC] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap"
+          className="bg-[#6500AC] text-white px-4 py-2 min-h-[44px] rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors whitespace-nowrap w-full sm:w-auto"
         >
           Add new developer
         </button>
@@ -135,7 +135,7 @@ const AdminPropertyDeveloper = ({
 
       {/* Developers Table */}
       <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto admin-table-scroll">
+        <div className="hidden md:block overflow-x-auto admin-table-scroll">
           <table className="admin-table">
             <thead className="bg-[#FAFAFA] border-b border-[#F0F1F2]">
               <tr>
@@ -214,6 +214,50 @@ const AdminPropertyDeveloper = ({
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="md:hidden px-3 pb-3 space-y-3">
+          {currentDevelopers.map((developer) => (
+            <div
+              key={developer.id}
+              className="border border-[#E9EAEB] rounded-lg p-3 bg-white shadow-sm space-y-2"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-[#0A1B39] truncate">
+                    {developer.name}
+                  </p>
+                  <p className="text-[10px] text-[#667085] truncate">
+                    {developer.email}
+                  </p>
+                  <p className="text-[10px] text-[#667085] truncate">
+                    Phone: {developer.phone}
+                  </p>
+                </div>
+                <div className="shrink-0 flex items-center gap-2">
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${
+                      developer.status === "Active"
+                        ? "bg-[#22C55E]"
+                        : "bg-[#EF4444]"
+                    }`}
+                  ></span>
+                  <span className="text-[10px] text-[#667085]">
+                    {developer.status}
+                  </span>
+                </div>
+              </div>
+              <div className="text-[10px] text-[#667085] space-y-1">
+                <p>Total properties: {developer.totalProperties}</p>
+                <p>Date added: {formatDate(developer.dateAdded)}</p>
+              </div>
+              <button
+                onClick={() => onViewDetails?.(developer.id)}
+                className="w-full mt-2 py-2 min-h-[44px] border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+              >
+                View details
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 

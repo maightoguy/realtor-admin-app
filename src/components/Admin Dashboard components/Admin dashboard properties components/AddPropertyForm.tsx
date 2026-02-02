@@ -182,7 +182,9 @@ const AddPropertyForm = ({
         timestamp: Date.now(),
       };
       saveDraft(DRAFT_KEY, dataToSave).catch((e) =>
-        logger.error("[ADMIN][ADD PROPERTY] Failed to save draft", { error: e })
+        logger.error("[ADMIN][ADD PROPERTY] Failed to save draft", {
+          error: e,
+        }),
       );
     }, 1000);
 
@@ -200,7 +202,7 @@ const AddPropertyForm = ({
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -233,7 +235,7 @@ const AddPropertyForm = ({
   }, []);
 
   const activeDevelopers = developers.filter(
-    (d) => String(d.status).toLowerCase() !== "inactive"
+    (d) => String(d.status).toLowerCase() !== "inactive",
   );
 
   useEffect(() => {
@@ -309,7 +311,7 @@ const AddPropertyForm = ({
         path,
         preview: urlByPath.get(path) ?? propertyMediaService.getPublicUrl(path),
         isThumbnail: idx === 0,
-      }))
+      })),
     );
 
     const rawDocs = Array.isArray(initialProperty.contractDocs)
@@ -414,7 +416,7 @@ const AddPropertyForm = ({
       const updated = prev.filter((img) => img.id !== id);
       // If we removed the thumbnail and there are other images, make the first one thumbnail
       const removedWasThumbnail = prev.find(
-        (img) => img.id === id
+        (img) => img.id === id,
       )?.isThumbnail;
       if (removedWasThumbnail && updated.length > 0) {
         updated[0].isThumbnail = true;
@@ -428,7 +430,7 @@ const AddPropertyForm = ({
       prev.map((img) => ({
         ...img,
         isThumbnail: img.id === id,
-      }))
+      })),
     );
   };
 
@@ -489,7 +491,7 @@ const AddPropertyForm = ({
 
   // Geocoding function to convert location name to coordinates
   const geocodeLocation = async (
-    locationName: string
+    locationName: string,
   ): Promise<[number, number] | null> => {
     if (!locationName || locationName.trim() === "") {
       return null;
@@ -500,13 +502,13 @@ const AddPropertyForm = ({
       // Using OpenStreetMap Nominatim API (free, no API key required)
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          locationName
+          locationName,
         )}&limit=1`,
         {
           headers: {
             "User-Agent": "RealtorAdminApp/1.0", // Required by Nominatim
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -684,6 +686,29 @@ const AddPropertyForm = ({
   return (
     <>
       <Loader isOpen={isSaving} text="Saving property..." />
+      <div className="w-full flex items-center justify-start mb-4">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSaving}
+          className="min-h-[44px] px-4 py-2 border border-[#D5D7DA] rounded-lg font-medium text-[#414651] hover:bg-gray-50 transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Back
+        </button>
+      </div>
       {/* Step Progress Bar - Based on Inspiration */}
       <div className="mb-6 w-full flex flex-col items-center md:items-center">
         <div className="relative w-full max-w-full flex justify-between items-center">
@@ -741,10 +766,10 @@ const AddPropertyForm = ({
               {/* Property Image Section */}
               <div>
                 <div className="mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                     Property Image
                   </h3>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
                     Add property image and videos here, Atleast 1 image must be
                     added
                   </p>
@@ -764,7 +789,7 @@ const AddPropertyForm = ({
                     }`}
                   >
                     <div className="space-y-4">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600">
                         Drag and drop your file here. - or -
                       </p>
                       <div className="flex justify-center">
@@ -784,7 +809,7 @@ const AddPropertyForm = ({
                       </div>
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="bg-[#6500AC] text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
+                        className="bg-[#6500AC] text-white px-6 py-2 min-h-[44px] rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
                       >
                         Choose File
                       </button>
@@ -835,33 +860,39 @@ const AddPropertyForm = ({
                                 )}
                                 <button
                                   onClick={() => handleRemoveImage(image.id)}
-                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                                  className="absolute top-0 right-0 z-10 min-w-[44px] min-h-[44px] p-1 flex items-start justify-end"
                                 >
-                                  ×
+                                  <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-red-500 text-white flex items-center justify-center text-sm sm:text-base hover:bg-red-600">
+                                    ×
+                                  </span>
                                 </button>
-                                <div className="absolute top-1 left-1">
+                                <div className="absolute top-0 left-0 z-10">
                                   <button
                                     onClick={() => handleSetThumbnail(image.id)}
-                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                      image.isThumbnail
-                                        ? "bg-[#6500AC] border-[#6500AC]"
-                                        : "bg-white border-gray-300"
-                                    }`}
+                                    className="min-w-[44px] min-h-[44px] p-1 flex items-start justify-start"
                                     title="Mark as thumbnail"
                                   >
-                                    {image.isThumbnail && (
-                                      <svg
-                                        className="w-3 h-3 text-white"
-                                        fill="currentColor"
-                                        viewBox="0 0 20 20"
-                                      >
-                                        <path
-                                          fillRule="evenodd"
-                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                          clipRule="evenodd"
-                                        />
-                                      </svg>
-                                    )}
+                                    <span
+                                      className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center ${
+                                        image.isThumbnail
+                                          ? "bg-[#6500AC] border-[#6500AC]"
+                                          : "bg-white border-gray-300"
+                                      }`}
+                                    >
+                                      {image.isThumbnail && (
+                                        <svg
+                                          className="w-3 h-3 sm:w-4 sm:h-4 text-white"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      )}
+                                    </span>
                                   </button>
                                 </div>
                               </>
@@ -881,10 +912,10 @@ const AddPropertyForm = ({
               {/* Property Details Section */}
               <div>
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                     Property Details
                   </h3>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
                     Enter the information of this property here
                   </p>
                 </div>
@@ -893,14 +924,14 @@ const AddPropertyForm = ({
                   {/* Category and Developer - Side by Side */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                         Category
                       </label>
                       <select
                         name="category"
                         value={formData.category}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                        className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                       >
                         <option value="">Select category</option>
                         <option value="Land">Land</option>
@@ -911,15 +942,15 @@ const AddPropertyForm = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                         Developer
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <select
                           name="developerId"
                           value={formData.developerId}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                          className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                         >
                           <option value="">Select developer</option>
                           {isLoadingDevelopers && (
@@ -942,7 +973,7 @@ const AddPropertyForm = ({
                         <button
                           type="button"
                           onClick={() => setIsAddDeveloperModalOpen(true)}
-                          className="px-3 py-2 border border-[#F0F1F2] rounded-lg text-sm font-medium text-[#6500AC] hover:bg-gray-50 transition-colors whitespace-nowrap"
+                          className="px-4 py-2 min-h-[44px] border border-[#F0F1F2] rounded-lg text-sm font-medium text-[#6500AC] hover:bg-gray-50 transition-colors whitespace-nowrap w-full sm:w-auto shrink-0"
                         >
                           Add developer
                         </button>
@@ -952,7 +983,7 @@ const AddPropertyForm = ({
 
                   {/* Property Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Property name
                     </label>
                     <input
@@ -961,13 +992,13 @@ const AddPropertyForm = ({
                       value={formData.title}
                       onChange={handleInputChange}
                       placeholder="What is the name of this property"
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     />
                   </div>
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Description
                     </label>
                     <textarea
@@ -976,7 +1007,7 @@ const AddPropertyForm = ({
                       onChange={handleInputChange}
                       placeholder="Add more description about this property"
                       rows={4}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent resize-none"
+                      className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent resize-none"
                     />
                   </div>
                 </div>
@@ -988,16 +1019,16 @@ const AddPropertyForm = ({
             <div className="space-y-6">
               {/* Additional information section */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                   Additional information
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-xs sm:text-sm text-gray-500 mb-4">
                   Other informations come here
                 </p>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                         Starting price (N)
                       </label>
                       <input
@@ -1006,11 +1037,11 @@ const AddPropertyForm = ({
                         value={formData.startingPrice}
                         onChange={handleInputChange}
                         placeholder="What is the starting price for this property"
-                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                        className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                         Commission (%)
                       </label>
                       <input
@@ -1019,12 +1050,12 @@ const AddPropertyForm = ({
                         value={formData.commission}
                         onChange={handleInputChange}
                         placeholder="Percentage of commison"
-                        className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                        className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Location
                     </label>
                     <input
@@ -1033,18 +1064,18 @@ const AddPropertyForm = ({
                       value={formData.location}
                       onChange={handleInputChange}
                       placeholder="Enter the full location of the property"
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Document on property
                     </label>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {formData.documentOnProperty.map((doc) => (
                         <span
                           key={doc}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs sm:text-sm"
                         >
                           {doc}
                           <button
@@ -1064,7 +1095,7 @@ const AddPropertyForm = ({
                           e.target.value = "";
                         }
                       }}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     >
                       <option value="">
                         What are the document available for this property
@@ -1248,15 +1279,15 @@ const AddPropertyForm = ({
 
               {/* Features section */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                   Features
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-xs sm:text-sm text-gray-500 mb-4">
                   This are the features of the property
                 </p>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Land size (sqm)
                     </label>
                     <input
@@ -1265,18 +1296,18 @@ const AddPropertyForm = ({
                       value={formData.landSize}
                       onChange={handleInputChange}
                       placeholder="0"
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Security
                     </label>
                     <select
                       name="security"
                       value={formData.security}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     >
                       <option value="">Select security status</option>
                       <option value="very secured">Very secured</option>
@@ -1285,14 +1316,14 @@ const AddPropertyForm = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Accessibility
                     </label>
                     <select
                       name="accessibility"
                       value={formData.accessibility}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     >
                       <option value="">is this road easily accessible</option>
                       <option value="Yes">Yes</option>
@@ -1300,14 +1331,14 @@ const AddPropertyForm = ({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                       Topography
                     </label>
                     <select
                       name="topography"
                       value={formData.topography}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     >
                       <option value="">
                         What is the topography of this property
@@ -1378,15 +1409,15 @@ const AddPropertyForm = ({
 
                   {/* Property Title and Price */}
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                    <h2 className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">
                       {formData.title || "Land for Sale"}
                     </h2>
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl sm:text-3xl font-bold text-[#6D00C2]">
+                        <span className="text-xl sm:text-3xl font-bold text-[#6D00C2]">
                           ₦
                           {parseFloat(
-                            formData.startingPrice || formData.price || "0"
+                            formData.startingPrice || formData.price || "0",
                           ).toLocaleString()}
                         </span>
                       </div>
@@ -1411,7 +1442,7 @@ const AddPropertyForm = ({
                   {/* About Section */}
                   {formData.description && (
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                      <h3 className="text-base sm:text-xl font-semibold text-gray-900 mb-3">
                         About this Property
                       </h3>
                       <p className="text-gray-600 leading-relaxed">
@@ -1423,7 +1454,7 @@ const AddPropertyForm = ({
                   {/* Documents Section */}
                   {formData.documentOnProperty.length > 0 && (
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                      <h3 className="text-base sm:text-xl font-semibold text-gray-900 mb-3">
                         Documents for this Property
                       </h3>
                       <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
@@ -1455,21 +1486,21 @@ const AddPropertyForm = ({
                     formData.accessibility ||
                     formData.topography) && (
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                      <h3 className="text-base sm:text-xl font-semibold text-gray-900 mb-3">
                         Features
                       </h3>
                       <div className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {formData.landSize && (
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl">
+                              <span className="text-xl sm:text-2xl">
                                 <IslandIcon color={"#808080"} />
                               </span>
                               <div>
                                 <p className="font-semibold text-gray-900">
                                   {formData.landSize}sqms
                                 </p>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-xs sm:text-sm text-gray-600">
                                   Land size
                                 </p>
                               </div>
@@ -1477,7 +1508,7 @@ const AddPropertyForm = ({
                           )}
                           {formData.security && (
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl">
+                              <span className="text-xl sm:text-2xl">
                                 <svg
                                   width="24"
                                   height="24"
@@ -1507,7 +1538,7 @@ const AddPropertyForm = ({
                                     ? "Secured"
                                     : formData.security}
                                 </p>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-xs sm:text-sm text-gray-600">
                                   Security
                                 </p>
                               </div>
@@ -1515,7 +1546,7 @@ const AddPropertyForm = ({
                           )}
                           {formData.accessibility && (
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl">
+                              <span className="text-xl sm:text-2xl">
                                 <svg
                                   width="24"
                                   height="24"
@@ -1544,7 +1575,7 @@ const AddPropertyForm = ({
                                 <p className="font-semibold text-gray-900">
                                   {formData.accessibility}
                                 </p>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-xs sm:text-sm text-gray-600">
                                   Accessible
                                 </p>
                               </div>
@@ -1552,7 +1583,7 @@ const AddPropertyForm = ({
                           )}
                           {formData.topography && (
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl">
+                              <span className="text-xl sm:text-2xl">
                                 <svg
                                   width="24"
                                   height="24"
@@ -1570,7 +1601,7 @@ const AddPropertyForm = ({
                                 <p className="font-semibold text-gray-900">
                                   {formData.topography}
                                 </p>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-xs sm:text-sm text-gray-600">
                                   Topography
                                 </p>
                               </div>
@@ -1771,8 +1802,8 @@ const AddPropertyForm = ({
               {currentStep === 1
                 ? "Cancel"
                 : currentStep === 2
-                ? "Back"
-                : "Previous"}
+                  ? "Back"
+                  : "Previous"}
             </button>
             <button
               onClick={handleNext}
