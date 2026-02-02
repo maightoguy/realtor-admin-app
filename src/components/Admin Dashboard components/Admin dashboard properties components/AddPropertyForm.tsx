@@ -1164,7 +1164,7 @@ const AddPropertyForm = ({
                       <button
                         type="button"
                         onClick={() => formFileInputRef.current?.click()}
-                        className="bg-[#6500AC] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
+                        className="bg-[#6500AC] text-white px-4 py-2 min-h-[44px] inline-flex items-center justify-center rounded-lg text-sm font-medium hover:bg-[#4D14C7] transition-colors"
                       >
                         Upload
                       </button>
@@ -1211,7 +1211,7 @@ const AddPropertyForm = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveExistingForm(form.ref)}
-                              className="text-red-500 hover:text-red-700 shrink-0"
+                              className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
                             >
                               <svg
                                 className="w-5 h-5"
@@ -1259,7 +1259,7 @@ const AddPropertyForm = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveForm(index)}
-                              className="text-red-500 hover:text-red-700 shrink-0"
+                              className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
                             >
                               <svg
                                 className="w-5 h-5"
@@ -1361,7 +1361,7 @@ const AddPropertyForm = ({
           {currentStep === 3 && (
             <div className="space-y-6">
               {/* Main Content Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                 {/* Left Column - Main Content */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Image Gallery */}
@@ -1385,7 +1385,7 @@ const AddPropertyForm = ({
                       </div>
 
                       {/* Thumbnail Images */}
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="grid grid-cols-4 gap-2 sm:gap-3">
                         {images.slice(0, 4).map((img, index) => (
                           <div
                             key={index}
@@ -1449,7 +1449,7 @@ const AddPropertyForm = ({
                       <h3 className="text-base sm:text-xl font-semibold text-gray-900 mb-3">
                         About this Property
                       </h3>
-                      <p className="text-gray-600 leading-relaxed">
+                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed break-words">
                         {formData.description}
                       </p>
                     </div>
@@ -1477,7 +1477,9 @@ const AddPropertyForm = ({
                                 />
                               </svg>
                             </div>
-                            <span className="text-gray-700">{doc}</span>
+                            <span className="text-sm sm:text-base text-gray-700 break-words">
+                              {doc}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -1630,9 +1632,9 @@ const AddPropertyForm = ({
                         {existingUploadedForms.map((form) => (
                           <div
                             key={form.ref}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg overflow-auto no-scrollbar"
+                            className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg min-w-0"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <svg
                                 className="w-5 h-5 text-green-500 shrink-0"
                                 fill="currentColor"
@@ -1649,7 +1651,8 @@ const AddPropertyForm = ({
                                   href={form.url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-sm font-medium text-gray-900 truncate hover:underline block"
+                                  title={form.name}
+                                  className="text-sm font-medium text-gray-900 hover:underline block truncate max-w-[34ch] sm:max-w-none"
                                 >
                                   {form.name}
                                 </a>
@@ -1658,7 +1661,7 @@ const AddPropertyForm = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveExistingForm(form.ref)}
-                              className="text-red-500 hover:text-red-700 shrink-0 ml-2"
+                              className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
                             >
                               <svg
                                 className="w-5 h-5"
@@ -1677,9 +1680,9 @@ const AddPropertyForm = ({
                         {uploadedForms.map((form, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg overflow-auto no-scrollbar"
+                            className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg min-w-0"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <svg
                                 className="w-5 h-5 text-green-500 shrink-0"
                                 fill="currentColor"
@@ -1692,7 +1695,10 @@ const AddPropertyForm = ({
                                 />
                               </svg>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-gray-900 truncate">
+                                <p
+                                  className="text-sm font-medium text-gray-900 truncate max-w-[34ch] sm:max-w-none"
+                                  title={form.name}
+                                >
                                   {form.name}
                                 </p>
                                 <p className="text-xs text-gray-500">
@@ -1703,7 +1709,7 @@ const AddPropertyForm = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveForm(index)}
-                              className="text-red-500 hover:text-red-700 shrink-0 ml-2"
+                              className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
                             >
                               <svg
                                 className="w-5 h-5"
@@ -1746,7 +1752,7 @@ const AddPropertyForm = ({
                             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                           />
                         </svg>
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                           {formData.location}
                         </h3>
                       </div>
@@ -1780,7 +1786,7 @@ const AddPropertyForm = ({
             <button
               onClick={handleSave}
               disabled={!isStepValid() || isSaving}
-              className={`w-full py-3 rounded-lg font-medium transition-colors ${
+              className={`w-full py-3 min-h-[44px] inline-flex items-center justify-center rounded-lg text-sm sm:text-base font-medium transition-colors ${
                 isStepValid() && !isSaving
                   ? "bg-[#6500AC] text-white hover:bg-[#4D14C7]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -1792,7 +1798,7 @@ const AddPropertyForm = ({
               type="button"
               onClick={() => setCurrentStep(1)}
               disabled={isSaving}
-              className="w-full py-3 rounded-lg font-medium transition-colors border border-[#D5D7DA] text-[#414651] hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="w-full py-3 min-h-[44px] inline-flex items-center justify-center rounded-lg text-sm sm:text-base font-medium transition-colors border border-[#D5D7DA] text-[#414651] hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               Edit details
             </button>
