@@ -961,7 +961,7 @@ const AdminPropertyDetails = ({
                   style={{ WebkitOverflowScrolling: "touch" }}
                 >
                   <div className="min-w-[560px] sm:min-w-0 relative h-64">
-                    <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 pr-3 w-12">
+                    <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-[10px] sm:text-xs text-gray-500 pr-3 w-12">
                       {yAxisLabels.map((label, index) => (
                         <span key={`y-label-${index}`}>{label}</span>
                       ))}
@@ -1013,15 +1013,29 @@ const AdminPropertyDetails = ({
                           })}
                         </div>
 
-                        <div className="flex justify-between gap-1.5 mt-2">
-                          {months.map((month, index) => (
-                            <div
-                              key={`label-${index}`}
-                              className="flex-1 text-center text-xs text-gray-500"
-                            >
-                              {month}
-                            </div>
-                          ))}
+                        <div className="flex items-center justify-between gap-1.5 mt-2">
+                          {months.map((month, index) => {
+                            const isCurrentMonth = index === currentMonthIndex;
+                            return (
+                              <div
+                                key={`label-${index}`}
+                                className="flex-1 flex justify-center relative"
+                              >
+                                {isCurrentMonth && (
+                                  <div className="absolute -top-8 bottom-0 -left-1 -right-1 bg-gray-100 rounded-b-lg"></div>
+                                )}
+                                <span
+                                  className={`text-[10px] sm:text-xs whitespace-nowrap relative z-10 ${
+                                    isCurrentMonth
+                                      ? "text-gray-900 font-medium"
+                                      : "text-gray-600"
+                                  }`}
+                                >
+                                  {month}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>

@@ -211,7 +211,7 @@ const RemoveRealtorModal = ({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div className="flex items-center justify-between p-6 border-b border-[#EAECF0]">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-[#EAECF0]">
           <div className="flex flex-col items-start gap-3">
             <div className="w-8 h-8 bg-[#FEE2E2] rounded-lg flex items-center justify-center">
               <Trash2 className="w-4 h-4 text-[#DC2626]" />
@@ -223,13 +223,13 @@ const RemoveRealtorModal = ({
           <button
             type="button"
             onClick={onClose}
-            className="text-[#9CA1AA] hover:text-[#667085] transition-colors"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-lg text-[#9CA1AA] hover:text-[#667085] hover:bg-gray-50 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-4">
           <p className="text-[#667085] text-sm leading-relaxed">
             You are about to remove{" "}
             <span className="text-[#0A1B39] font-medium">{realtorName}</span>{" "}
@@ -262,12 +262,12 @@ const RemoveRealtorModal = ({
           ) : null}
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-[#EAECF0]">
+        <div className="flex flex-col sm:flex-row gap-3 p-4 sm:p-6 border-t border-[#EAECF0]">
           <button
             type="button"
             onClick={onClose}
             disabled={isRemoving}
-            className="sm:w-full sm:flex-1 px-4 py-2 border border-[#E6E7EC] text-[#667085] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
+            className="w-full sm:flex-1 px-4 py-2 min-h-[44px] inline-flex items-center justify-center border border-[#E6E7EC] text-[#667085] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
           >
             Cancel
           </button>
@@ -275,7 +275,7 @@ const RemoveRealtorModal = ({
             type="button"
             onClick={onConfirm}
             disabled={isRemoving}
-            className="sm:w-full sm:flex-1 px-4 py-2 bg-[#DC2626] text-white rounded-lg hover:bg-[#B91C1C] transition-colors disabled:opacity-60"
+            className="w-full sm:flex-1 px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-[#DC2626] text-white rounded-lg hover:bg-[#B91C1C] transition-colors disabled:opacity-60"
           >
             {isRemoving ? "Removing..." : "Proceed to remove"}
           </button>
@@ -365,13 +365,13 @@ const KycReviewModal = ({
         >
           <button
             onClick={onClose}
-            className="absolute right-6 top-6 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors z-10"
+            className="absolute right-4 top-4 sm:right-6 sm:top-6 w-11 h-11 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors z-10"
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
 
-          <div className="p-6 border-b border-[#F0F1F2]">
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          <div className="p-4 sm:p-6 border-b border-[#F0F1F2]">
+            <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-1">
               KYC documents
             </h2>
             <p className="text-sm text-gray-600">
@@ -379,7 +379,7 @@ const KycReviewModal = ({
             </p>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
             <div className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between text-sm gap-4">
                 <span className="text-gray-600">Realtor</span>
@@ -406,7 +406,7 @@ const KycReviewModal = ({
                     onClick={() =>
                       window.open(docUrl, "_blank", "noopener,noreferrer")
                     }
-                    className="text-sm text-[#6500AC] font-semibold hover:underline"
+                    className="px-3 py-2 min-h-[44px] inline-flex items-center justify-center rounded-lg text-sm text-[#6500AC] font-semibold hover:bg-[#F0E6F7] transition-colors"
                   >
                     Open in new tab
                   </button>
@@ -442,11 +442,11 @@ const KycReviewModal = ({
               </div>
             ) : null}
 
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="w-full sm:w-auto px-4 py-2 min-h-[44px] inline-flex items-center justify-center border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Close
               </button>
@@ -456,7 +456,7 @@ const KycReviewModal = ({
                   !canReview || isSaving || realtor.kyc_status === "rejected"
                 }
                 onClick={() => handleUpdate("rejected")}
-                className="px-4 py-2 bg-[#EF4444] text-white rounded-lg text-sm font-medium hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-[#EF4444] text-white rounded-lg text-sm font-medium hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Reject
               </button>
@@ -466,7 +466,7 @@ const KycReviewModal = ({
                   !canReview || isSaving || realtor.kyc_status === "approved"
                 }
                 onClick={() => handleUpdate("approved")}
-                className="px-4 py-2 bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-[#6500AC] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Approve
               </button>
@@ -518,13 +518,13 @@ const BankDetailsModal = ({
         >
           <button
             onClick={onClose}
-            className="absolute right-6 top-6 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors z-10"
+            className="absolute right-4 top-4 sm:right-6 sm:top-6 w-11 h-11 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors z-10"
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
 
-          <div className="p-6 border-b border-[#F0F1F2]">
-            <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          <div className="p-4 sm:p-6 border-b border-[#F0F1F2]">
+            <h2 className="text-base sm:text-xl font-semibold text-gray-900 mb-1">
               Bank details
             </h2>
             <p className="text-sm text-gray-600">
@@ -532,7 +532,7 @@ const BankDetailsModal = ({
             </p>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             {accounts.length === 0 ? (
               <div className="border border-[#F0F1F2] bg-[#FAFAFA] rounded-xl p-4 text-sm text-gray-600">
                 No bank details found for this realtor.
@@ -574,7 +574,7 @@ const BankDetailsModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="w-full sm:w-auto px-4 py-2 min-h-[44px] inline-flex items-center justify-center border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Close
               </button>
@@ -977,6 +977,7 @@ const RealtorDetailsSection = ({
   const realtorAvatar = realtor.avatar_url || DefaultProfilePic;
   const realtorStatus =
     realtor.kyc_status === "approved" ? "Active" : "Inactive";
+  const currentMonthIndex = new Date().getMonth();
 
   const propertyMap = useMemo(
     () => new Map(properties.map((p) => [p.id, p])),
@@ -1386,7 +1387,7 @@ const RealtorDetailsSection = ({
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={onBack}
-          className="flex items-center justify-center w-10 h-10 rounded-lg border border-[#F0F1F2] hover:bg-gray-50 transition-colors"
+          className="flex items-center justify-center w-11 h-11 rounded-lg border border-[#F0F1F2] hover:bg-gray-50 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 text-gray-600" />
         </button>
@@ -1398,7 +1399,7 @@ const RealtorDetailsSection = ({
       {/* Realtor Info and Sales Statistics Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Basic Info Card */}
-        <div className="flex flex-col bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-6 gap-6">
+        <div className="flex flex-col bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-4 sm:p-6 gap-6">
           <div className="flex flex-row justify-between items-start">
             <h3 className="text-lg font-semibold text-gray-900">Basic info</h3>
 
@@ -1422,11 +1423,13 @@ const RealtorDetailsSection = ({
               alt={realtorName}
               className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-200 ring-offset-2 ring-offset-white"
             />
-            <div>
+            <div className="min-w-0">
               <p className="text-lg font-semibold text-gray-900">
                 {realtorName}
               </p>
-              <p className="text-sm text-gray-600">{realtor.email || "-"}</p>
+              <p className="text-sm text-gray-600 break-words">
+                {realtor.email || "-"}
+              </p>
             </div>
           </div>
 
@@ -1461,7 +1464,7 @@ const RealtorDetailsSection = ({
           {/* KYC Verification Section */}
           <div>
             <p className="text-xs text-gray-500 mb-1">KYC status</p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <div
                 className={`w-2 h-2 rounded-full ${
                   realtor.kyc_status === "approved"
@@ -1481,7 +1484,7 @@ const RealtorDetailsSection = ({
               <button
                 type="button"
                 onClick={() => setIsKycModalOpen(true)}
-                className="text-sm text-[#6500AC] font-semibold hover:underline ml-2"
+                className="px-3 py-2 min-h-[44px] inline-flex items-center justify-center rounded-lg text-sm text-[#6500AC] font-semibold hover:bg-[#F0E6F7] transition-colors"
               >
                 View
               </button>
@@ -1489,18 +1492,18 @@ const RealtorDetailsSection = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => {
                 setIsBankModalOpen(true);
               }}
-              className="flex-1 px-4 py-2 border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 min-h-[44px] inline-flex items-center justify-center border border-[#F0F1F2] rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               View Bank details
             </button>
             <button
               onClick={handleOpenRemoveModal}
-              className="flex-1 px-4 py-2 bg-[#EF4444] text-white rounded-lg text-sm font-medium hover:bg-[#DC2626] transition-colors"
+              className="flex-1 px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-[#EF4444] text-white rounded-lg text-sm font-medium hover:bg-[#DC2626] transition-colors"
             >
               Remove Realtor
             </button>
@@ -1508,81 +1511,91 @@ const RealtorDetailsSection = ({
         </div>
 
         {/* Sales Statistics Card */}
-        <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-6">
+        <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-4 sm:p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
             Sales Statistics
           </h3>
 
           {/* Chart */}
-          <div className="relative h-64">
-            {/* Y-axis labels */}
-            <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 pr-3 w-12">
-              {yAxisLabels.map((label, index) => (
-                <span key={`y-label-${index}`}>{label}</span>
-              ))}
-            </div>
-
-            {/* Chart container with grid lines */}
-            <div className="ml-12 pr-4 relative h-full">
-              {/* Grid lines */}
-              <div className="absolute inset-0 flex flex-col justify-between pb-12">
-                <div className="w-full h-px bg-gray-200"></div>
-                <div className="w-full h-px bg-gray-200"></div>
-                <div className="w-full h-px bg-gray-200"></div>
-                <div className="w-full h-px bg-gray-200"></div>
+          <div
+            className="relative h-48 sm:h-64 overflow-x-auto overflow-y-hidden scrollbar-hide"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <div className="min-w-[560px] sm:min-w-0 h-full relative">
+              <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-[10px] sm:text-xs text-gray-500 pr-3 w-12">
+                {yAxisLabels.map((label, index) => (
+                  <span key={`y-label-${index}`}>{label}</span>
+                ))}
               </div>
 
-              {/* Bars and labels container */}
-              <div className="relative">
-                {/* Bars container */}
-                <div className="relative h-48 flex items-end justify-between gap-1.5 mb-2">
-                  {chartData.map((value, index) => {
-                    const height = (value / chartMaxValue) * 100;
-                    const isCurrentMonth = months[index] === "Aug";
-                    return (
-                      <div
-                        key={`bar-${index}`}
-                        className="flex-1 flex flex-col items-center h-full justify-end relative"
-                      >
-                        {/* Highlight background for current month */}
-                        {isCurrentMonth && (
-                          <div className="absolute -inset-x-1 -top-2 -bottom-8 bg-gray-100 rounded-lg"></div>
-                        )}
-                        {/* Bar */}
-                        <div
-                          className={`w-full rounded-t transition-all relative z-10 ${
-                            isCurrentMonth ? "bg-green-500" : "bg-[#6500AC]"
-                          }`}
-                          style={{
-                            height: `${height}%`,
-                            minHeight: height > 0 ? "4px" : "0",
-                          }}
-                        />
-                        {/* Vertical line from bar to month label */}
-                        <div
-                          className="absolute w-px bg-gray-200 z-0"
-                          style={{
-                            bottom: "-20px",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            height: "20px",
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
+              <div className="ml-12 pr-4 relative h-full">
+                <div className="absolute inset-0 flex flex-col justify-between pb-12">
+                  <div className="w-full h-px bg-gray-200"></div>
+                  <div className="w-full h-px bg-gray-200"></div>
+                  <div className="w-full h-px bg-gray-200"></div>
+                  <div className="w-full h-px bg-gray-200"></div>
                 </div>
 
-                {/* Month labels */}
-                <div className="flex justify-between gap-1.5 mt-2">
-                  {months.map((month, index) => (
-                    <div
-                      key={`label-${index}`}
-                      className="flex-1 text-center text-xs text-gray-500"
-                    >
-                      {month}
-                    </div>
-                  ))}
+                <div className="relative">
+                  <div className="relative h-40 sm:h-48 flex items-end justify-between gap-1.5 mb-2">
+                    {chartData.map((value, index) => {
+                      const height = (value / chartMaxValue) * 100;
+                      const isCurrentMonth = index === currentMonthIndex;
+                      return (
+                        <div
+                          key={`bar-${index}`}
+                          className="flex-1 flex flex-col items-center h-full justify-end relative"
+                        >
+                          {isCurrentMonth && (
+                            <div className="absolute -inset-x-1 -top-2 -bottom-8 bg-gray-100 rounded-lg"></div>
+                          )}
+                          <div
+                            className={`w-full rounded-t transition-all relative z-10 ${
+                              isCurrentMonth ? "bg-green-500" : "bg-[#6500AC]"
+                            }`}
+                            style={{
+                              height: `${height}%`,
+                              minHeight: height > 0 ? "4px" : "0",
+                            }}
+                          />
+                          <div
+                            className="absolute w-px bg-gray-200 z-0"
+                            style={{
+                              bottom: "-20px",
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              height: "20px",
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-1.5 mt-2">
+                    {months.map((month, index) => {
+                      const isCurrentMonth = index === currentMonthIndex;
+                      return (
+                        <div
+                          key={`label-${index}`}
+                          className="flex-1 flex justify-center relative"
+                        >
+                          {isCurrentMonth && (
+                            <div className="absolute -top-8 bottom-0 -left-1 -right-1 bg-gray-100 rounded-b-lg"></div>
+                          )}
+                          <span
+                            className={`text-[10px] sm:text-xs whitespace-nowrap relative z-10 ${
+                              isCurrentMonth
+                                ? "text-gray-900 font-medium"
+                                : "text-gray-600"
+                            }`}
+                          >
+                            {month}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1593,7 +1606,7 @@ const RealtorDetailsSection = ({
       {/* Properties Sold Section */}
       <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm p-6">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2 pb-2 mb-6 w-full">
           {(
             [
               "Properties sold",
@@ -1611,7 +1624,7 @@ const RealtorDetailsSection = ({
                 setTransactionsPage(1);
                 setTransactionFilter("All");
               }}
-              className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 min-h-[44px] shrink-0 inline-flex items-center justify-center border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                 activeTab === tab
                   ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                   : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -1624,7 +1637,7 @@ const RealtorDetailsSection = ({
 
         {/* Search and Filter */}
         {(activeTab === "Properties sold" || activeTab === "Receipts") && (
-          <div className="mb-6 flex items-center gap-3">
+          <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <AdminSearchBar
               key={activeTab}
               onSearch={(query) => {
@@ -1872,13 +1885,13 @@ const RealtorDetailsSection = ({
 
             {/* Filter + search */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2 pb-2 w-full lg:w-auto">
                 {(["All", "Commission", "Withdrawals"] as const).map(
                   (filter) => (
                     <button
                       key={filter}
                       onClick={() => setTransactionFilter(filter)}
-                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
+                      className={`px-4 py-2 min-h-[44px] shrink-0 inline-flex items-center justify-center border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                         transactionFilter === filter
                           ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                           : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -1902,7 +1915,7 @@ const RealtorDetailsSection = ({
                   placeholder="Search transactions"
                 />
                 <div className="flex items-center gap-2">
-                  <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#F0F1F2] bg-white">
+                  <button className="w-11 h-11 flex items-center justify-center rounded-lg border border-[#F0F1F2] bg-white">
                     <svg
                       width="18"
                       height="18"
@@ -1919,7 +1932,7 @@ const RealtorDetailsSection = ({
                       />
                     </svg>
                   </button>
-                  <button className="w-10 h-10 flex items-center justify-center rounded-lg border border-[#F0F1F2] bg-white">
+                  <button className="w-11 h-11 flex items-center justify-center rounded-lg border border-[#F0F1F2] bg-white">
                     <svg
                       width="18"
                       height="18"
