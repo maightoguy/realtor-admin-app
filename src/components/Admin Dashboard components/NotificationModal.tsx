@@ -137,8 +137,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
       typeof metadata?.realtor_id === "string"
         ? metadata.realtor_id
         : typeof metadata?.user_id === "string"
-        ? metadata.user_id
-        : undefined;
+          ? metadata.user_id
+          : undefined;
 
     const params = new URLSearchParams();
     if (section) params.set("section", section);
@@ -192,7 +192,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
             seen: n.seen,
             created_at: n.created_at,
             metadata: n.metadata ?? null,
-          }))
+          })),
         );
         notificationService
           .markAllAdminActionAsSeen({ userId: id })
@@ -202,7 +202,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                 prev.map((x) => ({
                   ...x,
                   seen: true,
-                }))
+                })),
               );
             }
           })
@@ -239,17 +239,21 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
         <div className="hidden md:block absolute -top-2 right-6 w-0 h-0 border-l-10 border-l-transparent border-r-10 border-r-transparent border-b-10 border-b-white" />
 
         {/* Header for Mobile */}
-        <div className="flex md:hidden items-center p-4 border-b border-gray-200">
+        <div className="flex md:hidden items-center justify-between gap-2 p-4 border-b border-gray-200">
           <button
+            type="button"
             onClick={onClose}
-            className="w-15 h-11 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 -ml-2"
+            className="w-12 h-12 min-w-[48px] min-h-[48px] flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200"
           >
-            {/* Back arrow*/}
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h2 className="text-lg font-semibold text-gray-800 text-center grow -ml-9">
+          <h2 className="text-lg font-semibold text-gray-800 text-center flex-1">
             Notifications
           </h2>
+          <div
+            className="w-12 h-12 min-w-[48px] min-h-[48px]"
+            aria-hidden="true"
+          />
         </div>
 
         {/* Header for Desktop */}

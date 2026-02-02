@@ -535,7 +535,7 @@ const AdminDashboardRealtors = ({
         >
           <button
             onClick={() => handleFilterChange("All Realtors")}
-            className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+            className={`inline-flex shrink-0 items-center justify-center px-4 py-2 min-h-[44px] border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap box-border ${
               activeFilter === "All Realtors"
                 ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                 : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -545,7 +545,7 @@ const AdminDashboardRealtors = ({
           </button>
           <button
             onClick={() => handleFilterChange("Top realtors")}
-            className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+            className={`inline-flex shrink-0 items-center justify-center px-4 py-2 min-h-[44px] border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap box-border ${
               activeFilter === "Top realtors"
                 ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                 : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -555,7 +555,7 @@ const AdminDashboardRealtors = ({
           </button>
           <button
             onClick={() => handleFilterChange("Approved receipts")}
-            className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+            className={`inline-flex shrink-0 items-center justify-center px-4 py-2 min-h-[44px] border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap box-border ${
               activeFilter === "Approved receipts"
                 ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                 : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -565,7 +565,7 @@ const AdminDashboardRealtors = ({
           </button>
           <button
             onClick={() => handleFilterChange("Rejected receipts")}
-            className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+            className={`inline-flex shrink-0 items-center justify-center px-4 py-2 min-h-[44px] border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap box-border ${
               activeFilter === "Rejected receipts"
                 ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                 : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"

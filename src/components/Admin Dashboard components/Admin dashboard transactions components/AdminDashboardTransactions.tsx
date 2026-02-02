@@ -726,7 +726,7 @@ const AdminDashboardTransactionsInner = () => {
               <button
                 type="button"
                 onClick={() => handleFilterChange("All Transactions")}
-                className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                className={`inline-flex shrink-0 items-center justify-center px-4 py-2 min-h-[44px] border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap box-border ${
                   activeFilter === "All Transactions"
                     ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                     : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -737,7 +737,7 @@ const AdminDashboardTransactionsInner = () => {
               <button
                 type="button"
                 onClick={() => handleFilterChange("Commission")}
-                className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                className={`inline-flex shrink-0 items-center justify-center px-4 py-2 min-h-[44px] border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap box-border ${
                   activeFilter === "Commission"
                     ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                     : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
@@ -748,7 +748,7 @@ const AdminDashboardTransactionsInner = () => {
               <button
                 type="button"
                 onClick={() => handleFilterChange("Withdrawals")}
-                className={`px-4 py-2 border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                className={`inline-flex shrink-0 items-center justify-center px-4 py-2 min-h-[44px] border rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap box-border ${
                   activeFilter === "Withdrawals"
                     ? "bg-[#F0E6F7] border-[#CFB0E5] text-[#6500AC]"
                     : "bg-white border-[#F0F1F2] text-gray-600 hover:border-[#CFB0E5]"
