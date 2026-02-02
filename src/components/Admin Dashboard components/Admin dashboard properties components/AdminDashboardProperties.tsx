@@ -1131,13 +1131,15 @@ const AdminDashboardProperties = ({
       <Loader isOpen={isLoadingProperties} text="Loading properties..." />
       {/* Property Details Section - Shows when a property is selected */}
       {!showAddForm && selectedProperty && (
-        <AdminPropertyDetails
-          property={selectedProperty}
-          developers={developers}
-          onBack={handleBackFromPropertyDetails}
-          onEdit={handleEditProperty}
-          onMarkSoldOut={handleMarkSoldOut}
-        />
+        <div className="-mx-6 sm:mx-0">
+          <AdminPropertyDetails
+            property={selectedProperty}
+            developers={developers}
+            onBack={handleBackFromPropertyDetails}
+            onEdit={handleEditProperty}
+            onMarkSoldOut={handleMarkSoldOut}
+          />
+        </div>
       )}
 
       {/* Developer Details Section - Replaces Metric Cards when a developer is selected */}

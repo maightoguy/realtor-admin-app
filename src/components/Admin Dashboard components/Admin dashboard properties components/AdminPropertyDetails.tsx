@@ -373,7 +373,7 @@ const AdminPropertyDetails = ({
       : property.price;
 
   return (
-    <div className="p-6 bg-[#FCFCFC]">
+    <div className="p-4 sm:p-6 bg-[#FCFCFC] w-full">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 mb-6">
         <button
@@ -956,77 +956,73 @@ const AdminPropertyDetails = ({
                 </h3>
 
                 {/* Chart */}
-                <div className="relative h-64">
-                  {/* Y-axis labels */}
-                  <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 pr-3 w-12">
-                    {yAxisLabels.map((label, index) => (
-                      <span key={`y-label-${index}`}>{label}</span>
-                    ))}
-                  </div>
-
-                  {/* Chart container with grid lines */}
-                  <div className="ml-12 pr-4 relative h-full">
-                    {/* Grid lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between pb-12">
-                      <div className="w-full h-px bg-gray-200"></div>
-                      <div className="w-full h-px bg-gray-200"></div>
-                      <div className="w-full h-px bg-gray-200"></div>
-                      <div className="w-full h-px bg-gray-200"></div>
+                <div
+                  className="overflow-x-auto overflow-y-hidden scrollbar-hide"
+                  style={{ WebkitOverflowScrolling: "touch" }}
+                >
+                  <div className="min-w-[560px] sm:min-w-0 relative h-64">
+                    <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-gray-500 pr-3 w-12">
+                      {yAxisLabels.map((label, index) => (
+                        <span key={`y-label-${index}`}>{label}</span>
+                      ))}
                     </div>
 
-                    {/* Bars and labels container */}
-                    <div className="relative">
-                      {/* Bars container */}
-                      <div className="relative h-48 flex items-end justify-between gap-1.5 mb-2">
-                        {chartData.map((value, index) => {
-                          const height = (value / chartMaxValue) * 100;
-                          const isCurrentMonth = index === currentMonthIndex;
-                          return (
-                            <div
-                              key={`bar-${index}`}
-                              className="flex-1 flex flex-col items-center h-full justify-end relative"
-                            >
-                              {/* Highlight background for current month */}
-                              {isCurrentMonth && (
-                                <div className="absolute -inset-x-1 -top-2 -bottom-8 bg-gray-100 rounded-lg"></div>
-                              )}
-                              {/* Bar */}
-                              <div
-                                className={`w-full rounded-t transition-all relative z-10 ${
-                                  isCurrentMonth
-                                    ? "bg-green-500"
-                                    : "bg-[#6500AC]"
-                                }`}
-                                style={{
-                                  height: `${height}%`,
-                                  minHeight: height > 0 ? "4px" : "0",
-                                }}
-                              />
-                              {/* Vertical line from bar to month label */}
-                              <div
-                                className="absolute w-px bg-gray-200 z-0"
-                                style={{
-                                  bottom: "-20px",
-                                  left: "50%",
-                                  transform: "translateX(-50%)",
-                                  height: "20px",
-                                }}
-                              />
-                            </div>
-                          );
-                        })}
+                    <div className="ml-12 pr-4 relative h-full">
+                      <div className="absolute inset-0 flex flex-col justify-between pb-12">
+                        <div className="w-full h-px bg-gray-200"></div>
+                        <div className="w-full h-px bg-gray-200"></div>
+                        <div className="w-full h-px bg-gray-200"></div>
+                        <div className="w-full h-px bg-gray-200"></div>
                       </div>
 
-                      {/* Month labels */}
-                      <div className="flex justify-between gap-1.5 mt-2">
-                        {months.map((month, index) => (
-                          <div
-                            key={`label-${index}`}
-                            className="flex-1 text-center text-xs text-gray-500"
-                          >
-                            {month}
-                          </div>
-                        ))}
+                      <div className="relative">
+                        <div className="relative h-48 flex items-end justify-between gap-1.5 mb-2">
+                          {chartData.map((value, index) => {
+                            const height = (value / chartMaxValue) * 100;
+                            const isCurrentMonth = index === currentMonthIndex;
+                            return (
+                              <div
+                                key={`bar-${index}`}
+                                className="flex-1 flex flex-col items-center h-full justify-end relative"
+                              >
+                                {isCurrentMonth && (
+                                  <div className="absolute -inset-x-1 -top-2 -bottom-8 bg-gray-100 rounded-lg"></div>
+                                )}
+                                <div
+                                  className={`w-full rounded-t transition-all relative z-10 ${
+                                    isCurrentMonth
+                                      ? "bg-green-500"
+                                      : "bg-[#6500AC]"
+                                  }`}
+                                  style={{
+                                    height: `${height}%`,
+                                    minHeight: height > 0 ? "4px" : "0",
+                                  }}
+                                />
+                                <div
+                                  className="absolute w-px bg-gray-200 z-0"
+                                  style={{
+                                    bottom: "-20px",
+                                    left: "50%",
+                                    transform: "translateX(-50%)",
+                                    height: "20px",
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="flex justify-between gap-1.5 mt-2">
+                          {months.map((month, index) => (
+                            <div
+                              key={`label-${index}`}
+                              className="flex-1 text-center text-xs text-gray-500"
+                            >
+                              {month}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
