@@ -1142,7 +1142,7 @@ const AddPropertyForm = ({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Upload your forms
                     </label>
-                    <div className="border-2 border-dashed border-[#F0F1F2] rounded-lg p-6 text-center">
+                    <div className="border-2 border-dashed border-[#F0F1F2] rounded-lg p-4 sm:p-6 text-center">
                       <div className="flex items-center justify-center mb-2">
                         <svg
                           className="w-8 h-8 text-gray-400"
@@ -1182,11 +1182,11 @@ const AddPropertyForm = ({
                         {existingUploadedForms.map((form) => (
                           <div
                             key={form.ref}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <svg
-                                className="w-5 h-5 text-green-500"
+                                className="w-5 h-5 text-green-500 shrink-0"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
@@ -1196,12 +1196,13 @@ const AddPropertyForm = ({
                                   clipRule="evenodd"
                                 />
                               </svg>
-                              <div>
+                              <div className="min-w-0 flex-1">
                                 <a
                                   href={form.url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-sm font-medium text-gray-900 hover:underline"
+                                  title={form.name}
+                                  className="text-sm font-medium text-gray-900 hover:underline block truncate max-w-[34ch] sm:max-w-none"
                                 >
                                   {form.name}
                                 </a>
@@ -1210,7 +1211,7 @@ const AddPropertyForm = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveExistingForm(form.ref)}
-                              className="text-red-500 hover:text-red-700"
+                              className="text-red-500 hover:text-red-700 shrink-0"
                             >
                               <svg
                                 className="w-5 h-5"
@@ -1229,11 +1230,11 @@ const AddPropertyForm = ({
                         {uploadedForms.map((form, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <svg
-                                className="w-5 h-5 text-green-500"
+                                className="w-5 h-5 text-green-500 shrink-0"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
@@ -1243,8 +1244,11 @@ const AddPropertyForm = ({
                                   clipRule="evenodd"
                                 />
                               </svg>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className="text-sm font-medium text-gray-900 truncate max-w-[34ch] sm:max-w-none"
+                                  title={form.name}
+                                >
                                   {form.name}
                                 </p>
                                 <p className="text-xs text-gray-500">
@@ -1255,7 +1259,7 @@ const AddPropertyForm = ({
                             <button
                               type="button"
                               onClick={() => handleRemoveForm(index)}
-                              className="text-red-500 hover:text-red-700"
+                              className="text-red-500 hover:text-red-700 shrink-0"
                             >
                               <svg
                                 className="w-5 h-5"
@@ -1797,7 +1801,7 @@ const AddPropertyForm = ({
           <div className="flex justify-between gap-4 pt-4 border-t border-[#F0F1F2]">
             <button
               onClick={currentStep === 1 ? onClose : handlePrevious}
-              className="px-6 py-2 border border-[#D5D7DA] rounded-lg font-medium text-[#414651] hover:bg-gray-50 transition-colors"
+              className="px-4 sm:px-6 py-2 min-h-[44px] border border-[#D5D7DA] rounded-lg text-sm sm:text-base font-medium text-[#414651] hover:bg-gray-50 transition-colors"
             >
               {currentStep === 1
                 ? "Cancel"
@@ -1808,7 +1812,7 @@ const AddPropertyForm = ({
             <button
               onClick={handleNext}
               disabled={!isStepValid()}
-              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 sm:px-6 py-2 min-h-[44px] rounded-lg text-sm sm:text-base font-medium transition-colors ${
                 isStepValid()
                   ? "bg-[#6500AC] text-white hover:bg-[#4D14C7]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
