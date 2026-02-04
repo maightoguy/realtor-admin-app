@@ -1,6 +1,7 @@
 import { ArrowLeft, Link2, Trash2, X } from "lucide-react";
 import AdminPropertyCard from "../Admin dashboard properties components/AdminPropertyCard";
 import AdminSearchBar from "../../AdminSearchBar";
+import AdminSearchFilterModal from "../../AdminSearchFilterModal";
 import AdminPagination from "../../AdminPagination";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -30,6 +31,13 @@ import type {
   ReceiptStatus,
   User,
 } from "../../../services/types";
+
+const normalizeStatusFilterValue = (value: string) => {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return "";
+  if (normalized === "under review") return "under_review";
+  return normalized.replace(/\s+/g, "_");
+};
 
 const formatCurrencyValue = (value: number) =>
   `₦${Math.max(value, 0).toLocaleString("en-NG")}`;
@@ -629,6 +637,22 @@ const RealtorDetailsSection = ({
   const [expandedReferralId, setExpandedReferralId] = useState<string | null>(
     null,
   );
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [filterContext, setFilterContext] = useState<
+    "properties" | "receipts" | "transactions" | "referrals"
+  >("properties");
+  const [propertyFilters, setPropertyFilters] = useState<
+    Record<string, unknown>
+  >({});
+  const [receiptFilters, setReceiptFilters] = useState<Record<string, unknown>>(
+    {},
+  );
+  const [transactionFilters, setTransactionFilters] = useState<
+    Record<string, unknown>
+  >({});
+  const [referralFilters, setReferralFilters] = useState<
+    Record<string, unknown>
+  >({});
 
   const [isLoading, setIsLoading] = useState(true);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -646,6 +670,89 @@ const RealtorDetailsSection = ({
     useState<ReceiptDetailsItem | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
     useState<Transaction | null>(null);
+
+  const parseCurrencyNumber = (value: unknown) => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value !== "string") return null;
+    const normalized = value.replace(/[^0-9.]/g, "");
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const parseDateRange = (filters: Record<string, unknown>, key: string) => {
+    const raw = filters[key];
+    if (!Array.isArray(raw) || raw.length !== 2) return null;
+    const [from, to] = raw;
+    const fromDate =
+      typeof from === "string" && from.trim()
+        ? new Date(`${from}T00:00:00`)
+        : null;
+    const toDate =
+      typeof to === "string" && to.trim() ? new Date(`${to}T23:59:59`) : null;
+    return { fromDate, toDate };
+  };
+
+  const isWithinDateRange = (
+    iso: string | null | undefined,
+    range: { fromDate: Date | null; toDate: Date | null } | null,
+  ) => {
+    if (!range) return true;
+    if (!iso) return false;
+    const ts = new Date(iso).getTime();
+    if (Number.isNaN(ts)) return false;
+    if (range.fromDate && ts < range.fromDate.getTime()) return false;
+    if (range.toDate && ts > range.toDate.getTime()) return false;
+    return true;
+  };
+
+  const openFilterModal = (
+    context: "properties" | "receipts" | "transactions" | "referrals",
+  ) => {
+    setFilterContext(context);
+    setIsFilterModalOpen(true);
+  };
+
+  const closeFilterModal = () => setIsFilterModalOpen(false);
+
+  const getActiveFilters = () => {
+    if (filterContext === "properties") return propertyFilters;
+    if (filterContext === "receipts") return receiptFilters;
+    if (filterContext === "transactions") return transactionFilters;
+    return referralFilters;
+  };
+
+  const applyFilters = (filters: Record<string, unknown>) => {
+    if (filterContext === "properties") setPropertyFilters(filters);
+    if (filterContext === "receipts") {
+      setReceiptFilters(filters);
+      setReceiptsPage(1);
+    }
+    if (filterContext === "transactions") {
+      setTransactionFilters(filters);
+      setTransactionsPage(1);
+    }
+    if (filterContext === "referrals") {
+      setReferralFilters(filters);
+      setReferralsPage(1);
+    }
+  };
+
+  const resetFilters = () => {
+    if (filterContext === "properties") setPropertyFilters({});
+    if (filterContext === "receipts") {
+      setReceiptFilters({});
+      setReceiptsPage(1);
+    }
+    if (filterContext === "transactions") {
+      setTransactionFilters({});
+      setTransactionsPage(1);
+    }
+    if (filterContext === "referrals") {
+      setReferralFilters({});
+      setReferralsPage(1);
+    }
+  };
 
   const handleOpenRemoveModal = () => {
     setRemoveError(null);
@@ -740,6 +847,48 @@ const RealtorDetailsSection = ({
     if (!obj || typeof obj !== "object") return undefined;
     const value = (obj as Record<string, unknown>)[key];
     return typeof value === "string" ? value : undefined;
+  };
+
+  const handleViewTransactionDetails = (transaction: {
+    id: string;
+    type: "Commission" | "Withdrawal";
+  }) => {
+    if (transaction.type === "Commission") {
+      const c = commissions.find((row) => row.id === transaction.id);
+      if (!c) return;
+      setSelectedTransaction({
+        id: c.id,
+        realtorId: c.realtor_id,
+        realtorName,
+        type: "Commission",
+        amount: formatNaira(c.amount),
+        date: formatDate(c.created_at),
+        createdAtIso: c.created_at,
+        status: statusToUi(c.status),
+        dbStatus: normalizeDbStatus(c.status),
+      });
+      return;
+    }
+
+    const p = payouts.find((row) => row.id === transaction.id);
+    if (!p) return;
+    const bankName = extractString(p.bank_details, "bankName");
+    const accountNumber =
+      extractString(p.bank_details, "accountNo") ??
+      extractString(p.bank_details, "accountNumber");
+    setSelectedTransaction({
+      id: p.id,
+      realtorId: p.realtor_id,
+      realtorName,
+      type: "Withdrawal",
+      amount: formatNaira(p.amount),
+      date: formatDate(p.created_at),
+      createdAtIso: p.created_at,
+      status: statusToUi(p.status),
+      dbStatus: normalizeDbStatus(p.status),
+      bankName,
+      accountNumber,
+    });
   };
 
   const handleApproveCommission = async (transactionId: string) => {
@@ -1074,6 +1223,8 @@ const RealtorDetailsSection = ({
           location: p.location,
           isSoldOut: p.status === "sold",
           description: p.description ?? undefined,
+          category: p.category ?? undefined,
+          createdAtIso: p.created_at,
         };
       })
       .filter(Boolean) as Array<{
@@ -1084,17 +1235,66 @@ const RealtorDetailsSection = ({
       location: string;
       isSoldOut: boolean;
       description?: string;
+      category?: string;
+      createdAtIso: string;
     }>;
 
-    if (!searchQuery.trim()) return uniqueSold;
+    let filtered = uniqueSold;
 
-    const query = searchQuery.toLowerCase();
-    return uniqueSold.filter(
-      (p) =>
-        p.title.toLowerCase().includes(query) ||
-        p.location.toLowerCase().includes(query),
-    );
-  }, [propertyMap, receipts, searchQuery]);
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.title.toLowerCase().includes(query) ||
+          p.location.toLowerCase().includes(query),
+      );
+    }
+
+    const titleFilter = String(propertyFilters["Property Title"] ?? "")
+      .trim()
+      .toLowerCase();
+    if (titleFilter) {
+      filtered = filtered.filter((p) =>
+        p.title.toLowerCase().includes(titleFilter),
+      );
+    }
+
+    const locationFilter = String(propertyFilters["Location"] ?? "")
+      .trim()
+      .toLowerCase();
+    if (locationFilter) {
+      filtered = filtered.filter((p) =>
+        p.location.toLowerCase().includes(locationFilter),
+      );
+    }
+
+    const propertyTypeFilter = String(propertyFilters["Property Type"] ?? "")
+      .trim()
+      .toLowerCase();
+    if (propertyTypeFilter) {
+      filtered = filtered.filter(
+        (p) =>
+          String(p.category ?? "")
+            .trim()
+            .toLowerCase() === propertyTypeFilter,
+      );
+    }
+
+    const priceRange = propertyFilters["Price (₦)"];
+    if (Array.isArray(priceRange) && priceRange.length === 2) {
+      const min = Number(priceRange[0]);
+      const max = Number(priceRange[1]);
+      if (Number.isFinite(min) && Number.isFinite(max)) {
+        filtered = filtered.filter((p) => {
+          const price = parseCurrencyNumber(p.price);
+          if (price === null) return false;
+          return price >= min && price <= max;
+        });
+      }
+    }
+
+    return filtered;
+  }, [propertyMap, receipts, searchQuery, propertyFilters]);
 
   // Get receipts for this realtor
   const realtorReceipts = useMemo(() => {
@@ -1102,14 +1302,17 @@ const RealtorDetailsSection = ({
       const propertyName = receipt.property_id
         ? (propertyMap.get(receipt.property_id)?.title ?? receipt.property_id)
         : "-";
+      const amountValue = Number.isFinite(receipt.amount_paid)
+        ? receipt.amount_paid
+        : 0;
       return {
         id: receipt.id,
         clientName: receipt.client_name ?? "-",
         propertyName,
-        amount: formatCurrencyValue(
-          Number.isFinite(receipt.amount_paid) ? receipt.amount_paid : 0,
-        ),
+        amount: formatCurrencyValue(amountValue),
+        amountValue,
         date: formatDate(receipt.created_at),
+        createdAtIso: receipt.created_at,
         status: receipt.status,
       };
     });
@@ -1117,17 +1320,73 @@ const RealtorDetailsSection = ({
 
   // Filter receipts based on search query
   const filteredReceipts = useMemo(() => {
-    if (!searchQuery.trim()) return realtorReceipts;
+    let filtered = realtorReceipts;
 
-    const query = searchQuery.toLowerCase();
-    return realtorReceipts.filter(
-      (r) =>
-        r.id.toLowerCase().includes(query) ||
-        r.propertyName.toLowerCase().includes(query) ||
-        r.clientName.toLowerCase().includes(query) ||
-        r.amount.toLowerCase().includes(query),
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (r) =>
+          r.id.toLowerCase().includes(query) ||
+          r.propertyName.toLowerCase().includes(query) ||
+          r.clientName.toLowerCase().includes(query) ||
+          r.amount.toLowerCase().includes(query),
+      );
+    }
+
+    const receiptIdFilter = String(receiptFilters["Receipt ID"] ?? "")
+      .trim()
+      .toLowerCase();
+    if (receiptIdFilter) {
+      filtered = filtered.filter((r) =>
+        r.id.toLowerCase().includes(receiptIdFilter),
+      );
+    }
+
+    const clientNameFilter = String(receiptFilters["Client Name"] ?? "")
+      .trim()
+      .toLowerCase();
+    if (clientNameFilter) {
+      filtered = filtered.filter((r) =>
+        r.clientName.toLowerCase().includes(clientNameFilter),
+      );
+    }
+
+    const propertyNameFilter = String(receiptFilters["Property Name"] ?? "")
+      .trim()
+      .toLowerCase();
+    if (propertyNameFilter) {
+      filtered = filtered.filter((r) =>
+        r.propertyName.toLowerCase().includes(propertyNameFilter),
+      );
+    }
+
+    const statusFilter = normalizeStatusFilterValue(
+      String(receiptFilters["Status"] ?? ""),
     );
-  }, [realtorReceipts, searchQuery]);
+    if (statusFilter) {
+      filtered = filtered.filter((r) => r.status === statusFilter);
+    }
+
+    const priceRange = receiptFilters["Price (₦)"];
+    if (Array.isArray(priceRange) && priceRange.length === 2) {
+      const min = Number(priceRange[0]);
+      const max = Number(priceRange[1]);
+      if (Number.isFinite(min) && Number.isFinite(max)) {
+        filtered = filtered.filter(
+          (r) => r.amountValue >= min && r.amountValue <= max,
+        );
+      }
+    }
+
+    const dateRange = parseDateRange(receiptFilters, "Date Range");
+    if (dateRange) {
+      filtered = filtered.filter((r) =>
+        isWithinDateRange(r.createdAtIso, dateRange),
+      );
+    }
+
+    return filtered;
+  }, [realtorReceipts, searchQuery, receiptFilters]);
 
   // Pagination for receipts
   const receiptsTotalItems = filteredReceipts.length;
@@ -1224,8 +1483,44 @@ const RealtorDetailsSection = ({
       );
     }
 
+    const idFilter = String(transactionFilters["Transaction ID"] ?? "")
+      .trim()
+      .toLowerCase();
+    if (idFilter) {
+      filtered = filtered.filter((t) => t.id.toLowerCase().includes(idFilter));
+    }
+
+    const statusFilter = normalizeStatusFilterValue(
+      String(transactionFilters["Status"] ?? ""),
+    );
+    if (statusFilter) {
+      filtered = filtered.filter(
+        (t) => normalizeStatusFilterValue(t.status) === statusFilter,
+      );
+    }
+
+    const priceRange = transactionFilters["Price (₦)"];
+    if (Array.isArray(priceRange) && priceRange.length === 2) {
+      const min = Number(priceRange[0]);
+      const max = Number(priceRange[1]);
+      if (Number.isFinite(min) && Number.isFinite(max)) {
+        filtered = filtered.filter((t) => {
+          const amount = parseCurrencyNumber(t.amount);
+          if (amount === null) return false;
+          return amount >= min && amount <= max;
+        });
+      }
+    }
+
+    const dateRange = parseDateRange(transactionFilters, "Date Range");
+    if (dateRange) {
+      filtered = filtered.filter((t) =>
+        isWithinDateRange(t.created_at, dateRange),
+      );
+    }
+
     return filtered;
-  }, [realtorTransactions, transactionFilter, searchQuery]);
+  }, [realtorTransactions, transactionFilter, searchQuery, transactionFilters]);
 
   const transactionsTotalItems = filteredTransactions.length;
   const transactionsStartIndex = (transactionsPage - 1) * transactionsPerPage;
@@ -1268,24 +1563,58 @@ const RealtorDetailsSection = ({
           dateJoined: user.created_at ? formatDate(user.created_at) : "-",
           totalCommissionEarned: formatCurrencyValue(commission),
           totalReferralCommission: formatCurrencyValue(commission),
+          totalReferralCommissionValue: commission,
           rawDate: new Date(user.created_at).getTime(),
+          createdAtIso: user.created_at,
         };
       })
       .sort((a, b) => b.rawDate - a.rawDate);
   }, [downlines, commissions]);
 
   const filteredReferrals = useMemo(() => {
-    if (!searchQuery.trim()) return realtorReferrals;
+    let filtered = realtorReferrals;
 
-    const query = searchQuery.toLowerCase();
-    return realtorReferrals.filter(
-      (referral) =>
-        referral.id.toLowerCase().includes(query) ||
-        referral.name.toLowerCase().includes(query) ||
-        referral.dateJoined.toLowerCase().includes(query) ||
-        referral.totalReferralCommission.toLowerCase().includes(query),
-    );
-  }, [realtorReferrals, searchQuery]);
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (referral) =>
+          referral.id.toLowerCase().includes(query) ||
+          referral.name.toLowerCase().includes(query) ||
+          referral.dateJoined.toLowerCase().includes(query) ||
+          referral.totalReferralCommission.toLowerCase().includes(query),
+      );
+    }
+
+    const nameFilter = String(referralFilters["Name"] ?? "")
+      .trim()
+      .toLowerCase();
+    if (nameFilter) {
+      filtered = filtered.filter((r) =>
+        r.name.toLowerCase().includes(nameFilter),
+      );
+    }
+
+    const dateRange = parseDateRange(referralFilters, "Date Joined");
+    if (dateRange) {
+      filtered = filtered.filter((r) =>
+        isWithinDateRange(r.createdAtIso, dateRange),
+      );
+    }
+
+    const valueRange = referralFilters["Commission (₦)"];
+    if (Array.isArray(valueRange) && valueRange.length === 2) {
+      const min = typeof valueRange[0] === "number" ? valueRange[0] : null;
+      const max = typeof valueRange[1] === "number" ? valueRange[1] : null;
+      filtered = filtered.filter((r) => {
+        const val = r.totalReferralCommissionValue;
+        if (min !== null && val < min) return false;
+        if (max !== null && val > max) return false;
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [realtorReferrals, searchQuery, referralFilters]);
 
   const referralsTotalItems = filteredReferrals.length;
   const referralsStartIndex = (referralsPage - 1) * referralsPerPage;
@@ -1646,7 +1975,11 @@ const RealtorDetailsSection = ({
                   setReceiptsPage(1);
                 }
               }}
-              onFilterClick={() => console.log("Filter clicked")}
+              onFilterClick={() =>
+                openFilterModal(
+                  activeTab === "Receipts" ? "receipts" : "properties",
+                )
+              }
               className="flex-1"
               placeholder="Search"
             />
@@ -1691,7 +2024,7 @@ const RealtorDetailsSection = ({
         {activeTab === "Receipts" && (
           <>
             <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto admin-table-scroll">
+              <div className="hidden md:block overflow-x-auto admin-table-scroll">
                 <table className="admin-table">
                   <thead className="bg-gray-50 border-b border-[#F0F1F2]">
                     <tr>
@@ -1830,6 +2163,78 @@ const RealtorDetailsSection = ({
                   </tbody>
                 </table>
               </div>
+              <div className="md:hidden px-3 pb-3 space-y-3">
+                {isLoading ? (
+                  <div className="px-2 py-6 text-center text-xs text-gray-500">
+                    Loading receipts...
+                  </div>
+                ) : currentReceipts.length > 0 ? (
+                  currentReceipts.map((receipt) => (
+                    <div
+                      key={receipt.id}
+                      className="border border-[#E9EAEB] rounded-lg p-3 bg-white shadow-sm space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-[#0A1B39] truncate">
+                            {receipt.propertyName}
+                          </p>
+                          <p
+                            className="text-[10px] text-[#667085] truncate"
+                            title={receipt.id}
+                          >
+                            ID: {formatIdMiddle(receipt.id)}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          <StatusBadge status={receipt.status} />
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-[#667085] space-y-1">
+                        <p>Client: {receipt.clientName}</p>
+                        <p>Amount: {receipt.amount}</p>
+                        <p>Date: {receipt.date}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const original = receipts.find(
+                            (r) => r.id === receipt.id,
+                          );
+                          if (!original) return;
+                          const propertyName =
+                            original.property_id &&
+                            propertyMap.get(original.property_id)?.title
+                              ? propertyMap.get(original.property_id!)!.title
+                              : "-";
+                          setSelectedReceipt({
+                            id: original.id,
+                            realtorName,
+                            clientName: original.client_name ?? "-",
+                            propertyName,
+                            amountPaid: Number(original.amount_paid) || 0,
+                            receiptUrls: Array.isArray(original.receipt_urls)
+                              ? original.receipt_urls
+                              : [],
+                            status: original.status,
+                            createdAt: original.created_at,
+                            rejectionReason: original.rejection_reason ?? null,
+                          });
+                        }}
+                        className="w-full mt-2 py-2 min-h-[44px] border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+                      >
+                        View details
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-2 py-6 text-center text-xs text-gray-500">
+                    {searchQuery
+                      ? "No receipts found matching your search"
+                      : "No receipts found for this realtor"}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Pagination for Receipts */}
@@ -1910,52 +2315,16 @@ const RealtorDetailsSection = ({
                     setSearchQuery(query);
                     setTransactionsPage(1);
                   }}
-                  onFilterClick={() => console.log("Filter clicked")}
+                  onFilterClick={() => openFilterModal("transactions")}
                   className="flex-1 lg:flex-initial"
                   placeholder="Search transactions"
                 />
-                <div className="flex items-center gap-2">
-                  <button className="w-11 h-11 flex items-center justify-center rounded-lg border border-[#F0F1F2] bg-white">
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M3.75 3.375H7.5V7.125H3.75V3.375ZM10.5 3.375H14.25V7.125H10.5V3.375ZM3.75 10.125H7.5V13.875H3.75V10.125ZM10.5 10.125H14.25V13.875H10.5V10.125Z"
-                        stroke="#6B7280"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                  <button className="w-11 h-11 flex items-center justify-center rounded-lg border border-[#F0F1F2] bg-white">
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 18 18"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M3.75 4.5H14.25M3.75 9H14.25M3.75 13.5H14.25"
-                        stroke="#6B7280"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
               </div>
             </div>
 
             {/* Transactions Table */}
             <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto admin-table-scroll">
+              <div className="hidden md:block overflow-x-auto admin-table-scroll">
                 <table className="admin-table">
                   <thead className="bg-gray-50 border-b border-[#F0F1F2]">
                     <tr>
@@ -2046,54 +2415,9 @@ const RealtorDetailsSection = ({
                           </td>
                           <td className="px-6 py-4">
                             <button
-                              onClick={() => {
-                                if (transaction.type === "Commission") {
-                                  const c = commissions.find(
-                                    (row) => row.id === transaction.id,
-                                  );
-                                  if (!c) return;
-                                  setSelectedTransaction({
-                                    id: c.id,
-                                    realtorId: c.realtor_id,
-                                    realtorName,
-                                    type: "Commission",
-                                    amount: formatNaira(c.amount),
-                                    date: formatDate(c.created_at),
-                                    createdAtIso: c.created_at,
-                                    status: statusToUi(c.status),
-                                    dbStatus: normalizeDbStatus(c.status),
-                                  });
-                                  return;
-                                }
-
-                                const p = payouts.find(
-                                  (row) => row.id === transaction.id,
-                                );
-                                if (!p) return;
-                                const bankName = extractString(
-                                  p.bank_details,
-                                  "bankName",
-                                );
-                                const accountNumber =
-                                  extractString(p.bank_details, "accountNo") ??
-                                  extractString(
-                                    p.bank_details,
-                                    "accountNumber",
-                                  );
-                                setSelectedTransaction({
-                                  id: p.id,
-                                  realtorId: p.realtor_id,
-                                  realtorName,
-                                  type: "Withdrawal",
-                                  amount: formatNaira(p.amount),
-                                  date: formatDate(p.created_at),
-                                  createdAtIso: p.created_at,
-                                  status: statusToUi(p.status),
-                                  dbStatus: normalizeDbStatus(p.status),
-                                  bankName,
-                                  accountNumber,
-                                });
-                              }}
+                              onClick={() =>
+                                handleViewTransactionDetails(transaction)
+                              }
                               className="text-sm text-[#6500AC] font-semibold hover:underline whitespace-nowrap"
                             >
                               View details
@@ -2116,6 +2440,58 @@ const RealtorDetailsSection = ({
                   </tbody>
                 </table>
               </div>
+              <div className="md:hidden px-3 pb-3 space-y-3">
+                {isLoading ? (
+                  <div className="px-2 py-6 text-center text-xs text-gray-500">
+                    Loading transactions...
+                  </div>
+                ) : currentTransactions.length > 0 ? (
+                  currentTransactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="border border-[#E9EAEB] rounded-lg p-3 bg-white shadow-sm space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-[#0A1B39] truncate">
+                            {transaction.type === "Commission"
+                              ? "Commission Payment"
+                              : "Withdrawal"}
+                          </p>
+                          <p
+                            className="text-[10px] text-[#667085] truncate"
+                            title={transaction.id}
+                          >
+                            ID: {formatIdMiddle(transaction.id)}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          <TransactionStatusBadge status={transaction.status} />
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-[#667085] space-y-1">
+                        <p>Amount: {transaction.amount}</p>
+                        <p>Date: {transaction.date}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleViewTransactionDetails(transaction)
+                        }
+                        className="w-full mt-2 py-2 min-h-[44px] border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+                      >
+                        View details
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-2 py-6 text-center text-xs text-gray-500">
+                    {searchQuery
+                      ? "No transactions match your search"
+                      : "No transactions found for this realtor"}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Pagination */}
@@ -2134,7 +2510,7 @@ const RealtorDetailsSection = ({
         {activeTab === "Referrals" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
-              <div className="bg-[#6500AC] text-white rounded-2xl p-6 flex flex-col gap-5">
+              <div className="bg-[#6500AC] text-white rounded-2xl p-4 sm:p-6 flex flex-col gap-5">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-white/15 border border-white/30 flex items-center justify-center">
                     <Link2 className="w-5 h-5 text-white" strokeWidth={1.5} />
@@ -2144,26 +2520,26 @@ const RealtorDetailsSection = ({
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <p className="text-3xl font-semibold tracking-wide">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <p className="text-2xl sm:text-3xl font-semibold tracking-wide">
                     {realtorReferralCode}
                   </p>
                   <button
                     onClick={() => handleCopyValue(realtorReferralCode, "code")}
-                    className="px-4 py-2 bg-white text-[#5E17EB] rounded-2xl text-sm font-semibold hover:bg-white/90 transition-colors"
+                    className="w-full sm:w-auto px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-white text-[#5E17EB] rounded-2xl text-sm font-semibold hover:bg-white/90 transition-colors"
                   >
                     {copyStatus === "code" ? "Copied" : "Copy"}
                   </button>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col gap-3">
                   <span className="text-sm text-white/80">or</span>
-                  <div className="flex flex-1 items-center gap-3 flex-wrap min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 min-w-0">
                     <a
                       href={realtorReferralLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex-1 min-w-[200px] px-4 py-2 border border-white/30 rounded-2xl bg-white/5 text-sm text-white font-medium break-all hover:bg-white/10 transition-colors truncate"
+                      className="w-full sm:flex-1 min-w-0 px-4 py-2 min-h-[44px] inline-flex items-center border border-white/30 rounded-2xl bg-white/5 text-xs sm:text-sm text-white font-medium break-all hover:bg-white/10 transition-colors"
                     >
                       {referralLinkDisplay}
                     </a>
@@ -2171,7 +2547,7 @@ const RealtorDetailsSection = ({
                       onClick={() =>
                         handleCopyValue(realtorReferralLink, "link")
                       }
-                      className="px-4 py-2 bg-white text-[#5E17EB] rounded-2xl text-sm font-semibold hover:bg-white/90 transition-colors"
+                      className="w-full sm:w-auto px-4 py-2 min-h-[44px] inline-flex items-center justify-center bg-white text-[#5E17EB] rounded-2xl text-sm font-semibold hover:bg-white/90 transition-colors"
                     >
                       {copyStatus === "link" ? "Copied" : "Copy link"}
                     </button>
@@ -2179,7 +2555,7 @@ const RealtorDetailsSection = ({
                 </div>
               </div>
 
-              <div className="bg-white border border-[#F0F1F2] rounded-2xl shadow-sm p-6 flex flex-col gap-4">
+              <div className="bg-white border border-[#F0F1F2] rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-[#F4F0FE] border border-[#E0D1FB] flex items-center justify-center">
                     <ReferralsIcon color="#6500AC" className="w-5 h-5" />
@@ -2211,14 +2587,14 @@ const RealtorDetailsSection = ({
                   setSearchQuery(query);
                   setReferralsPage(1);
                 }}
-                onFilterClick={() => console.log("Filter clicked")}
+                onFilterClick={() => openFilterModal("referrals")}
                 className="flex-1 md:flex-initial"
                 placeholder="Search referrals"
               />
             </div>
 
             <div className="bg-white border border-[#F0F1F2] rounded-xl shadow-sm overflow-hidden">
-              <div className="overflow-x-auto admin-table-scroll">
+              <div className="hidden md:block overflow-x-auto admin-table-scroll">
                 <table className="admin-table">
                   <thead className="bg-gray-50 border-b border-[#F0F1F2]">
                     <tr>
@@ -2325,6 +2701,63 @@ const RealtorDetailsSection = ({
                   </tbody>
                 </table>
               </div>
+              <div className="md:hidden px-3 pb-3 space-y-3">
+                {isLoading ? (
+                  <div className="px-2 py-6 text-center text-xs text-gray-500">
+                    Loading referrals...
+                  </div>
+                ) : currentReferrals.length > 0 ? (
+                  currentReferrals.map((referral) => (
+                    <div
+                      key={referral.id}
+                      className="border border-[#E9EAEB] rounded-lg p-3 bg-white shadow-sm space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-[#0A1B39] truncate">
+                            {referral.name}
+                          </p>
+                          <p
+                            className="text-[10px] text-[#667085] truncate"
+                            title={referral.id}
+                          >
+                            ID: {formatIdMiddle(referral.id)}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-[10px] text-[#667085] whitespace-nowrap">
+                          {referral.dateJoined}
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-[#667085] space-y-1">
+                        <p>
+                          Total commission:{" "}
+                          {referral.totalCommissionEarned ||
+                            referral.totalReferralCommission}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="w-full mt-2 py-2 min-h-[44px] border border-[#EAECF0] rounded-lg text-[10px] font-medium text-[#344054] hover:bg-gray-50 transition-colors"
+                        onClick={() => {
+                          const target = downlines.find(
+                            (d) => d.id === referral.id,
+                          );
+                          if (!target) return;
+                          onViewRealtor?.(target);
+                        }}
+                      >
+                        View agent
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-2 py-6 text-center text-xs text-gray-500">
+                    {searchQuery
+                      ? "No referrals match your search"
+                      : "No referrals found for this realtor"}
+                  </div>
+                )}
+              </div>
             </div>
 
             {referralsTotalItems > 0 && (
@@ -2338,6 +2771,116 @@ const RealtorDetailsSection = ({
           </div>
         )}
       </div>
+      <AdminSearchFilterModal
+        isOpen={isFilterModalOpen}
+        onClose={closeFilterModal}
+        onApply={applyFilters}
+        onReset={resetFilters}
+        initialFilters={getActiveFilters()}
+        config={
+          filterContext === "properties"
+            ? {
+                title: "Filter properties",
+                description: "Filter properties by price, location, and title",
+                showPrice: true,
+                showPropertyType: true,
+                showLocation: true,
+                showText: false,
+                textFields: [
+                  {
+                    label: "Property Title",
+                    placeholder: "Search by property title",
+                    key: "Property Title",
+                  },
+                ],
+              }
+            : filterContext === "receipts"
+              ? {
+                  title: "Filter receipts",
+                  description:
+                    "Filter receipts by amount, date range, client, and status",
+                  showPrice: true,
+                  showPropertyType: false,
+                  showLocation: false,
+                  priceMin: 0,
+                  priceMax: 10_000_000_000,
+                  priceStep: 100000,
+                  showStatus: true,
+                  statusOptions: [
+                    "Pending",
+                    "Approved",
+                    "Rejected",
+                    "Under review",
+                  ],
+                  textFields: [
+                    {
+                      label: "Receipt ID",
+                      placeholder: "Search by receipt id",
+                      key: "Receipt ID",
+                    },
+                    {
+                      label: "Client Name",
+                      placeholder: "Search by client name",
+                      key: "Client Name",
+                    },
+                    {
+                      label: "Property Name",
+                      placeholder: "Search by property name",
+                      key: "Property Name",
+                    },
+                  ],
+                  showDateRange: true,
+                  dateRangeLabel: "Date Range",
+                  dateRangeKey: "Date Range",
+                }
+              : filterContext === "transactions"
+                ? {
+                    title: "Filter transactions",
+                    description: "Filter transactions by amount and date range",
+                    showPrice: true,
+                    showPropertyType: false,
+                    showLocation: false,
+                    priceMin: 0,
+                    priceMax: 10_000_000_000,
+                    priceStep: 100000,
+                    showStatus: true,
+                    statusOptions: ["Pending", "Paid", "Rejected"],
+                    textFields: [
+                      {
+                        label: "Transaction ID",
+                        placeholder: "Search by transaction id",
+                        key: "Transaction ID",
+                      },
+                    ],
+                    showDateRange: true,
+                    dateRangeLabel: "Date Range",
+                    dateRangeKey: "Date Range",
+                  }
+                : {
+                    title: "Filter referrals",
+                    description:
+                      "Filter referrals by date joined and commission",
+                    showPrice: false,
+                    showPropertyType: false,
+                    showLocation: false,
+                    textFields: [
+                      {
+                        label: "Name",
+                        placeholder: "Search by name",
+                        key: "Name",
+                      },
+                    ],
+                    showDateRange: true,
+                    dateRangeLabel: "Date Joined",
+                    dateRangeKey: "Date Joined",
+                    showNumberRange: true,
+                    numberRangeLabel: "Commission (₦)",
+                    numberRangeKey: "Commission (₦)",
+                    numberRangeMin: 0,
+                    numberRangeMax: 10_000_000_000,
+                  }
+        }
+      />
       <KycReviewModal
         isOpen={isKycModalOpen}
         realtor={realtor}
