@@ -75,12 +75,12 @@ export const propertyFilterConfig: FilterConfig = {
 // Receipt Filter Configuration
 export const receiptFilterConfig: FilterConfig = {
     title: "Filter Receipts",
-    description: "Set filters to find specific receipts",
+    description: "Filter receipts by amount, date range, and client name",
     sections: [
         {
             title: "Status",
-            type: "dropdown",
-            collapsible: true,
+            type: "select",
+            placeholder: "Select status",
             options: [
                 { label: "All", value: "all", type: "radio" },
                 { label: "Approved", value: "approved", type: "radio" },
@@ -90,29 +90,20 @@ export const receiptFilterConfig: FilterConfig = {
             ],
         },
         {
-            title: "Date Range",
-            type: "range",
-            min: 0, // Days ago
-            max: 365, // Days ago
-            step: 1,
-            formatValue: (val: number) => {
-                const date = new Date();
-                date.setDate(date.getDate() - val);
-                return date.toLocaleDateString();
-            },
-        },
-        {
             title: "Amount Range (₦)",
-            type: "range",
+            type: "number-range",
             min: 0,
-            max: 1_000_000,
-            step: 1000,
-            formatValue: (val: number) => `₦${val.toLocaleString()}`,
+            max: 10_000_000_000,
+            step: 100000,
         },
         {
             title: "Client Name",
             type: "text",
             placeholder: "Search by client name",
+        },
+        {
+            title: "Date Range",
+            type: "date-range",
         },
     ],
     onApply: (filters) => {
@@ -128,37 +119,42 @@ export const receiptFilterConfig: FilterConfig = {
 // Transaction Filter Configuration
 export const transactionFilterConfig: FilterConfig = {
     title: "Filter Transactions",
-    description: "Filter your transactions by various criteria",
+    description: "Filter transactions by amount, date range, and realtor",
     sections: [
         {
             title: "Transaction Type",
             type: "select",
+            placeholder: "Select type",
             options: [
                 { label: "All", value: "all", type: "radio" },
                 { label: "Commission", value: "Commission", type: "radio" },
+                { label: "Withdrawal", value: "Withdrawal", type: "radio" },
                 { label: "Referral", value: "Referral", type: "radio" },
-                { label: "Withdrawal", value: "Withdrawal", type: "radio" }
-            ]
+            ],
         },
         {
             title: "Status",
             type: "select",
+            placeholder: "Select status",
             options: [
                 { label: "All", value: "all", type: "radio" },
                 { label: "Paid", value: "Paid", type: "radio" },
                 { label: "Approved", value: "Approved", type: "radio" },
                 { label: "Pending", value: "Pending", type: "radio" },
-                { label: "Failed", value: "Failed", type: "radio" }
-            ]
+                { label: "Failed", value: "Failed", type: "radio" },
+            ],
         },
         {
             title: "Amount Range",
-            type: "range",
+            type: "number-range",
             min: 0,
-            max: 1000000,
-            step: 1000,
-            formatValue: (value) => `₦${value.toLocaleString()}`
-        }
+            max: 10_000_000_000,
+            step: 100000,
+        },
+        {
+            title: "Date Range",
+            type: "date-range",
+        },
     ],
     onApply: (filters) => {
         logger.info("Transaction filters applied:", filters);

@@ -1,7 +1,6 @@
 import type { FC } from "react";
 import { useEffect, useState } from "react";
 import { Range } from "react-range";
-import ManualLocationModal from "./ManualLocationModal";
 
 interface SearchFilterModalProps {
   isOpen: boolean;
@@ -11,20 +10,15 @@ interface SearchFilterModalProps {
   onReset?: () => void;
 }
 
-const MAX_PRICE = 100_000_000;
-const MIN_PRICE = 100_000;
+const MAX_PRICE = 10_000_000_000;
+const MIN_PRICE = 0;
 
-const BASE_PROPERTY_TYPES = ["Land for Rent", "Land for Sale"] as const;
-const MORE_PROPERTY_TYPES = [
-  "House for Rent",
-  "House for Sale",
-  "Apartment for Rent",
-  "Apartment for Sale",
-  "Industrial Land",
-  "Commercial Land",
-  "Residential Plot",
-  "Office Space",
-  "Warehouse",
+const BASE_PROPERTY_TYPES = [
+  "Land",
+  "Residential",
+  "Commercial",
+  "Industrial",
+  "Mixed-Use",
 ] as const;
 
 const LOCATION_OPTIONS = [
@@ -55,40 +49,40 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
   onReset,
 }) => {
   const [showPropertyType, setShowPropertyType] = useState(false);
-  const [showMoreCategories, setShowMoreCategories] = useState(false);
-  const [price, setPrice] = useState<number[]>([MIN_PRICE, MAX_PRICE]);
+  const defaultPriceMin = MIN_PRICE;
+  const defaultPriceMax = MAX_PRICE;
+  const [price, setPrice] = useState<number[]>([
+    defaultPriceMin,
+    defaultPriceMax,
+  ]);
+  const [didAdjustPrice, setDidAdjustPrice] = useState(false);
+  const [priceMinInput, setPriceMinInput] = useState(String(defaultPriceMin));
+  const [priceMaxInput, setPriceMaxInput] = useState(String(defaultPriceMax));
   const [dragged, setDragged] = useState<number | null>(null);
-  const [manualModalOpen, setManualModalOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState("Select location");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedPropertyType, setSelectedPropertyType] = useState("");
 
   const formatCurrency = (val: number) =>
     `₦${Math.round(val).toLocaleString()}`;
 
-  const propertyTypes = [
-    "Land for Rent",
-    "Land for Sale",
-    ...(showMoreCategories ? MORE_PROPERTY_TYPES : []),
-  ];
+  const clampPrice = (val: number) =>
+    Math.min(defaultPriceMax, Math.max(defaultPriceMin, val));
+
+  const syncPrice = (next: number[]) => {
+    setPrice(next);
+    setPriceMinInput(String(next[0]));
+    setPriceMaxInput(String(next[1]));
+  };
+
+  const propertyTypes = [...BASE_PROPERTY_TYPES];
 
   useEffect(() => {
     if (!isOpen) return;
 
     const initialType = String(initialFilters?.["Property Type"] ?? "").trim();
     setSelectedPropertyType(initialType);
-    if (
-      initialType &&
-      !BASE_PROPERTY_TYPES.includes(
-        initialType as (typeof BASE_PROPERTY_TYPES)[number]
-      )
-    ) {
-      setShowMoreCategories(true);
-    } else {
-      setShowMoreCategories(false);
-    }
-
     const initialLocation = String(initialFilters?.["Location"] ?? "").trim();
-    setSelectedLocation(initialLocation || "Select location");
+    setSelectedLocation(initialLocation);
 
     const initialPrice = initialFilters?.["Price (₦)"];
     if (Array.isArray(initialPrice) && initialPrice.length === 2) {
@@ -96,27 +90,38 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
       const max = Number(initialPrice[1]);
       if (Number.isFinite(min) && Number.isFinite(max)) {
         setPrice([min, max]);
+        setDidAdjustPrice(min > defaultPriceMin || max < defaultPriceMax);
+        setPriceMinInput(String(min));
+        setPriceMaxInput(String(max));
       } else {
-        setPrice([MIN_PRICE, MAX_PRICE]);
+        setPrice([defaultPriceMin, defaultPriceMax]);
+        setDidAdjustPrice(false);
+        setPriceMinInput(String(defaultPriceMin));
+        setPriceMaxInput(String(defaultPriceMax));
       }
     } else {
-      setPrice([MIN_PRICE, MAX_PRICE]);
+      setPrice([defaultPriceMin, defaultPriceMax]);
+      setDidAdjustPrice(false);
+      setPriceMinInput(String(defaultPriceMin));
+      setPriceMaxInput(String(defaultPriceMax));
     }
 
     setDragged(null);
-  }, [isOpen, initialFilters]);
+  }, [isOpen, initialFilters, defaultPriceMin, defaultPriceMax]);
 
   const handleApply = () => {
-    const filters: Record<string, unknown> = {
-      "Price (₦)": price,
-    };
+    const filters: Record<string, unknown> = {};
+    const narrowed = price[0] > defaultPriceMin || price[1] < defaultPriceMax;
+    if (didAdjustPrice && narrowed) {
+      filters["Price (₦)"] = price;
+    }
 
     if (selectedPropertyType.trim()) {
       filters["Property Type"] = selectedPropertyType.trim();
     }
 
-    if (selectedLocation && selectedLocation !== "Select location") {
-      filters["Location"] = selectedLocation;
+    if (selectedLocation.trim()) {
+      filters["Location"] = selectedLocation.trim();
     }
 
     onApply?.(filters);
@@ -125,10 +130,12 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
 
   const handleReset = () => {
     setSelectedPropertyType("");
-    setSelectedLocation("Select location");
-    setPrice([MIN_PRICE, MAX_PRICE]);
+    setSelectedLocation("");
+    setPrice([defaultPriceMin, defaultPriceMax]);
+    setDidAdjustPrice(false);
+    setPriceMinInput(String(defaultPriceMin));
+    setPriceMaxInput(String(defaultPriceMax));
     setDragged(null);
-    setShowMoreCategories(false);
     setShowPropertyType(false);
     onReset?.();
     onClose();
@@ -170,7 +177,6 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
             <button
               onClick={() => {
                 setShowPropertyType((v) => !v);
-                if (showPropertyType) setShowMoreCategories(false);
               }}
               className="flex justify-between items-center w-full text-left"
             >
@@ -203,24 +209,6 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
                     />
                   </label>
                 ))}
-                {!showMoreCategories && (
-                  <button
-                    className="flex items-center gap-1 text-[#6500AC] text-[14px] mt-1"
-                    onClick={() => setShowMoreCategories(true)}
-                  >
-                    <span>More categories</span>
-                    <span>▼</span>
-                  </button>
-                )}
-                {showMoreCategories && (
-                  <button
-                    className="flex items-center gap-1 text-[#6500AC] text-[14px] mt-1"
-                    onClick={() => setShowMoreCategories(false)}
-                  >
-                    <span>Hide categories</span>
-                    <span>▲</span>
-                  </button>
-                )}
               </div>
             )}
           </div>
@@ -230,37 +218,20 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
             <span className="font-medium text-[14px] text-[#6B7280]">
               Location
             </span>
-            <select
+            <input
+              list="dashboard-location-options"
               className="border border-[#F0F1F2] bg-white rounded-md p-3 text-[14px] text-[#6B7280] w-full focus:outline-none"
               value={selectedLocation}
               onChange={(e) => {
-                const value = e.target.value;
-                if (value === "--Manually select location--") {
-                  setManualModalOpen(true);
-                } else {
-                  setSelectedLocation(value);
-                }
+                setSelectedLocation(e.target.value);
               }}
-            >
-              <option>Select location</option>
-              <option>--Manually select location--</option>
-              {selectedLocation !== "Select location" &&
-                selectedLocation !== "--Manually select location--" &&
-                !LOCATION_OPTIONS.includes(selectedLocation) && (
-                  <option value={selectedLocation}>{selectedLocation}</option>
-                )}
-              {LOCATION_OPTIONS.map((loc) => (
-                <option key={loc} value={loc}>
-                  {loc}
-                </option>
-              ))}
-            </select>
-
-            <ManualLocationModal
-              isOpen={manualModalOpen}
-              onClose={() => setManualModalOpen(false)}
-              onApply={(loc) => setSelectedLocation(loc)}
+              placeholder="Enter location"
             />
+            <datalist id="dashboard-location-options">
+              {LOCATION_OPTIONS.map((loc) => (
+                <option key={loc} value={loc} />
+              ))}
+            </datalist>
           </div>
 
           {/* Price */}
@@ -270,10 +241,17 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
             </span>
             <Range
               step={100000}
-              min={MIN_PRICE}
-              max={MAX_PRICE}
+              min={defaultPriceMin}
+              max={defaultPriceMax}
               values={price}
-              onChange={setPrice}
+              onChange={(values) => {
+                setDidAdjustPrice(true);
+                const nextMin = clampPrice(values[0]);
+                const nextMax = clampPrice(values[1]);
+                const next: number[] =
+                  nextMin <= nextMax ? [nextMin, nextMax] : [nextMax, nextMin];
+                syncPrice(next);
+              }}
               onFinalChange={() => setDragged(null)}
               renderTrack={({ props, children }) => (
                 <div
@@ -284,10 +262,14 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
                     className="absolute h-2 bg-[#6500AC] rounded-full"
                     style={{
                       left: `${
-                        ((price[0] - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100
+                        ((price[0] - defaultPriceMin) /
+                          (defaultPriceMax - defaultPriceMin)) *
+                        100
                       }%`,
                       width: `${
-                        ((price[1] - price[0]) / (MAX_PRICE - MIN_PRICE)) * 100
+                        ((price[1] - price[0]) /
+                          (defaultPriceMax - defaultPriceMin)) *
+                        100
                       }%`,
                     }}
                   />
@@ -304,13 +286,70 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
               )}
             />
 
-            {/* Min / Max Labels */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border border-[#F0F1F2] rounded-md p-3 md:p-4 text-xs md:text-sm">
-                {formatCurrency(price[0])}
+              <div className="flex flex-col gap-1">
+                <span className="text-[12px] text-[#6B7280]">Min</span>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  min={defaultPriceMin}
+                  max={defaultPriceMax}
+                  step={100000}
+                  value={priceMinInput}
+                  onChange={(e) => {
+                    setDidAdjustPrice(true);
+                    const raw = e.target.value;
+                    setPriceMinInput(raw);
+                    const nextNum = Number(raw);
+                    if (!Number.isFinite(nextNum)) return;
+                    const nextMin = clampPrice(nextNum);
+                    const nextMax = clampPrice(Math.max(nextMin, price[1]));
+                    syncPrice([nextMin, nextMax]);
+                  }}
+                  onBlur={() => {
+                    const n = Number(priceMinInput);
+                    if (!Number.isFinite(n)) {
+                      setPriceMinInput(String(price[0]));
+                      return;
+                    }
+                    const nextMin = clampPrice(n);
+                    const nextMax = clampPrice(Math.max(nextMin, price[1]));
+                    syncPrice([nextMin, nextMax]);
+                  }}
+                  className="border border-[#F0F1F2] bg-white rounded-md p-3 md:p-4 text-xs md:text-sm text-black w-full focus:outline-none"
+                />
               </div>
-              <div className="bg-white border border-[#F0F1F2] rounded-md p-3 md:p-4 text-xs md:text-sm">
-                {formatCurrency(price[1])}
+              <div className="flex flex-col gap-1">
+                <span className="text-[12px] text-[#6B7280]">Max</span>
+                <input
+                  inputMode="numeric"
+                  type="number"
+                  min={defaultPriceMin}
+                  max={defaultPriceMax}
+                  step={100000}
+                  value={priceMaxInput}
+                  onChange={(e) => {
+                    setDidAdjustPrice(true);
+                    const raw = e.target.value;
+                    setPriceMaxInput(raw);
+                    const nextNum = Number(raw);
+                    if (!Number.isFinite(nextNum)) return;
+                    const nextMax = clampPrice(nextNum);
+                    const nextMin = clampPrice(Math.min(nextMax, price[0]));
+                    syncPrice([nextMin, nextMax]);
+                  }}
+                  onBlur={() => {
+                    const n = Number(priceMaxInput);
+                    if (!Number.isFinite(n)) {
+                      setPriceMaxInput(String(price[1]));
+                      return;
+                    }
+                    const nextMax = clampPrice(n);
+                    const nextMin = clampPrice(Math.min(nextMax, price[0]));
+                    syncPrice([nextMin, nextMax]);
+                  }}
+                  className="border border-[#F0F1F2] bg-white rounded-md p-3 md:p-4 text-xs md:text-sm text-black w-full focus:outline-none"
+                />
               </div>
             </div>
           </div>
@@ -318,10 +357,7 @@ const SearchFilterModal: FC<SearchFilterModalProps> = ({
           {/* Active Price */}
           <div className="flex flex-col gap-2">
             <span className="text-xs md:text-sm font-medium text-[#6B7280]">
-              Filter Title here
-            </span>
-            <span className="text-xs md:text-sm font-medium text-[#6B7280]">
-              Sub-filter title
+              Price Preview
             </span>
             <div className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 h-[48px] md:h-[56px] flex items-center text-xs md:text-sm text-black font-medium">
               {dragged !== null ? formatCurrency(price[dragged]) : "—"}

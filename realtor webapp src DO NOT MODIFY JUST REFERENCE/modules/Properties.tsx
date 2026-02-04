@@ -15,4 +15,5 @@ export interface Property {
   image: string;
   images: string[];
   type: string;
+  category?: string | null;
 }

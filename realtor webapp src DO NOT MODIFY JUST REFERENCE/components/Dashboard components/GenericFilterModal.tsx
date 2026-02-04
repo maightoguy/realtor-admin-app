@@ -12,7 +12,7 @@ export interface FilterOption {
 
 export interface FilterSection {
   title: string;
-  type: "dropdown" | "range" | "select" | "text";
+  type: "dropdown" | "range" | "select" | "text" | "date-range" | "number-range";
   options?: FilterOption[];
   min?: number;
   max?: number;
@@ -259,6 +259,110 @@ const GenericFilterModal: FC<GenericFilterModalProps> = ({
                         </div>
                       </div>
                     )}
+
+                  {section.type === "date-range" && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="date"
+                        className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 text-xs md:text-sm text-[#6B7280] w-full focus:outline-none"
+                        value={
+                          Array.isArray(filterValues[section.title])
+                            ? filterValues[section.title][0] || ""
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const current = Array.isArray(
+                            filterValues[section.title],
+                          )
+                            ? filterValues[section.title]
+                            : ["", ""];
+                          updateFilterValue(section.title, [
+                            e.target.value,
+                            current[1] || "",
+                          ]);
+                        }}
+                      />
+                      <input
+                        type="date"
+                        className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 text-xs md:text-sm text-[#6B7280] w-full focus:outline-none"
+                        value={
+                          Array.isArray(filterValues[section.title])
+                            ? filterValues[section.title][1] || ""
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const current = Array.isArray(
+                            filterValues[section.title],
+                          )
+                            ? filterValues[section.title]
+                            : ["", ""];
+                          updateFilterValue(section.title, [
+                            current[0] || "",
+                            e.target.value,
+                          ]);
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {section.type === "number-range" && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <input
+                        type="number"
+                        min={section.min}
+                        max={section.max}
+                        step={section.step}
+                        className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 text-xs md:text-sm text-[#6B7280] w-full focus:outline-none"
+                        placeholder="Min"
+                        value={
+                          Array.isArray(filterValues[section.title]) &&
+                          typeof filterValues[section.title][0] === "number"
+                            ? filterValues[section.title][0]
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const current = Array.isArray(
+                            filterValues[section.title],
+                          )
+                            ? filterValues[section.title]
+                            : [null, null];
+                          const raw = e.target.value;
+                          const nextMin = raw === "" ? null : Number(raw);
+                          updateFilterValue(section.title, [
+                            Number.isFinite(nextMin) ? nextMin : null,
+                            current[1] ?? null,
+                          ]);
+                        }}
+                      />
+                      <input
+                        type="number"
+                        min={section.min}
+                        max={section.max}
+                        step={section.step}
+                        className="border border-[#F0F1F2] bg-white rounded-md p-2 md:p-3 text-xs md:text-sm text-[#6B7280] w-full focus:outline-none"
+                        placeholder="Max"
+                        value={
+                          Array.isArray(filterValues[section.title]) &&
+                          typeof filterValues[section.title][1] === "number"
+                            ? filterValues[section.title][1]
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const current = Array.isArray(
+                            filterValues[section.title],
+                          )
+                            ? filterValues[section.title]
+                            : [null, null];
+                          const raw = e.target.value;
+                          const nextMax = raw === "" ? null : Number(raw);
+                          updateFilterValue(section.title, [
+                            current[0] ?? null,
+                            Number.isFinite(nextMax) ? nextMax : null,
+                          ]);
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {section.type === "text" && (
                     <input

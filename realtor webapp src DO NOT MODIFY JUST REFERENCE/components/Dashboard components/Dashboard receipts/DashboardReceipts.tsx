@@ -56,7 +56,7 @@ const DashboardReceipts = ({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All");
   const [appliedFilters, setAppliedFilters] = useState<Record<string, unknown>>(
-    {}
+    {},
   );
   const [receipts, setReceipts] = useState<ReceiptWithProperty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,25 +113,36 @@ const DashboardReceipts = ({
 
     const amountRange = appliedFilters["Amount Range (₦)"];
     if (Array.isArray(amountRange) && amountRange.length === 2) {
-      const min = Number(amountRange[0]);
-      const max = Number(amountRange[1]);
+      const min = typeof amountRange[0] === "number" ? amountRange[0] : null;
+      const max = typeof amountRange[1] === "number" ? amountRange[1] : null;
       const amount = Number(receipt.amount_paid ?? 0);
-      if (Number.isFinite(min) && amount < min) return false;
-      if (Number.isFinite(max) && amount > max) return false;
+      if (typeof min === "number" && Number.isFinite(min) && amount < min)
+        return false;
+      if (typeof max === "number" && Number.isFinite(max) && amount > max)
+        return false;
     }
 
     const dateRange = appliedFilters["Date Range"];
     if (Array.isArray(dateRange) && dateRange.length === 2) {
-      const minDaysAgo = Number(dateRange[0]);
-      const maxDaysAgo = Number(dateRange[1]);
-      if (Number.isFinite(minDaysAgo) && Number.isFinite(maxDaysAgo)) {
-        const now = new Date();
-        const start = new Date(now);
-        start.setDate(now.getDate() - maxDaysAgo);
-        const end = new Date(now);
-        end.setDate(now.getDate() - minDaysAgo);
+      const startRaw = String(dateRange[0] ?? "").trim();
+      const endRaw = String(dateRange[1] ?? "").trim();
+      if (startRaw || endRaw) {
         const createdAt = new Date(receipt.created_at);
-        if (createdAt < start || createdAt > end) return false;
+        if (Number.isNaN(createdAt.getTime())) return false;
+        if (startRaw) {
+          const start = new Date(startRaw);
+          if (!Number.isNaN(start.getTime())) {
+            start.setHours(0, 0, 0, 0);
+            if (createdAt < start) return false;
+          }
+        }
+        if (endRaw) {
+          const end = new Date(endRaw);
+          if (!Number.isNaN(end.getTime())) {
+            end.setHours(23, 59, 59, 999);
+            if (createdAt > end) return false;
+          }
+        }
       }
     }
 
@@ -140,7 +151,7 @@ const DashboardReceipts = ({
 
   const paginatedReceipts = filteredReceipts.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const formatCurrency = (amount: number | null) => {
@@ -161,7 +172,7 @@ const DashboardReceipts = ({
     // Using Intl.DateTimeFormat to get the abbreviated month (e.g., Dec)
     const day = date.getDate().toString().padStart(2, "0");
     const month = new Intl.DateTimeFormat("en-US", { month: "short" }).format(
-      date
+      date,
     );
     const year = date.getFullYear();
 
@@ -253,7 +264,7 @@ const DashboardReceipts = ({
                 >
                   {label}
                 </button>
-              )
+              ),
             )}
           </div>
           <div className="w-full lg:w-[350px]">
@@ -314,7 +325,7 @@ const DashboardReceipts = ({
                       <td className="px-6 py-3">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusStyles(
-                            r.status
+                            r.status,
                           )}`}
                         >
                           {formatStatus(r.status)}
@@ -345,7 +356,7 @@ const DashboardReceipts = ({
                     </p>
                     <span
                       className={`flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusStyles(
-                        r.status
+                        r.status,
                       )}`}
                     >
                       {formatStatus(r.status)}

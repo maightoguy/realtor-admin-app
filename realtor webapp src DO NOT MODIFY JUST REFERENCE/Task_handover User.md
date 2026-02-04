@@ -358,6 +358,43 @@ Great catch — Android Developer Options (“limit background processes”) can
 *   `npm run lint`
 *   `npm run build`
 
+### Q. User Properties Filters Aligned With Admin Behavior
+**Outcome**
+*   Property filters now use admin-aligned categories, free-text location, and a robust price range with editable min/max inputs.
+*   Default price ranges no longer apply unless the user adjusts them.
+*   Property-type filtering prefers database categories when available.
+
+**What Changed**
+*   Updated property filter modal to match admin patterns (category list, free-text location input, editable price range, and conditional price filter):
+    *   `src/components/Dashboard components/SearchFilterModal.tsx`
+*   Added property category support in the UI model and filtering:
+    *   `src/modules/Properties.tsx`
+    *   `src/components/Dashboard components/Dashboard Property component/DashboardProperties.tsx`
+
+**Verification**
+*   `npm run lint`
+*   `npm run build`
+
+### R. Dashboard Filters and Property Search Debounce
+**Outcome**
+*   Receipts and transactions filters now align with modal configuration keys and date/amount handling.
+*   Transactions include date-range filtering via created-at timestamps.
+*   Property search no longer triggers loader on every keystroke (debounced API fetch).
+
+**What Changed**
+*   Added filter config options and aligned labels for receipts and transactions:
+    *   `src/components/Dashboard components/filterConfigs.ts`
+*   Updated receipts filter parsing for amount range and date range:
+    *   `src/components/Dashboard components/Dashboard receipts/DashboardReceipts.tsx`
+*   Added transaction `createdAt` for date-range filtering and aligned amount range handling:
+    *   `src/components/Dashboard components/Dashboard transactions/DashboardTransactions.tsx`
+*   Debounced property search API calls:
+    *   `src/components/Dashboard components/Dashboard Property component/DashboardProperties.tsx`
+
+**Verification**
+*   `npm run lint`
+*   `npm run build`
+
 ## 5. Codebase Structure & Navigation
 ### Key Directories
 *   `src/context/UserContext.tsx`: **Central Truth**. Handles user hydration, profile fetching, and role management.

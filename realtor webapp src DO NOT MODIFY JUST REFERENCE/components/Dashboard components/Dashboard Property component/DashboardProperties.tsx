@@ -26,18 +26,19 @@ const DashboardProperties = () => {
   const { user, refreshUser } = useUser();
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState<Property[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<Record<string, unknown>>(
-    {}
+    {},
   );
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(
-    null
+    null,
   );
   const [activeSection, setActiveSection] = useState<"list" | "details">(
-    "list"
+    "list",
   );
   const [items, setItems] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,13 @@ const DashboardProperties = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [filter, searchQuery, appliedFilters]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Map DB property type to UI filter type
   const mapDbTypeToUi = (type?: string) => {
@@ -103,6 +111,7 @@ const DashboardProperties = () => {
       image: primaryImage,
       images,
       type: uiType,
+      category: p.category ?? null,
     };
   }, []);
 
@@ -184,8 +193,8 @@ const DashboardProperties = () => {
 
         let data: DbProperty[] = [];
 
-        if (searchQuery.trim().length > 0) {
-          data = await propertyApiService.search(searchQuery.trim(), {
+        if (debouncedSearchQuery.trim().length > 0) {
+          data = await propertyApiService.search(debouncedSearchQuery.trim(), {
             type: filters.type,
             status: filters.status,
           });
@@ -221,7 +230,7 @@ const DashboardProperties = () => {
     return () => {
       isMounted = false;
     };
-  }, [filter, searchQuery, adaptProperty, propertyIdParam]);
+  }, [filter, debouncedSearchQuery, adaptProperty, propertyIdParam]);
 
   // Filter + search
   const sourceList = filter === "favorite" ? favorites : items;
@@ -231,6 +240,8 @@ const DashboardProperties = () => {
       .split(/[,-]/)
       .map((t) => t.trim())
       .filter(Boolean);
+  const normalizeCategory = (value: string) =>
+    value.toLowerCase().replace(/\s+/g, "-");
 
   const getPriceNumber = (value: string) => {
     const digits = value.replace(/[^\d]/g, "");
@@ -262,18 +273,23 @@ const DashboardProperties = () => {
     if (!matchSearch) return false;
 
     const selectedType = String(appliedFilters["Property Type"] ?? "").trim();
-    const selectedTypeLower = selectedType.toLowerCase();
+    const selectedTypeLower = normalizeCategory(selectedType);
     if (selectedTypeLower && selectedTypeLower !== "any") {
-      const isLand =
-        selectedTypeLower.includes("land") ||
-        selectedTypeLower.includes("plot");
-      const isBuilding =
-        selectedTypeLower.includes("house") ||
-        selectedTypeLower.includes("apartment") ||
-        selectedTypeLower.includes("office") ||
-        selectedTypeLower.includes("warehouse");
-      const wants = isLand ? "lands" : isBuilding ? "buildings" : "";
-      if (wants && (p.type ?? "").toLowerCase() !== wants) return false;
+      const propertyCategory = normalizeCategory(String(p.category ?? ""));
+      if (propertyCategory) {
+        if (propertyCategory !== selectedTypeLower) return false;
+      } else {
+        const isLand =
+          selectedTypeLower.includes("land") ||
+          selectedTypeLower.includes("plot");
+        const isBuilding =
+          selectedTypeLower.includes("house") ||
+          selectedTypeLower.includes("apartment") ||
+          selectedTypeLower.includes("office") ||
+          selectedTypeLower.includes("warehouse");
+        const wants = isLand ? "lands" : isBuilding ? "buildings" : "";
+        if (wants && (p.type ?? "").toLowerCase() !== wants) return false;
+      }
     }
 
     const selectedLocation = String(appliedFilters["Location"] ?? "").trim();
@@ -281,7 +297,7 @@ const DashboardProperties = () => {
       const locationTokens = normalizeTokens(selectedLocation);
       const propertyLocation = (p.location ?? "").toLowerCase();
       const matchesAllTokens = locationTokens.every((t) =>
-        propertyLocation.includes(t)
+        propertyLocation.includes(t),
       );
       if (!matchesAllTokens) return false;
     }
@@ -317,7 +333,7 @@ const DashboardProperties = () => {
 
   const paginated = sortedProperties.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const toggleFavorite = async (property: Property) => {

@@ -26,6 +26,7 @@ interface Transaction {
   title: string;
   amount: string;
   date: string;
+  createdAt: string;
   status: TransactionStatus;
   type: TransactionType;
 }
@@ -148,16 +149,17 @@ const mapUnifiedToUI = (tx: UnifiedTransaction): Transaction => {
     tx.status === "paid"
       ? "Paid"
       : tx.status === "approved"
-      ? "Approved"
-      : tx.status === "rejected"
-      ? "Failed"
-      : "Pending";
+        ? "Approved"
+        : tx.status === "rejected"
+          ? "Failed"
+          : "Pending";
 
   return {
     id: tx.id,
     title: isCredit ? "Commission payment" : "Withdrawal request",
     amount: formatCurrency(tx.amount),
     date: formatTransactionDate(tx.created_at),
+    createdAt: tx.created_at,
     status: uiStatus,
     type: isCredit ? "Commission" : "Withdrawal",
   };
@@ -177,7 +179,7 @@ const DashboardTransactions = () => {
   const [metrics, setMetrics] = useState<TransactionMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [appliedFilters, setAppliedFilters] = useState<Record<string, unknown>>(
-    {}
+    {},
   );
 
   const itemsPerPage = 10;
@@ -254,11 +256,37 @@ const DashboardTransactions = () => {
 
     const amountRange = appliedFilters["Amount Range"];
     if (Array.isArray(amountRange) && amountRange.length === 2) {
-      const min = Number(amountRange[0]);
-      const max = Number(amountRange[1]);
+      const min = typeof amountRange[0] === "number" ? amountRange[0] : null;
+      const max = typeof amountRange[1] === "number" ? amountRange[1] : null;
       const amount = getAmountNumber(transaction.amount);
-      if (Number.isFinite(min) && amount < min) return false;
-      if (Number.isFinite(max) && amount > max) return false;
+      if (typeof min === "number" && Number.isFinite(min) && amount < min)
+        return false;
+      if (typeof max === "number" && Number.isFinite(max) && amount > max)
+        return false;
+    }
+
+    const dateRange = appliedFilters["Date Range"];
+    if (Array.isArray(dateRange) && dateRange.length === 2) {
+      const startRaw = String(dateRange[0] ?? "").trim();
+      const endRaw = String(dateRange[1] ?? "").trim();
+      if (startRaw || endRaw) {
+        const createdAt = new Date(transaction.createdAt);
+        if (Number.isNaN(createdAt.getTime())) return false;
+        if (startRaw) {
+          const start = new Date(startRaw);
+          if (!Number.isNaN(start.getTime())) {
+            start.setHours(0, 0, 0, 0);
+            if (createdAt < start) return false;
+          }
+        }
+        if (endRaw) {
+          const end = new Date(endRaw);
+          if (!Number.isNaN(end.getTime())) {
+            end.setHours(23, 59, 59, 999);
+            if (createdAt > end) return false;
+          }
+        }
+      }
     }
 
     return true;
@@ -268,7 +296,7 @@ const DashboardTransactions = () => {
   const totalItems = filteredTransactions.length;
   const paginatedTransactions = filteredTransactions.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   // Reset to page 1 when filters change
@@ -340,7 +368,7 @@ const DashboardTransactions = () => {
             >
               {label}
             </button>
-          )
+          ),
         )}
       </div>
 
@@ -414,19 +442,19 @@ const DashboardTransactions = () => {
                   {activeTypeFilter === "Earnings"
                     ? "Earnings"
                     : activeTypeFilter === "Withdrawals"
-                    ? "Withdrawals"
-                    : activeTypeFilter === "Referrals"
-                    ? "Referrals"
-                    : "All Transactions"}
+                      ? "Withdrawals"
+                      : activeTypeFilter === "Referrals"
+                        ? "Referrals"
+                        : "All Transactions"}
                 </p>
                 <p className="text-xs md:text-sm text-[#667085]">
                   {activeTypeFilter === "Earnings"
                     ? "Keep track of your Earnings in this table"
                     : activeTypeFilter === "Withdrawals"
-                    ? "Keep track of your Withdrawals in this table"
-                    : activeTypeFilter === "Referrals"
-                    ? "Keep track of your Referrals in this table"
-                    : "Keep track of your Transactions in this table"}
+                      ? "Keep track of your Withdrawals in this table"
+                      : activeTypeFilter === "Referrals"
+                        ? "Keep track of your Referrals in this table"
+                        : "Keep track of your Transactions in this table"}
                 </p>
               </div>
             </div>
@@ -447,7 +475,7 @@ const DashboardTransactions = () => {
                     >
                       {label}
                     </button>
-                  )
+                  ),
                 )}
               </div>
 
@@ -472,10 +500,10 @@ const DashboardTransactions = () => {
                   {activeTypeFilter === "Earnings"
                     ? "You don't have any earnings yet!"
                     : activeTypeFilter === "Withdrawals"
-                    ? "You don't have any withdrawals yet!"
-                    : activeTypeFilter === "Referrals"
-                    ? "You don't have any referrals yet!"
-                    : "You don't have any transactions yet!"}
+                      ? "You don't have any withdrawals yet!"
+                      : activeTypeFilter === "Referrals"
+                        ? "You don't have any referrals yet!"
+                        : "You don't have any transactions yet!"}
                 </p>
                 <button className="px-3 py-1.5 md:px-5 md:py-3 rounded-lg bg-[#6500AC] text-white text-xs md:text-sm font-medium shadow-sm">
                   Explore Properties
@@ -511,7 +539,7 @@ const DashboardTransactions = () => {
                           <td className="px-6 py-3">
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(
-                                transaction.status
+                                transaction.status,
                               )}`}
                             >
                               ● {transaction.status}
@@ -542,7 +570,7 @@ const DashboardTransactions = () => {
                         </p>
                         <span
                           className={`px-1.5 py-0.5 rounded-full text-[9px] md:text-xs font-medium whitespace-nowrap ${getStatusColor(
-                            transaction.status
+                            transaction.status,
                           )}`}
                         >
                           ● {transaction.status}
