@@ -21,6 +21,8 @@ interface InitialPropertyData {
   title: string;
   price: number;
   location: string;
+  latitude?: number;
+  longitude?: number;
   category?: string;
   description?: string;
   commissionPercent?: number;
@@ -44,6 +46,8 @@ interface AddPropertyFormProps {
     title: string;
     price: number;
     location: string;
+    latitude?: number;
+    longitude?: number;
     isSoldOut: boolean;
     category?: string;
     description?: string;
@@ -92,6 +96,8 @@ const AddPropertyForm = ({
     startingPrice: "",
     commission: "",
     location: "",
+    latitude: "",
+    longitude: "",
     category: "",
     description: "",
     developerId: "",
@@ -208,6 +214,129 @@ const AddPropertyForm = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const parseCoordinateToDecimal = (
+    raw: string,
+    kind: "latitude" | "longitude",
+  ): number | null => {
+    const input = raw.trim();
+    if (!input) return null;
+
+    const normalizeHemisphere = (s: string) => s.trim().toUpperCase();
+
+    const applyHemisphere = (value: number, hemisphere: string | null) => {
+      if (!hemisphere) return value;
+      const hemi = normalizeHemisphere(hemisphere);
+      if (hemi === "S" || hemi === "W") return -Math.abs(value);
+      if (hemi === "N" || hemi === "E") return Math.abs(value);
+      return value;
+    };
+
+    const inRange = (value: number) => {
+      if (kind === "latitude") return value >= -90 && value <= 90;
+      return value >= -180 && value <= 180;
+    };
+
+    const dmsMatch = input.match(
+      /(-?\d+(?:\.\d+)?)\s*°\s*(\d+(?:\.\d+)?)?\s*'?\s*(\d+(?:\.\d+)?)?\s*"?\s*([NSEW])?/i,
+    );
+    if (dmsMatch) {
+      const deg = Number.parseFloat(dmsMatch[1]);
+      const min = dmsMatch[2] ? Number.parseFloat(dmsMatch[2]) : 0;
+      const sec = dmsMatch[3] ? Number.parseFloat(dmsMatch[3]) : 0;
+      const hemi = dmsMatch[4] ?? null;
+      if (
+        !Number.isFinite(deg) ||
+        !Number.isFinite(min) ||
+        !Number.isFinite(sec)
+      ) {
+        return null;
+      }
+      const abs = Math.abs(deg) + min / 60 + sec / 3600;
+      const signed = applyHemisphere(deg < 0 ? -abs : abs, hemi);
+      return inRange(signed) ? signed : null;
+    }
+
+    const decimalMatch = input.match(
+      /(-?\d+(?:\.\d+)?)(?:\s*°)?\s*([NSEW])?$/i,
+    );
+    if (decimalMatch) {
+      const value = Number.parseFloat(decimalMatch[1]);
+      if (!Number.isFinite(value)) return null;
+      const hemi = decimalMatch[2] ?? null;
+      const signed = applyHemisphere(value, hemi);
+      return inRange(signed) ? signed : null;
+    }
+
+    return null;
+  };
+
+  const parseLatLngPair = (
+    raw: string,
+  ): { lat: number; lng: number } | null => {
+    const input = raw.trim();
+    if (!input) return null;
+
+    const maybeTwo = input.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+    if (maybeTwo && !/[NSEW°'"]/i.test(input)) {
+      const lat = Number.parseFloat(maybeTwo[1]);
+      const lng = Number.parseFloat(maybeTwo[2]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      if (lat < -90 || lat > 90) return null;
+      if (lng < -180 || lng > 180) return null;
+      return { lat, lng };
+    }
+
+    const dmsPair = input.match(/(.+?[NS])\s+(.+?[EW])$/i);
+    if (dmsPair) {
+      const lat = parseCoordinateToDecimal(dmsPair[1], "latitude");
+      const lng = parseCoordinateToDecimal(dmsPair[2], "longitude");
+      if (lat == null || lng == null) return null;
+      return { lat, lng };
+    }
+
+    const commaParts = input
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (commaParts.length === 2) {
+      const lat = parseCoordinateToDecimal(commaParts[0], "latitude");
+      const lng = parseCoordinateToDecimal(commaParts[1], "longitude");
+      if (lat == null || lng == null) return null;
+      return { lat, lng };
+    }
+
+    return null;
+  };
+
+  const normalizeCoordinatesFromText = (text: string) => {
+    const pair = parseLatLngPair(text);
+    if (pair) {
+      setFormData((prev) => ({
+        ...prev,
+        latitude: pair.lat.toFixed(6),
+        longitude: pair.lng.toFixed(6),
+      }));
+      setLocationCoordinates([pair.lat, pair.lng]);
+      setIsGeocoding(false);
+      return true;
+    }
+    return false;
+  };
+
+  const normalizeSingleCoordinateField = (
+    kind: "latitude" | "longitude",
+    text: string,
+  ): boolean => {
+    if (normalizeCoordinatesFromText(text)) return true;
+    const value = parseCoordinateToDecimal(text, kind);
+    if (value == null) return false;
+    setFormData((prev) => ({
+      ...prev,
+      [kind]: value.toFixed(6),
+    }));
+    return true;
+  };
+
   useEffect(() => {
     let cancelled = false;
     setIsLoadingDevelopers(true);
@@ -279,6 +408,16 @@ const AddPropertyForm = ({
           ? String(initialProperty.commissionPercent)
           : "",
       location: initialProperty.location ?? "",
+      latitude:
+        typeof initialProperty.latitude === "number" &&
+        Number.isFinite(initialProperty.latitude)
+          ? String(initialProperty.latitude)
+          : "",
+      longitude:
+        typeof initialProperty.longitude === "number" &&
+        Number.isFinite(initialProperty.longitude)
+          ? String(initialProperty.longitude)
+          : "",
       category: initialProperty.category ?? "",
       description: initialProperty.description ?? "",
       developerId: initialProperty.developerId ?? "",
@@ -293,6 +432,18 @@ const AddPropertyForm = ({
       isSoldOut: Boolean(initialProperty.isSoldOut),
       documentOnProperty: [],
     }));
+    if (
+      typeof initialProperty.latitude === "number" &&
+      Number.isFinite(initialProperty.latitude) &&
+      typeof initialProperty.longitude === "number" &&
+      Number.isFinite(initialProperty.longitude)
+    ) {
+      setIsGeocoding(false);
+      setLocationCoordinates([
+        initialProperty.latitude,
+        initialProperty.longitude,
+      ]);
+    }
 
     const urlByPath = new Map<string, string>();
     const paths = Array.isArray(initialProperty.imagePaths)
@@ -541,6 +692,13 @@ const AddPropertyForm = ({
       clearTimeout(geocodeTimeoutRef.current);
     }
 
+    const lat = Number.parseFloat(formData.latitude);
+    const lng = Number.parseFloat(formData.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      setIsGeocoding(false);
+      return;
+    }
+
     // Only geocode if location is not empty
     if (!formData.location || formData.location.trim() === "") {
       return;
@@ -560,7 +718,15 @@ const AddPropertyForm = ({
         clearTimeout(geocodeTimeoutRef.current);
       }
     };
-  }, [formData.location]);
+  }, [formData.location, formData.latitude, formData.longitude]);
+
+  useEffect(() => {
+    const lat = Number.parseFloat(formData.latitude);
+    const lng = Number.parseFloat(formData.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      setLocationCoordinates([lat, lng]);
+    }
+  }, [formData.latitude, formData.longitude]);
 
   const handleSave = async () => {
     if (isSaving) return;
@@ -598,6 +764,14 @@ const AddPropertyForm = ({
       title: formData.title,
       price: parseFloat(formData.startingPrice || formData.price) || 0,
       location: formData.location,
+      latitude: (() => {
+        const lat = Number.parseFloat(formData.latitude);
+        return Number.isFinite(lat) ? lat : undefined;
+      })(),
+      longitude: (() => {
+        const lng = Number.parseFloat(formData.longitude);
+        return Number.isFinite(lng) ? lng : undefined;
+      })(),
       isSoldOut: formData.isSoldOut,
       category: formData.category,
       description: formData.description,
@@ -1066,6 +1240,79 @@ const AddPropertyForm = ({
                       placeholder="Enter the full location of the property"
                       className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
                     />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                        Latitude
+                      </label>
+                      <input
+                        type="text"
+                        name="latitude"
+                        value={formData.latitude}
+                        onChange={handleInputChange}
+                        onBlur={(e) =>
+                          normalizeSingleCoordinateField(
+                            "latitude",
+                            e.target.value,
+                          )
+                        }
+                        onPaste={(e) => {
+                          const text = e.clipboardData.getData("text");
+                          if (normalizeCoordinatesFromText(text)) {
+                            e.preventDefault();
+                            return;
+                          }
+                          if (
+                            normalizeSingleCoordinateField("latitude", text)
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                        placeholder="e.g. 6.5244"
+                        className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      />
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Paste decimal (6.714861) or degrees
+                        (6°42&apos;53.5&quot;N). You can also paste both:
+                        6.714861, 3.285667
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                        Longitude
+                      </label>
+                      <input
+                        type="text"
+                        name="longitude"
+                        value={formData.longitude}
+                        onChange={handleInputChange}
+                        onBlur={(e) =>
+                          normalizeSingleCoordinateField(
+                            "longitude",
+                            e.target.value,
+                          )
+                        }
+                        onPaste={(e) => {
+                          const text = e.clipboardData.getData("text");
+                          if (normalizeCoordinatesFromText(text)) {
+                            e.preventDefault();
+                            return;
+                          }
+                          if (
+                            normalizeSingleCoordinateField("longitude", text)
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                        placeholder="e.g. 3.3792"
+                        className="w-full px-3 py-2 sm:px-4 border border-[#F0F1F2] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6500AC] focus:border-transparent"
+                      />
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Paste decimal (3.285667) or degrees
+                        (3°17&apos;08.4&quot;E). West/South become negative.
+                      </p>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">

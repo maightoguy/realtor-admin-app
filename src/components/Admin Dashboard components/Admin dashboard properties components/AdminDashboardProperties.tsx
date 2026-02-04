@@ -191,6 +191,8 @@ interface Property {
   title: string;
   price: number;
   location: string;
+  latitude?: number;
+  longitude?: number;
   isSoldOut: boolean;
   category?: string;
   description?: string;
@@ -307,6 +309,18 @@ const AdminDashboardProperties = ({
       title: p.title,
       price: Number(p.price) || 0,
       location: p.location,
+      latitude:
+        typeof p.latitude === "number"
+          ? p.latitude
+          : p.latitude != null
+            ? Number(p.latitude)
+            : undefined,
+      longitude:
+        typeof p.longitude === "number"
+          ? p.longitude
+          : p.longitude != null
+            ? Number(p.longitude)
+            : undefined,
       isSoldOut: p.status === "sold",
       description: p.description ?? undefined,
       category: p.category ?? undefined,
@@ -815,6 +829,8 @@ const AdminDashboardProperties = ({
     title: string;
     price: number;
     location: string;
+    latitude?: number;
+    longitude?: number;
     isSoldOut: boolean;
     category?: string;
     description?: string;
@@ -881,6 +897,16 @@ const AdminDashboardProperties = ({
       await propertyService.create({
         title: newProperty.title,
         location: newProperty.location,
+        latitude:
+          typeof newProperty.latitude === "number" &&
+          Number.isFinite(newProperty.latitude)
+            ? newProperty.latitude
+            : null,
+        longitude:
+          typeof newProperty.longitude === "number" &&
+          Number.isFinite(newProperty.longitude)
+            ? newProperty.longitude
+            : null,
         price: newProperty.price,
         type,
         status,
@@ -937,6 +963,8 @@ const AdminDashboardProperties = ({
     title: string;
     price: number;
     location: string;
+    latitude?: number;
+    longitude?: number;
     isSoldOut: boolean;
     category?: string;
     description?: string;
@@ -1003,6 +1031,15 @@ const AdminDashboardProperties = ({
       const updatedDb = await propertyService.update(propertyId, {
         title: updated.title,
         location: updated.location,
+        latitude:
+          typeof updated.latitude === "number" && Number.isFinite(updated.latitude)
+            ? updated.latitude
+            : null,
+        longitude:
+          typeof updated.longitude === "number" &&
+          Number.isFinite(updated.longitude)
+            ? updated.longitude
+            : null,
         price: updated.price,
         type,
         status,
@@ -1249,6 +1286,8 @@ const AdminDashboardProperties = ({
                   title: editingProperty.title,
                   price: editingProperty.price,
                   location: editingProperty.location,
+                  latitude: editingProperty.latitude,
+                  longitude: editingProperty.longitude,
                   category: editingProperty.category,
                   description: editingProperty.description,
                   commissionPercent: editingProperty.commissionPercent,

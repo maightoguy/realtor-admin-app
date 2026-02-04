@@ -21,6 +21,8 @@ interface Property {
   title: string;
   price: number;
   location: string;
+  latitude?: number;
+  longitude?: number;
   isSoldOut: boolean;
   category?: string;
   description?: string;
@@ -136,6 +138,18 @@ const AdminPropertyDetails = ({
 
   // Geocode location on mount
   useEffect(() => {
+    const lat = property.latitude;
+    const lng = property.longitude;
+    if (
+      typeof lat === "number" &&
+      Number.isFinite(lat) &&
+      typeof lng === "number" &&
+      Number.isFinite(lng)
+    ) {
+      setLocationCoordinates([lat, lng]);
+      return;
+    }
+
     if (property.location) {
       geocodeLocation(property.location).then((coordinates) => {
         if (coordinates) {
@@ -143,7 +157,7 @@ const AdminPropertyDetails = ({
         }
       });
     }
-  }, [property.location]);
+  }, [property.location, property.latitude, property.longitude]);
 
   const getFallbackSalesChartData = useCallback((): number[] => {
     const developer =
