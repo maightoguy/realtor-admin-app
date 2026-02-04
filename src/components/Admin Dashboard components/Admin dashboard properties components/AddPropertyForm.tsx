@@ -1449,7 +1449,7 @@ const AddPropertyForm = ({
                       <h3 className="text-base sm:text-xl font-semibold text-gray-900 mb-3">
                         About this Property
                       </h3>
-                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed break-words">
+                      <p className="text-sm sm:text-base text-gray-600 leading-relaxed whitespace-pre-wrap break-words">
                         {formData.description}
                       </p>
                     </div>

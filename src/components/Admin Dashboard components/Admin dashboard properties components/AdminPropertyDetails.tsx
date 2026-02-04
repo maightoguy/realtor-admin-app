@@ -511,7 +511,7 @@ const AdminPropertyDetails = ({
               <h3 className="text-xl font-semibold text-gray-900 mb-3">
                 About this Property
               </h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-gray-600 leading-relaxed whitespace-pre-wrap break-words">
                 {propertyDetails.description}
               </p>
             </div>
