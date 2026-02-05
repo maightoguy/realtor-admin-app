@@ -1574,12 +1574,50 @@ export const referralService = {
     const realtorIds = realtors.map((r) => r.id);
     if (realtorIds.length === 0) return [];
 
-    const { data: recruitRows, error: recruitErr } = await supabase
-      .from("users")
-      .select("id,referred_by")
-      .in("referred_by", realtorIds)
-      .limit(10000);
-    if (recruitErr) throw recruitErr;
+    const chunkByMaxChars = (values: string[], maxChars: number) => {
+      const chunks: string[][] = [];
+      let current: string[] = [];
+      let currentLen = 0;
+      for (const value of values) {
+        const nextLen = (current.length === 0 ? 0 : 1) + value.length;
+        if (current.length > 0 && currentLen + nextLen > maxChars) {
+          chunks.push(current);
+          current = [value];
+          currentLen = value.length;
+          continue;
+        }
+        current.push(value);
+        currentLen += nextLen;
+      }
+      if (current.length > 0) chunks.push(current);
+      return chunks;
+    };
+
+    const fetchAllUsersReferredBy = async (uplineIds: string[]) => {
+      if (uplineIds.length === 0) return [];
+      const chunks = chunkByMaxChars(uplineIds, 1400);
+      const all: Array<{ id: string; referred_by: string | null }> = [];
+      const pageSize = 10000;
+      for (const chunk of chunks) {
+        let offset = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from("users")
+            .select("id,referred_by")
+            .in("referred_by", chunk)
+            .range(offset, offset + pageSize - 1);
+          if (error) throw error;
+          const page = (data ?? []) as Array<{ id: string; referred_by: string | null }>;
+          all.push(...page);
+          if (page.length < pageSize) break;
+          offset += pageSize;
+          if (offset > 200000) break;
+        }
+      }
+      return all;
+    };
+
+    const recruitRows = await fetchAllUsersReferredBy(realtorIds);
 
     const recruitToUpline = new Map<string, string>();
     const recruitsByUpline = new Map<string, string[]>();
@@ -1597,14 +1635,27 @@ export const referralService = {
     const commissionsByUpline = new Map<string, number>();
 
     if (realtorIds.length > 0) {
-      const { data: commissionRows, error: commissionErr } = await supabase
-        .from("commissions")
-        .select("realtor_id,amount,status,commission_type")
-        .in("realtor_id", realtorIds)
-        .eq("commission_type", "referral")
-        .in("status", commissionStatuses)
-        .limit(50000);
-      if (commissionErr) throw commissionErr;
+      const chunks = chunkByMaxChars(realtorIds, 1400);
+      const commissionRows: Array<{ realtor_id: string | null; amount: number | string }> = [];
+      const pageSize = 10000;
+      for (const chunk of chunks) {
+        let offset = 0;
+        while (true) {
+          const { data, error } = await supabase
+            .from("commissions")
+            .select("realtor_id,amount,status,commission_type")
+            .in("realtor_id", chunk)
+            .eq("commission_type", "referral")
+            .in("status", commissionStatuses)
+            .range(offset, offset + pageSize - 1);
+          if (error) throw error;
+          const page = (data ?? []) as Array<{ realtor_id: string | null; amount: number | string }>;
+          commissionRows.push(...page);
+          if (page.length < pageSize) break;
+          offset += pageSize;
+          if (offset > 200000) break;
+        }
+      }
 
       for (const row of (commissionRows ?? []) as Array<{
         realtor_id: string | null;
