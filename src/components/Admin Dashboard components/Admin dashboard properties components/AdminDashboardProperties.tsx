@@ -19,6 +19,7 @@ import {
   propertyMediaService,
   propertyService,
 } from "../../../services/apiService";
+import { authManager } from "../../../services/authManager";
 import Loader from "../../Loader.tsx";
 import type {
   Developer,
@@ -185,6 +186,101 @@ const RemoveDeveloperModal = ({
   );
 };
 
+interface DeletePropertyModalProps {
+  isOpen: boolean;
+  propertyTitle: string;
+  isDeleting: boolean;
+  error: string | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+const DeletePropertyModal = ({
+  isOpen,
+  propertyTitle,
+  isDeleting,
+  error,
+  onClose,
+  onConfirm,
+}: DeletePropertyModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="flex items-center justify-between p-6 border-b border-[#EAECF0]">
+          <div className="flex flex-col items-start gap-3">
+            <div className="w-8 h-8 bg-[#FEE2E2] rounded-lg flex items-center justify-center">
+              <Trash2 className="w-4 h-4 text-[#DC2626]" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#0A1B39]">
+              Delete property
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#9CA1AA] hover:text-[#667085] transition-colors"
+            disabled={isDeleting}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <p className="text-[#667085] text-sm leading-relaxed">
+            You are about to permanently delete{" "}
+            <span className="text-[#0A1B39] font-medium">{propertyTitle}</span>.
+          </p>
+
+          <ul className="space-y-2 text-[#667085] text-sm">
+            <li className="flex items-start gap-2">
+              <span className="text-[#DC2626] mt-1">•</span>
+              <span>This action cannot be undone.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#DC2626] mt-1">•</span>
+              <span>Favorites pointing to this property will be removed.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#DC2626] mt-1">•</span>
+              <span>
+                Receipts will remain, but the property reference will be
+                cleared.
+              </span>
+            </li>
+          </ul>
+
+          {error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex justify-end gap-3 p-6 border-t border-[#EAECF0]">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isDeleting}
+            className="px-4 py-2 border border-[#D0D5DD] rounded-lg text-sm font-semibold text-[#344054] hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="px-4 py-2 bg-[#DC2626] text-white rounded-lg text-sm font-semibold hover:bg-[#B91C1C] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isDeleting ? "Deleting..." : "Proceed"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface Property {
   id: string;
   image: string;
@@ -230,6 +326,15 @@ const AdminDashboardProperties = ({
   const [developersSearchInput, setDevelopersSearchInput] = useState("");
   const [developersSearchQuery, setDevelopersSearchQuery] = useState("");
   const [isLoadingProperties, setIsLoadingProperties] = useState(false);
+  const [isDeletingProperty, setIsDeletingProperty] = useState(false);
+  const [propertyToDelete, setPropertyToDelete] = useState<Property | null>(
+    null,
+  );
+  const [isDeletePropertyModalOpen, setIsDeletePropertyModalOpen] =
+    useState(false);
+  const [deletePropertyError, setDeletePropertyError] = useState<string | null>(
+    null,
+  );
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
   const [hasFetchedPropertiesOnce, setHasFetchedPropertiesOnce] =
     useState(false);
@@ -717,6 +822,63 @@ const AdminDashboardProperties = ({
     }
   };
 
+  const handleRequestDeleteProperty = (propertyId: string) => {
+    const user = authManager.getUser();
+    if (!user || user.role !== "admin") {
+      return;
+    }
+    const property =
+      properties.find((p) => p.id === propertyId) ??
+      (selectedProperty?.id === propertyId ? selectedProperty : null);
+    if (!property) return;
+    setPropertyToDelete(property);
+    setDeletePropertyError(null);
+    setIsDeletePropertyModalOpen(true);
+  };
+
+  const handleCloseDeletePropertyModal = () => {
+    setIsDeletePropertyModalOpen(false);
+    setPropertyToDelete(null);
+    setDeletePropertyError(null);
+  };
+
+  const handleConfirmDeleteProperty = async () => {
+    const user = authManager.getUser();
+    if (!user || user.role !== "admin") {
+      setDeletePropertyError("Access denied: Admin privileges required.");
+      return;
+    }
+    if (!propertyToDelete) return;
+
+    setIsDeletingProperty(true);
+    try {
+      logger.info("[ADMIN][PROPERTIES] Delete start", {
+        propertyId: propertyToDelete.id,
+      });
+      await propertyService.delete(propertyToDelete.id);
+      setProperties((prev) => prev.filter((p) => p.id !== propertyToDelete.id));
+      setSelectedProperty((prev) =>
+        prev?.id === propertyToDelete.id ? null : prev,
+      );
+      setIsDeletePropertyModalOpen(false);
+      setPropertyToDelete(null);
+      setDeletePropertyError(null);
+      refreshMetrics().catch(() => undefined);
+      logger.info("[ADMIN][PROPERTIES] Delete success", {
+        propertyId: propertyToDelete.id,
+      });
+    } catch (e: unknown) {
+      const message = toUserErrorMessage(e, "Failed to delete property");
+      logger.error("[ADMIN][PROPERTIES] Delete failed", {
+        propertyId: propertyToDelete.id,
+        message,
+      });
+      setDeletePropertyError(message);
+    } finally {
+      setIsDeletingProperty(false);
+    }
+  };
+
   const handleViewDeveloperDetails = (developerId: string) => {
     // Find and set the selected developer
     const developer = developers.find((d) => d.id === developerId);
@@ -1032,7 +1194,8 @@ const AdminDashboardProperties = ({
         title: updated.title,
         location: updated.location,
         latitude:
-          typeof updated.latitude === "number" && Number.isFinite(updated.latitude)
+          typeof updated.latitude === "number" &&
+          Number.isFinite(updated.latitude)
             ? updated.latitude
             : null,
         longitude:
@@ -1166,6 +1329,7 @@ const AdminDashboardProperties = ({
   return (
     <div className="p-6 bg-[#FCFCFC]">
       <Loader isOpen={isLoadingProperties} text="Loading properties..." />
+      <Loader isOpen={isDeletingProperty} text="Deleting property..." />
       {/* Property Details Section - Shows when a property is selected */}
       {!showAddForm && selectedProperty && (
         <div className="-mx-6 sm:mx-0">
@@ -1175,6 +1339,7 @@ const AdminDashboardProperties = ({
             onBack={handleBackFromPropertyDetails}
             onEdit={handleEditProperty}
             onMarkSoldOut={handleMarkSoldOut}
+            onDelete={handleRequestDeleteProperty}
           />
         </div>
       )}
@@ -1422,6 +1587,16 @@ const AdminDashboardProperties = ({
         error={removeDeveloperError}
         onClose={handleCloseRemoveDeveloperModal}
         onConfirm={handleConfirmRemoveDeveloper}
+      />
+
+      {/* Delete Property Modal */}
+      <DeletePropertyModal
+        isOpen={isDeletePropertyModalOpen}
+        propertyTitle={propertyToDelete?.title ?? ""}
+        isDeleting={isDeletingProperty}
+        error={deletePropertyError}
+        onClose={handleCloseDeletePropertyModal}
+        onConfirm={handleConfirmDeleteProperty}
       />
 
       {/* Content based on active tab */}

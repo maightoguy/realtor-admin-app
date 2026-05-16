@@ -13,6 +13,7 @@ import {
   propertyMediaService,
   receiptService,
 } from "../../../services/apiService";
+import { authManager } from "../../../services/authManager";
 import type { Developer } from "../../../services/types";
 
 interface Property {
@@ -43,6 +44,7 @@ interface AdminPropertyDetailsProps {
   onBack: () => void;
   onEdit?: (propertyId: string) => void;
   onMarkSoldOut?: (propertyId: string) => void;
+  onDelete?: (propertyId: string) => void;
 }
 
 const AdminPropertyDetails = ({
@@ -51,9 +53,10 @@ const AdminPropertyDetails = ({
   onBack,
   onEdit,
   onMarkSoldOut,
+  onDelete,
 }: AdminPropertyDetailsProps) => {
   const [activeTab, setActiveTab] = useState<"Property Info" | "Statistics">(
-    "Property Info"
+    "Property Info",
   );
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
@@ -68,14 +71,21 @@ const AdminPropertyDetails = ({
     totalRejected: number;
   }>({ totalUploaded: 0, totalApproved: 0, totalRejected: 0 });
   const [salesChartData, setSalesChartData] = useState<number[]>(
-    Array.from({ length: 12 }, () => 0)
+    Array.from({ length: 12 }, () => 0),
   );
   const [isStatsLoading, setIsStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
 
+  const canDeleteProperty = authManager.getUser()?.role === "admin";
+
+  const handleDeleteProperty = () => {
+    if (!canDeleteProperty) return;
+    onDelete?.(property.id);
+  };
+
   const idSeed = Array.from(property.id).reduce(
     (acc, ch) => acc + ch.charCodeAt(0),
-    0
+    0,
   );
 
   const propertyImagesList =
@@ -94,7 +104,7 @@ const AdminPropertyDetails = ({
 
   // Geocoding function to convert location name to coordinates
   const geocodeLocation = async (
-    locationName: string
+    locationName: string,
   ): Promise<[number, number] | null> => {
     if (!locationName || locationName.trim() === "") {
       return null;
@@ -104,13 +114,13 @@ const AdminPropertyDetails = ({
       setIsGeocoding(true);
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          locationName
+          locationName,
         )}&limit=1`,
         {
           headers: {
             "User-Agent": "RealtorAdminApp/1.0",
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -220,10 +230,10 @@ const AdminPropertyDetails = ({
 
         const totalUploaded = receipts.length;
         const totalApproved = receipts.filter(
-          (receipt) => receipt.status === "approved"
+          (receipt) => receipt.status === "approved",
         ).length;
         const totalRejected = receipts.filter(
-          (receipt) => receipt.status === "rejected"
+          (receipt) => receipt.status === "rejected",
         ).length;
 
         setReceiptStats({
@@ -249,7 +259,7 @@ const AdminPropertyDetails = ({
 
         const hasAnySales = monthlyTotals.some((value) => value > 0);
         setSalesChartData(
-          hasAnySales ? monthlyTotals : getFallbackSalesChartData()
+          hasAnySales ? monthlyTotals : getFallbackSalesChartData(),
         );
       } catch (error) {
         const message =
@@ -777,6 +787,15 @@ const AdminPropertyDetails = ({
               >
                 {property.isSoldOut ? "Mark as available" : "Mark as sold-out"}
               </button>
+              {onDelete && canDeleteProperty && (
+                <button
+                  type="button"
+                  onClick={handleDeleteProperty}
+                  className="w-full bg-white border-2 border-red-600 text-red-600 py-3 px-4 rounded-lg font-semibold hover:bg-red-50 transition-colors"
+                >
+                  Delete property
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -916,8 +935,8 @@ const AdminPropertyDetails = ({
             maxValue === 0
               ? 1
               : maxValue < 1000000
-              ? Math.ceil(maxValue / 1000) * 1000
-              : Math.ceil(maxValue / 1000000) * 1000000;
+                ? Math.ceil(maxValue / 1000) * 1000
+                : Math.ceil(maxValue / 1000000) * 1000000;
 
           // Get current month index (0-based, where 0 = Jan)
           const currentDate = new Date();

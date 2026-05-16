@@ -547,6 +547,12 @@ export const propertyService = {
 
   async delete(id: string): Promise<void> {
     logger.info("[API][properties] delete start", { id });
+    const { data: sessionData } = await getSupabaseClient().auth.getSession();
+    const sessionUserId = sessionData.session?.user?.id ?? null;
+    logger.info("[API][properties] delete auth", { id, sessionUserId });
+    if (!sessionUserId) {
+      throw new Error("Not authenticated. Please log in again.");
+    }
     const { error } = await getSupabaseClient()
       .from("properties")
       .delete()
